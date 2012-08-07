@@ -1,0 +1,885 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">
+<script:module xmlns:script="http://openoffice.org/2000/script" script:name="Misc" script:language="StarBasic">&apos;****************************************************************************
+&apos; eLAIX   : Writing ILIAS learning modules offline with OpenOffice.org Writer
+&apos; Author  : Harry Boldt - h.boldt@boldt-media.de - http://elaix.org
+&apos; License : GPL
+&apos;****************************************************************************
+
+&apos; This module is part of eLAIX. You can redistribute it and/or
+&apos; modify it under the terms of the GNU Lesser General Public
+&apos; License as published by the Free Software Foundation, either
+&apos; version 3 of the License, or (at your option) any later version.
+&apos; 
+&apos; This program is distributed in the hope that it will be useful,
+&apos; but WITHOUT ANY WARRANTY; without even the implied warranty of
+&apos; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+&apos; Lesser General Public License for more details.
+&apos; 
+&apos; You should have received a copy of the GNU Lesser General Public
+&apos; License along with this program. If not, please visit the Free
+&apos; Software Foundation website at http://www.gnu.org/licenses/.
+
+
+Function GetSaveAsFileName(FilterNames() As String, DefaultName As String, DisplayDirectory As String, Optional iAddProcedure As Integer) As String
+Dim NoArgs() As New com.sun.star.beans.PropertyValue
+Dim oStoreProperties(0) As New com.sun.star.beans.PropertyValue
+Dim oStoreDialog As Object
+Dim iAccept As Integer
+Dim ListAny(0) As Long
+
+	ListAny(0) = com.sun.star.ui.dialogs.TemplateDescription.FILESAVE_AUTOEXTENSION_PASSWORD
+	oStoreDialog = CreateUnoService(&quot;com.sun.star.ui.dialogs.FilePicker&quot;)
+	oStoreDialog.Initialize(ListAny())
+	AddFiltersToDialog(FilterNames(), oStoreDialog)
+	oStoreDialog.SetDisplayDirectory(DisplayDirectory)
+	oStoreDialog.SetDefaultName(DefaultName)
+	oStoreDialog.setValue(com.sun.star.ui.dialogs.ExtendedFilePickerElementIds.CHECKBOX_AUTOEXTENSION,0, true)
+
+	iAccept = oStoreDialog.Execute()
+	If iAccept = 1 Then
+		GetSaveAsFileName() = oStoreDialog.Files(0)
+	else
+		GetSaveAsFileName() = &quot;&quot;
+	end if	
+	oStoreDialog.dispose()
+End Function
+
+
+Function GetOpenFileName(FilterNames()) As String
+  Dim oFileDialog as Object
+  Dim iAccept as Integer
+  Dim sPath as String
+  Dim InitPath as String
+  Dim RefControlName as String
+  Dim oUcb as object
+  Dim ListAny(0)
+  &apos;Note: The following services must be called in the following order,
+  &apos; otherwise the FileDialog Service is not removed.
+  oFileDialog = CreateUnoService(&quot;com.sun.star.ui.dialogs.FilePicker&quot;)
+  oUcb = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)
+  ListAny(0) = com.sun.star.ui.dialogs.TemplateDescription.FILEOPEN_LINK_PREVIEW
+  oFileDialog.initialize(ListAny())
+  &apos;oFileDialog.setValue(CHECKBOX_PREVIEW, SET_SELECT_ITEM, true)
+  oFileDialog.setValue(105, 5, true)
+  AddFiltersToDialog(FilterNames(), oFileDialog)
+  If gsOpenFileDir = &quot;&quot; Then
+    InitPath = DirectoryNameOutOfPath(thisComponent.Location, &quot;/&quot;)
+  else
+    InitPath = gsOpenFileDir
+  End If
+  If oUcb.Exists(InitPath) Then
+    oFileDialog.SetDisplayDirectory(InitPath)
+  End If
+  iAccept = oFileDialog.Execute()
+  &apos;xRay oFileDialog
+  If iAccept = 1 Then
+    sPath = oFileDialog.Files(0)
+    GetOpenFileName = ConvertToURL(sPath)
+    gsOpenFileDir = oFileDialog.DisplayDirectory
+    &apos;If oUcb.Exists(sPath) Then
+    &apos; oRefModel.Text = ConvertFromUrl(sPath)
+    &apos;End If
+  End If
+  oFileDialog.Dispose()
+End Function
+
+
+Function GetOpenFileNames(FilterNames())
+  Dim oFileDialog as Object
+  Dim iAccept as Integer
+  Dim sPath as String
+  Dim InitPath as String
+  Dim RefControlName as String
+  Dim oUcb as object
+  Dim ListAny(0)
+  dim aFilenames()
+  
+  &apos;Note: The following services must be called in the following order, otherwise the FileDialog Service is not removed.
+  oFileDialog = CreateUnoService(&quot;com.sun.star.ui.dialogs.FilePicker&quot;)
+  oUcb = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)
+  ListAny(0) = com.sun.star.ui.dialogs.TemplateDescription.FILEOPEN_LINK_PREVIEW
+  oFileDialog.initialize(ListAny())
+  oFileDialog.setMultiSelectionMode(True) 
+  oFileDialog.setValue(105, 5, true)
+  AddFiltersToDialog(FilterNames(), oFileDialog)
+  If gsOpenFileDir = &quot;&quot; Then
+    InitPath = DirectoryNameOutOfPath(thisComponent.Location, &quot;/&quot;)
+  else
+    InitPath = gsOpenFileDir
+  End If
+  If oUcb.Exists(InitPath) Then
+    oFileDialog.SetDisplayDirectory(InitPath)
+  End If
+  If oFileDialog.Execute() = 1 Then
+    aFilenames = oFileDialog.Files()
+    gsOpenFileDir = oFileDialog.DisplayDirectory
+  End If
+  oFileDialog.Dispose()
+  GetOpenFileNames = aFilenames
+End Function
+
+
+Sub AddFiltersToDialog(FilterNames() as String, oDialog as Object)
+Dim i as Integer
+Dim MaxIndex as Integer
+Dim ViewFiltername as String
+Dim oProdNameAccess as Object
+Dim sProdName as String
+	oProdNameAccess = GetRegistryKeyContent(&quot;org.openoffice.Setup/Product&quot;)
+	sProdName = oProdNameAccess.getByName(&quot;ooName&quot;)
+	MaxIndex = Ubound(FilterNames(), 1)
+	For i = 0 To MaxIndex
+		Filternames(i) = ReplaceString(Filternames(i), sProdName,&quot;%productname%&quot;)
+		oDialog.AppendFilter(FilterNames(i), FilterNames(i))
+	Next i
+	oDialog.SetCurrentFilter(FilterNames(0)
+End Sub
+
+
+function FolderExists(sFolder as string) as boolean
+dim oDocInfo as object
+dim oUcbObject as object
+  oDocInfo = CreateUnoService(&quot;com.sun.star.document.DocumentProperties&quot;)
+  oUcbObject = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)
+  FolderExists = oUcbObject.Exists(sFolder)
+end function	
+
+
+function GetStringWithoutLeadingNo(psString) as String
+dim vPos as integer
+dim vChar as string
+dim vGoOn as boolean
+
+  vPos = 1
+  vGoOn = true
+  while vGoOn
+    vChar = Mid(psString, vPos, 1)
+    if isNumeric(vChar) or (vChar = &quot;.&quot;) then
+      vPos = vPos + 1
+    else
+      vGoOn = false  
+    end if
+  wend
+  GetStringWithoutLeadingNo = mid(psString, vPos)
+end function
+
+
+Function GetRegistryKeyContent(sKeyName as string, Optional bforUpdate as Boolean)
+Dim oConfigProvider as Object
+Dim aNodePath(0) as new com.sun.star.beans.PropertyValue
+	oConfigProvider = createUnoService(&quot;com.sun.star.configuration.ConfigurationProvider&quot;)
+	aNodePath(0).Name = &quot;nodepath&quot;
+	aNodePath(0).Value = sKeyName
+	If IsMissing(bForUpdate) Then
+		GetRegistryKeyContent() = oConfigProvider.createInstanceWithArguments(&quot;com.sun.star.configuration.ConfigurationAccess&quot;, aNodePath())
+	Else
+		If bForUpdate Then
+			GetRegistryKeyContent() = oConfigProvider.createInstanceWithArguments(&quot;com.sun.star.configuration.ConfigurationUpdateAccess&quot;, aNodePath())
+		Else
+			GetRegistryKeyContent() = oConfigProvider.createInstanceWithArguments(&quot;com.sun.star.configuration.ConfigurationAccess&quot;, aNodePath())
+		End If
+	End If
+End Function
+
+
+Function ReplaceSymbols(psString) as string
+  &apos; this function replaces special characters in standard paragraphs
+  psString = ReplaceString(psString, &quot;&amp;amp;amp;&quot;, &quot;&amp;&quot;) &apos;&amp;amp;  &amp;#38;  Ampersand  U+0026  
+  psString = ReplaceString(psString, &quot;&amp;amp;amp;lt;&quot;, &quot;&lt;&quot;) &apos;&amp;lt;  &amp;#60;  weniger als  U+003C  
+  psString = ReplaceString(psString, &quot;&amp;amp;amp;gt;&quot;, &quot;&gt;&quot;) &apos;&amp;gt;  &amp;#62;  mehr als  U+003E  
+  psString = ReplaceString(psString, &quot;&amp;amp;apos;&quot;, &quot;&apos;&quot;) &apos;&amp;amp;  &amp;#38;  Apostroph  U+0026  
+  psString = ReplaceString(psString, &quot;&amp;amp;lt;br/&amp;amp;gt;&quot;, gsLF) &apos;LF = chr(10)
+  ReplaceSymbols = psString
+end function
+
+
+function ReplaceSymbolsMetadata(psString) as string
+  &apos; this function replaces special characters in metadata
+  psString = ReplaceString(psString, &quot;&amp;amp;&quot;, &quot;&amp;&quot;) &apos;&amp;amp;  &amp;#38;  Ampersand  U+0026
+  psString = ReplaceString(psString, &quot;&amp;lt;&quot;, &quot;&lt;&quot;) &apos;&amp;lt;  &amp;#60;  weniger als  U+003C  
+  psString = ReplaceString(psString, &quot;&amp;gt;&quot;, &quot;&gt;&quot;) &apos;&amp;gt;  &amp;#62;  mehr als  U+003E
+  ReplaceSymbolsMetadata = psString
+end function
+
+
+function ReplaceSymbolsHeading(psString) as string
+  &apos; this function replaces special characters in metadata
+  psString = ReplaceString(psString, &quot;&amp;amp;&quot;, &quot;&amp;&quot;) &apos;&amp;amp;  &amp;#38;  Ampersand  U+0026
+  psString = ReplaceString(psString, &quot;&amp;lt;&quot;, &quot;&lt;&quot;) &apos;&amp;lt;  &amp;#60;  weniger als  U+003C  
+  psString = ReplaceString(psString, &quot;&amp;gt;&quot;, &quot;&gt;&quot;) &apos;&amp;gt;  &amp;#62;  mehr als  U+003E
+  psString = ReplaceString(psString, &quot;&amp;apos;&quot;, &quot;&apos;&quot;) &apos;&amp;amp;  &amp;#38;  Apostroph  U+0026  
+  psString = ReplaceString(psString, &quot;&amp;quot;&quot;, &quot;&quot;&quot;&quot;) 
+  ReplaceSymbolsHeading = psString
+end function
+
+
+function ReplaceSymbolsFootnote(psString) as string
+  &apos; this function replaces special characters in footnotes
+  psString = ReplaceString(psString, &quot;&amp;amp;amp;&quot;, &quot;&amp;&quot;) &apos;&amp;amp;  &amp;#38;  Ampersand  U+0026  
+  psString = ReplaceString(psString, &quot;&amp;amp;amp;lt;&quot;, &quot;&lt;&quot;) &apos;&amp;lt;  &amp;#60;  weniger als  U+003C  
+  psString = ReplaceString(psString, &quot;&amp;amp;amp;gt;&quot;, &quot;&gt;&quot;) &apos;&amp;gt;  &amp;#62;  mehr als  U+003E  
+  psString = ReplaceString(psString, &quot;&amp;amp;apos;&quot;, &quot;&apos;&quot;) &apos;&amp;amp;  &amp;#38;  Apostroph  U+0026  
+  psString = ReplaceString(psString, &quot;&amp;amp;lt;br/&amp;amp;gt;&quot;, gsLF) &apos;LF = chr(10)
+  ReplaceSymbolsFootnote = psString
+end function
+
+function ReplaceSymbolsCode(psString) as string
+dim vSpace as string
+
+  vSpace = Chr(160)
+  &apos; this function replaces special characters in Code formatted paragraphs
+  psString = ReplaceString(psString, &quot;&quot;, vSpace  ) 
+  psString = ReplaceString(psString, &quot;&amp;amp;amp;&quot;, &quot;&amp;&quot;  ) &apos;&amp;amp;  &amp;#38;  Ampersand  U+0026
+  psString = ReplaceString(psString, &quot;&amp;lt;&quot;, &quot;&lt;&quot;  ) &apos;&amp;lt;  &amp;#60;  weniger als  U+003C  
+  psString = ReplaceString(psString, &quot;&amp;gt;&quot;, &quot;&gt;&quot;  ) &apos;&amp;gt;  &amp;#62;  mehr als  U+003E
+  psString = ReplaceString(psString, &quot;&lt;br/&gt;&quot;, gsLF  ) &apos;LF = chr(10)
+  ReplaceSymbolsCode = psString
+end function
+
+
+function ReplaceHTMLToUmlaut(psString) as string
+  psString = ReplaceString(psString, &quot;ä&quot;, &quot;&amp;auml;&quot; ) 
+  psString = ReplaceString(psString, &quot;Ä&quot;, &quot;&amp;Auml;&quot;  ) 
+  psString = ReplaceString(psString, &quot;ü&quot;, &quot;&amp;uuml;&quot;  ) 
+  psString = ReplaceString(psString, &quot;Ü&quot;, &quot;&amp;Uuml;&quot;  ) 
+  psString = ReplaceString(psString, &quot;ö&quot;, &quot;&amp;ouml;&quot;  ) 
+  psString = ReplaceString(psString, &quot;Ö&quot;, &quot;&amp;Ouml;&quot;  ) 
+  psString = ReplaceString(psString, &quot;ß&quot;, &quot;&amp;szlig;&quot;  )
+  ReplaceHTMLToUmlaut = psString
+end function
+
+
+function GetCleanFilename(sFilename as string) as string
+dim i as integer
+dim iCount as integer
+dim sChar as string
+dim sClean as string
+
+	sClean = &quot;&quot;
+	iCount = len(sFilename)
+	for i = 1 to iCount
+		sChar = mid(sFilename, i, 1)
+		select case sChar
+			case &quot;ä&quot;: sClean = sClean &amp; &quot;ae&quot;
+			case &quot;Ä&quot;: sClean = sClean &amp; &quot;ae&quot;
+			case &quot;ö&quot;: sClean = sClean &amp; &quot;oe&quot;
+			case &quot;Ö&quot;: sClean = sClean &amp; &quot;oe&quot;
+			case &quot;ü&quot;: sClean = sClean &amp; &quot;ue&quot;
+			case &quot;Ü&quot;: sClean = sClean &amp; &quot;ue&quot;
+			case &quot;ß&quot;: sClean = sClean &amp; &quot;ss&quot;
+			case &quot; &quot;: sClean = sClean &amp; &quot;_&quot;
+		case else
+			sClean = sClean &amp; sChar
+		end select
+	next i
+	GetCleanFilename = lcase(sClean)
+end function
+
+
+function ReplaceTexString(sString) as string
+  sString = ReplaceString(sString, &quot;&amp;lt;&quot;, &quot;&lt;&quot;) &apos;&amp;lt;  &amp;#60;  weniger als  U+003C  
+  sString = ReplaceString(sString, &quot;&amp;gt;&quot;, &quot;&gt;&quot;) &apos;&amp;gt;  &amp;#62;  mehr als  U+003E
+  ReplaceTexString = sString
+end function
+
+
+Function GetFilesInDirectory(ADirectory)
+dim oSimpleFileAccess as object
+dim vFiles()
+On Error Goto ErrorHandler
+
+  oSimpleFileAccess = createUnoService( &quot;com.sun.star.ucb.SimpleFileAccess&quot; ) 
+  vFiles = oSimpleFileAccess.getFolderContents( ADirectory, False ) &apos;true/false = with/without folder
+  
+  ErrorHandler:
+  GetFilesInDirectory = vFiles()
+  
+End Function
+
+
+Sub SwitchMousePointer(oWindowPeer as Object, bDoEnable as Boolean)
+Dim oWindowPointer as Object
+	oWindowPointer = CreateUnoService(&quot;com.sun.star.awt.Pointer&quot;)
+	If bDoEnable Then
+		oWindowPointer.SetType(com.sun.star.awt.SystemPointer.ARROW)
+	Else
+		oWindowPointer.SetType(com.sun.star.awt.SystemPointer.WAIT)
+	End If
+	oWindowPeer.SetPointer(oWindowPointer)
+End Sub
+
+
+Function LoadDialog(Libname as String, DialogName as String, Optional oLibContainer)
+Dim oLib as Object
+Dim oLibDialog as Object
+Dim oRuntimeDialog as Object
+  If IsMissing(oLibContainer ) then
+    oLibContainer = DialogLibraries
+  End If
+  oLibContainer.LoadLibrary(LibName)
+  oLib = oLibContainer.GetByName(Libname)
+  oLibDialog = oLib.GetByName(DialogName)
+  oRuntimeDialog = CreateUnoDialog(oLibDialog)
+  LoadDialog() = oRuntimeDialog
+End Function
+
+
+function DeleteWriterGraphic( sGraphicName as string ) as boolean
+dim oText as object
+dim oGraphics As object
+dim oGraphic As object
+dim iGraphicCount as integer
+dim i as integer
+
+   &apos;Get the graphic object   
+    oGraphics = ThisComponent.getGraphicObjects()
+   iGraphicCount = oGraphics.getCount()
+   For i = 0 To iGraphicCount - 1
+      oGraphic = oGraphics.getByIndex( i )
+      if oGraphic.Name = sGraphicName then
+         &apos; Get the text object, that provides the removeTextContent method.
+         oText = ThisComponent.getText()
+         oText.removeTextContent( oGraphic )
+         oGraphic.dispose()
+         ThisComponent.reformat()
+         DeleteWriterGraphic = true
+         exit function    
+      end if
+    next i
+   DeleteWriterGraphic = false
+end function
+
+sub DeleteWriterObject( oObject as object )
+dim oText as object
+	oText = ThisComponent.getText()
+	oText.removeTextContent( oObject )
+	oObject.dispose()
+	ThisComponent.reformat()
+end sub
+
+
+
+
+&apos;*********************************************************************************
+&apos; String Routines
+&apos; these functions are part of the library [soffice].Tools
+&apos;*********************************************************************************
+
+
+&apos; Finds a PartString, that is framed by the Strings &apos;Prestring&apos; and &apos;PostString&apos;
+Function FindPartString(BigString, PreString, PostString as String, SearchPos as Integer) as String
+Dim StartPos%, EndPos%
+Dim BigLen%, PreLen%, PostLen%
+	StartPos = Instr(SearchPos,BigString,PreString)
+	If StartPos &lt;&gt; 0 Then
+		PreLen = Len(PreString)
+		EndPos = Instr(StartPos + PreLen,BigString,PostString)
+		If EndPos &lt;&gt; 0 Then
+			BigLen = Len(BigString)
+			PostLen = Len(PostString)
+			FindPartString = Mid(BigString,StartPos + PreLen, EndPos - (StartPos + PreLen))
+			SearchPos = EndPos + PostLen
+		Else
+			Msgbox(&quot;No final tag for &apos;&quot; &amp; PreString &amp; &quot;&apos; existing&quot;, 16, GetProductName())
+			FindPartString = &quot;&quot;
+		End If
+	Else
+		FindPartString = &quot;&quot;
+	End If
+End Function
+
+
+&apos; Deletes the String &apos;SmallString&apos; out of the String &apos;BigString&apos;
+&apos; in case SmallString&apos;s Position in BigString is right at the end
+Function RTrimStr(ByVal BigString, SmallString as String) as String
+Dim SmallLen as Integer
+Dim BigLen as Integer
+	SmallLen = Len(SmallString)
+	BigLen = Len(BigString)
+	If Instr(1,BigString, SmallString) &lt;&gt; 0 Then
+		If Mid(BigString,BigLen + 1 - SmallLen, SmallLen) = SmallString Then
+			RTrimStr = Mid(BigString,1,BigLen - SmallLen)
+		Else
+			RTrimStr = BigString
+		End If
+	Else
+		RTrimStr = BigString
+	End If
+End Function
+
+
+&apos; Retrieves an Array out of a String.
+&apos; The fields of the Array are separated by the parameter &apos;Separator&apos;, that is contained
+&apos; in the Array
+&apos; The Array MaxLocindex delivers the highest Index of this Array
+Function ArrayOutOfString(BigString, Separator as String, Optional MaxIndex as integer)
+Dim i%, OldPos%, Pos%, SepLen%, BigLen%
+Dim CurUbound as Integer
+Dim StartUbound as Integer
+	StartUbound = 50
+	Dim LocList(StartUbound) as String
+	CurUbound = StartUbound	
+	OldPos = 1
+	i = -1
+	SepLen = Len(Separator)
+	BigLen = Len(BigString)
+	Do
+		Pos = Instr(OldPos,BigString, Separator)
+		i = i + 1
+		If Pos = 0 Then
+			LocList(i) = Mid(BigString, OldPos, BigLen - OldPos + 1 )
+		Else
+			LocList(i) = Mid(BigString, OldPos, Pos-OldPos )
+			OldPos = Pos + SepLen
+		End If
+		If i = CurUbound Then
+			CurUbound = CurUbound + StartUbound
+			ReDim Preserve LocList(CurUbound) as String
+		End If
+	Loop until Pos = 0
+	If Not IsMissing(Maxindex) Then
+		MaxIndex = i	
+	End If
+	If i &lt;&gt; -1 Then
+		ReDim Preserve LocList(i) as String
+	Else
+		ReDim LocList() as String
+	End If
+	ArrayOutofString = LocList()
+End Function
+
+
+function CutStringBySeparator(sString as string, sSeparator as string) as variant
+dim iPos as integer
+dim aString(1)
+
+	iPos = InStr(sString, sSeparator) - 1
+	if iPos &gt; 0 then
+		aString(0) = left(sString, iPos)
+		aString(1) = mid(sString, iPos + Len(sSeparator))
+		CutStringBySeparator = aString()
+	end if
+end function
+
+
+&apos; Replaces the string &quot;OldReplace&quot; through the String &quot;NewReplace&quot; in the String
+&apos; &apos;BigString&apos;
+Function ReplaceString(ByVal Bigstring, NewReplace, OldReplace as String)  as String
+Dim i%, OldReplLen%, BigLen%
+
+	If NewReplace &lt;&gt; OldReplace Then
+		OldReplLen = Len(OldReplace)
+		i = 1
+		Do
+			Biglen = Len(BigString)
+			i = Instr(i,BigString,OldReplace)
+			If i &lt;&gt; 0 then
+				BigString = Mid(BigString,1,i-1) &amp; NewReplace &amp; Mid(BigString,i + OldReplLen,BigLen  - i + 1 - OldReplLen
+				i = i + Len(NewReplace)
+			End If
+		Loop until i = 0
+	End If
+	ReplaceString = BigString
+End Function
+
+
+&apos;Retrieves the mere filename out of a whole path
+Function FileNameOutOfPath_old(ByVal Path as String, Optional Separator as String) as String
+Dim i as Integer
+Dim SepList() as String
+	If IsMissing(Separator) Then
+		Separator = gsPathSeparator	
+	End If
+	SepList() = ArrayoutofString(Path, Separator, i)
+	FileNameOutOfPath = SepList(i)
+End Function
+
+
+&apos;Retrieves the mere filename out of a whole path
+Function FileNameOutOfPath(ByVal Path as String, Optional Separator as String) as String
+dim iLen as Integer
+dim i as Integer
+dim SepList() as string
+
+	if IsMissing(Separator) then
+		Separator = &quot;/&quot;	
+	end if
+	iLen = Len(Path)
+	for i = iLen to 1 step -1
+		if mid(Path, i, 1) = Separator then
+			exit for
+		end if	
+	next i	
+	FileNameOutOfPath = Mid(Path, i + 1)
+End Function
+
+
+Function GetFileNameExtension(ByVal FileName as String)
+Dim MaxIndex as Integer
+Dim SepList() as String
+	SepList() = ArrayoutofString(FileName,&quot;.&quot;, MaxIndex)
+	GetFileNameExtension = SepList(MaxIndex)
+End Function
+
+
+Function GetFileNameWithoutExtension(ByVal FileName as String, Optional Separator as String)
+Dim MaxIndex as Integer
+Dim SepList() as String
+	If not IsMissing(Separator) Then
+		FileName = FileNameoutofPath(FileName, Separator)
+	End If
+	SepList() = ArrayoutofString(FileName,&quot;.&quot;, MaxIndex)
+	GetFileNameWithoutExtension = RTrimStr(FileName, &quot;.&quot; &amp; SepList(MaxIndex))
+End Function
+
+
+Function DirectoryNameOutOfPath(sPath as String, Separator as String) as String
+Dim LocFileName as String
+	LocFileName = FileNameoutofPath(sPath, Separator)
+	DirectoryNameoutofPath = RTrimStr(sPath, Separator &amp; LocFileName)
+End Function
+
+
+function CountStringInString(ABigString as string, ASmallString as string)
+dim vPosition as integer
+dim vCount as integer
+
+  vCount = 0
+  vPosition = 1
+  While vPosition &gt; 0
+    vPosition = InStr(ABigString, ASmallString)
+    if vPosition &gt; 0 then
+      vCount = vCount + 1
+      ABigString = Mid(ABigString, vPosition + 1)
+    endif  
+  Wend
+  CountStringInString = vCount
+end function
+
+
+function GetRepeatedString(AString as string, iRepeat as integer) as string
+dim i as integer
+dim sString as string
+
+	sString = &quot;&quot;
+	for i = 1 to iRepeat
+		sString = sString &amp; AString 
+	next i
+	GetRepeatedString = sString
+end function
+
+function GetRandomString(psPrefix as string, piLength as integer)
+Dim iVar As Integer, iCount as integer
+dim sText As String
+
+  &apos;Randomize 2^14-1
+  sText = psPrefix
+  For iCount = 1 To piLength
+    iVar = Rnd() * 10 &apos; Bereich von 0 bis 9
+    sText = sText &amp; iVar
+  Next iCount
+  GetRandomString = sText
+end function
+
+
+function FindInArray(aArray(), sString as string) as integer
+dim i as integer 
+dim iPos as integer
+dim iCount as integer
+
+	iPos = -1
+	iCount = ubound(aArray())
+	for i = 0 to iCount
+		if aArray(i) = sString then
+			iPos = i
+			exit for
+		end if	
+	next i
+	FindInArray = iPos
+end function
+
+
+Function BubbleSortArray(ByVal SortList(),optional sort2ndValue as Boolean)
+&apos;This function bubble sorts an array of maximum 2 dimensions.
+&apos;The default sorting order is the first dimension
+&apos;Only if sort2ndValue is True the second dimension is the relevant for the sorting order
+	Dim s as Integer
+	Dim t as Integer
+	Dim i as Integer
+	Dim k as Integer
+	Dim dimensions as Integer
+	Dim sortvalue as Integer
+	Dim DisplayDummy
+	dimensions = 1
+	
+On Local Error Goto No2ndDim	
+	k = Ubound(SortList(),2)
+	No2ndDim:
+	If Err &lt;&gt; 0 Then dimensions = 1
+	
+	i = Ubound(SortList(),1)
+	If ismissing(sort2ndValue) then
+		sortvalue = 0
+	else
+		sortvalue = 1
+	end if
+	
+	For s = 1 to i - 1
+		For t = 0 to i-s
+			Select Case dimensions
+			Case 1
+				If SortList(t) &gt; SortList(t+1) Then                             
+					DisplayDummy = SortList(t)
+					SortList(t) = SortList(t+1)
+					SortList(t+1) = DisplayDummy    
+				End If
+			Case 2
+				If SortList(t,sortvalue) &gt; SortList(t+1,sortvalue) Then 
+					For k = 0 to UBound(SortList(),2)                        
+							DisplayDummy = SortList(t,k)
+							SortList(t,k) = SortList(t+1,k)
+							SortList(t+1,k) = DisplayDummy 
+					Next k
+				End If
+			End Select
+		Next t
+	Next s 
+	BubbleSortArray = SortList()             
+End Function
+
+
+&apos;*************************************************************************************
+&apos; Zip Routines by Laurent Godard
+&apos;*************************************************************************************
+
+Sub ZipFolderToFile(source as string, cible as string, sMimetype as string)
+&apos;Author: laurent Godard - listes.godard@laposte.net
+	dim retour() as string
+	
+	&apos;création de l&apos;instance du fichier Zip
+	LeFichierZip=createUnoService(&quot;com.sun.star.packages.Package&quot;)
+
+	&apos;Dim aArg As New com.sun.star.beans.NamedValue
+	&apos;aArg.Name = &quot;PackageFormat&quot;
+	&apos;aArg.Value = False
+	&apos;p.initialize(Array(cible, aArg))
+	
+	dim args(0)	
+	args(0)=ConvertToURL(cible)
+	LeFichierZip.initialize(args())
+	
+	&apos;création de la structure des repertoires dans le zip
+	call Recursedirectory(source, retour)
+	
+	dim argsDir(0)
+
+	argsDir(0)=true
+	&apos;on saute le premier --&gt; repertoire contenant
+	&apos;Pourra etre une option a terme
+	Repbase=retour(1)
+	For i=2 To UBound(retour)
+		chaine=mid(retour(i),len(repbase)+2)
+		decoupe=split(mid(retour(i),len(repbase)+1),getPathSeparator)
+		repZip=decoupe(UBound(decoupe))
+		azipper=LeFichierZip.createInstanceWithArguments(argsDir())
+	If len(chaine)&lt;&gt;len(repZip) then
+		RepPere=left(chaine,len(chaine)-len(repZip)-1)
+		RepPere=RemplaceChaine(reppere, getpathseparator, &quot;/&quot;, false)
+	Else
+		RepPere=&quot;&quot;
+	Endif
+	
+	RepPereZip=LeFichierZip.getByHierarchicalName(RepPere)
+	RepPereZip.insertbyname(repzip, azipper)
+	Next i
+	&apos;insertion des fichiers dans les bons repertoires
+	
+	LeFichierZip.getByHierarchicalName(&quot;&quot;).setPropertyValue(&quot;MediaType&quot;, sMimetype)
+	
+	dim args2(0)
+	
+	args2(0)=false
+	oUcb = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)
+	for i=1 to UBound(retour)
+	chaine=mid(retour(i),len(repbase)+2)
+	
+	repzip=remplacechaine(chaine, getpathseparator, &quot;/&quot;, false)
+	fichier=dir(retour(i)+getPathSeparator,0)
+	
+	While fichier&lt;&gt;&quot;&quot;
+	azipper=LeFichierZip.createInstanceWithArguments(args2())
+	oFile = oUcb.OpenFileRead(ConvertToURL(retour(i)+&quot;/&quot;+fichier))
+	azipper.SetInputStream(ofile)
+	RepPere=LeFichierZip.getByHierarchicalName(repZip)
+	RepPere.insertbyname(fichier, azipper)
+	fichier=dir()
+	Wend
+	next i
+	&apos;Valide les changements
+	LeFichierZip.commitChanges()
+	oFile.closeInput()
+	&apos;msgbox &quot;C&apos;est fini&quot;
+End Sub
+
+&apos;----------------------------------------------------------------------
+Sub RecurseDirectory(chemin, reponse as variant)
+&apos;Author: laurent Godard - listes.godard@laposte.net
+&apos;reponse est un tableau contenant la liste de tous les sous répertoires de chemin
+	redim preserve reponse(1 to 1)
+	compte=1
+	reponse(1)=chemin
+	repbase=1
+	rep=dir(convertTourl(chemin+&quot;/&quot;),16)
+	while rep&lt;&gt;&quot;&quot;
+		if rep&lt;&gt;&quot;.&quot; and rep&lt;&gt;&quot;..&quot; then
+		compte=compte+1
+		redim preserve reponse(1 to compte)
+		reponse(compte)=convertfromurl(reponse(RepBase)+&quot;/&quot;+rep)
+		endif
+		rep=dir()
+		while rep=&quot;&quot; and repbase&lt;compte
+			repbase=repbase+1
+			rep=dir(convertToURL(reponse(repbase)+&quot;/&quot;),16)
+		wend
+	wend
+End Sub
+
+&apos;----------------------------------------------------------------------
+Function RemplaceChaine(ByVal chaine As String, src As String, dest As String,_
+						casse As Boolean)
+&apos;Auteurs: Laurent Godard &amp; Bernard Marcelly
+&apos; fournit une chaine dont toutes les occurences de src ont été remplacées par dest
+&apos;casse = true pour distinguer majuscules/minuscules, = false sinon
+	Dim lsrc As Integer, i As Integer, kas As Integer
+	Dim limite as string
+	
+	limite=&quot;&quot;
+	kas = iif(casse, 0, 1)
+	lsrc = len(src)
+	i = instr(1, chaine, src, kas)
+	while i&lt;&gt;0
+		while i&lt;0
+			limite=limite+left(chaine,32000)
+			chaine=mid(chaine,32001)
+			i=instr(1, chaine, src, kas)
+		wend
+		&apos; ici i est toujours positif non nul
+		if i&gt;1 then
+			limite = limite + Left(chaine, i-1) +dest
+		else &apos; ici i vaut toujours 1
+			limite = limite +dest
+		endif
+		&apos; raccourcir en deux temps car risque : i+src &gt; 32767
+		chaine = Mid(chaine, i)
+		chaine = Mid(chaine, 1+lsrc)
+		i = instr(1, chaine, src, kas)
+	wend
+	RemplaceChaine = limite + chaine
+End Function
+
+
+Sub unzipFileFromArchive(strZipArchivePath As String, strSourceFileName As String, strDestinationFilePath As String)  
+        
+  Dim blnExists           As Boolean  
+  Dim args(0)             As Variant  
+  Dim objZipService       As Variant  
+  Dim objPackageStream    As Variant  
+  Dim objOutputStream     As Variant  
+  Dim objInputStream      As Variant  
+  Dim i                   As Integer  
+        
+  &apos;=================================================================================  
+  &apos; Unzip a single file from an archive.  You must know the exact name  of the file  
+  &apos; inside the archive before this sub can dig it out.  
+  &apos;  
+  &apos; strZipArchivePath = full path (directory and filename) to the .zip archive file.  
+  &apos; strSourceFileName = the name of the file being dug from the .zip archive.  
+  &apos; strDestinationFilePath = full path (directory and filename) where the source  
+  &apos;                          file will be dumped.  
+  &apos;=================================================================================  
+        
+  &apos; Create a handle to the zip service,  
+  objZipService = createUnoService(&quot;com.sun.star.packages.Package&quot;)  
+  args(0) = ConvertToURL(strZipArchivePath)  
+  objZipService.initialize(args())  
+  
+  &apos; Does the source file exist?  
+  If Not objZipService.HasByHierarchicalName(strSourceFileName) Then Exit Sub  
+        
+  &apos; Get the file input stream from the archive package stream.  
+  objPackageStream = objZipService.GetByHierarchicalName(strSourceFileName)  
+  objInputStream = objPackageStream.GetInputStream()  
+        
+  &apos; Define the output.  
+  objOutputStream = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)  
+  objOutputStream.WriteFile(ConvertToURL(strDestinationFilePath), objInputStream)        
+End Sub  
+
+
+
+
+&apos;*************************************************************************************
+&apos;DEBUG ROUTINES
+&apos;*************************************************************************************
+
+Sub Main
+	CloseExportFile
+End Sub
+
+sub PrintOut(pString as string)
+dim vFileNo as integer
+dim vFile as string
+  vFileNo = Freefile
+  vFile = gsCurDir &amp; &quot;/Print.txt&quot;
+  Open vFile For Output As #vFileNo
+  Print #vFileNo, pString
+  Close #vFileNo
+end sub
+
+
+sub PrintStringToFile(pString as string, pFile as string)
+dim vFileNo as integer
+dim vFile as string
+  vFileNo = Freefile
+  &apos;vFile = gsCurDir &amp; &quot;/Print.txt&quot;
+  Open pFile For Output As #vFileNo
+  Print #vFileNo, pString
+  Close #vFileNo
+end sub
+
+
+Sub PrintServices(poObject as object)
+  dim i as integer
+  Print #giExportTXT, chr(13)
+  for i=0 to ubound(poObject.supportedservicenames())
+    Print #giExportTXT, poObject.supportedservicenames(i)
+  next i
+end sub
+
+
+sub PrintStringToFile_old(sString as string, sFilename as string)
+dim vFileNo as integer
+dim vFile as string
+dim vCurDir as string
+
+  vDoc = ThisComponent()
+  vCurDir = DirectoryNameOutOfPath(vDoc.Location, &quot;/&quot;)
+
+  vFileNo = Freefile
+  vFile = vCurDir &amp; &quot;/&quot; &amp; sFilename
+  Open vFile For Output As #vFileNo
+  Print #vFileNo, sString
+  Close #vFileNo
+end sub
+
+
+function GetPackageDirURL( sIdentifier As String ) As String
+  Dim oPIP As Object
+  oPIP = GetDefaultContext().getByName(&quot;/singletons/com.sun.star.deployment.PackageInformationProvider&quot;)
+  GetPackageDirURL = oPIP.getPackageLocation(sIdentifier)
+End Function
+
+
+
+</script:module>

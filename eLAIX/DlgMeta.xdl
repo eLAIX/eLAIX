@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE dlg:window PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "dialog.dtd">
+<dlg:window xmlns:dlg="http://openoffice.org/2000/dialog" xmlns:script="http://openoffice.org/2000/script" dlg:id="DlgMeta" dlg:left="131" dlg:top="44" dlg:width="272" dlg:height="292" dlg:closeable="true" dlg:moveable="true" dlg:title="Learning Module Metadata and Properties">
+ <dlg:styles>
+  <dlg:style dlg:style-id="0" dlg:font-height="10"/>
+  <dlg:style dlg:style-id="1" dlg:font-weight="150"/>
+ </dlg:styles>
+ <dlg:bulletinboard>
+  <dlg:titledbox dlg:id="frmDocument" dlg:tab-index="0" dlg:left="5" dlg:top="7" dlg:width="263" dlg:height="217">
+   <dlg:title dlg:value="Document Metadata"/>
+  </dlg:titledbox>
+  <dlg:text dlg:id="lblTitle" dlg:tab-index="10" dlg:left="12" dlg:top="25" dlg:width="28" dlg:height="9" dlg:value="Title"/>
+  <dlg:text dlg:id="lblLanguage" dlg:tab-index="11" dlg:left="11" dlg:top="42" dlg:width="36" dlg:height="9" dlg:value="Language"/>
+  <dlg:combobox dlg:style-id="0" dlg:id="cmbDocLanguage" dlg:tab-index="2" dlg:left="51" dlg:top="39" dlg:width="105" dlg:height="14" dlg:value="German" dlg:spin="true" dlg:linecount="20">
+   <dlg:menupopup>
+    <dlg:menuitem dlg:value="Abkhazian"/>
+    <dlg:menuitem dlg:value="Afar"/>
+    <dlg:menuitem dlg:value="Afrikaans"/>
+    <dlg:menuitem dlg:value="Albanian"/>
+    <dlg:menuitem dlg:value="Amharic"/>
+    <dlg:menuitem dlg:value="Arabic"/>
+    <dlg:menuitem dlg:value="Armenian"/>
+    <dlg:menuitem dlg:value="Assamese"/>
+    <dlg:menuitem dlg:value="Aymara"/>
+    <dlg:menuitem dlg:value="Azerbaijani"/>
+    <dlg:menuitem dlg:value="Bashkir"/>
+    <dlg:menuitem dlg:value="Basque"/>
+    <dlg:menuitem dlg:value="Bengali"/>
+    <dlg:menuitem dlg:value="Bhutani"/>
+    <dlg:menuitem dlg:value="Bihari"/>
+    <dlg:menuitem dlg:value="Bislama"/>
+    <dlg:menuitem dlg:value="Breton"/>
+    <dlg:menuitem dlg:value="Bulgarian"/>
+    <dlg:menuitem dlg:value="Burmese"/>
+    <dlg:menuitem dlg:value="Byelorussian"/>
+    <dlg:menuitem dlg:value="Cambodian"/>
+    <dlg:menuitem dlg:value="Catalan"/>
+    <dlg:menuitem dlg:value="Chinese"/>
+    <dlg:menuitem dlg:value="Corsican"/>
+    <dlg:menuitem dlg:value="Croatian"/>
+    <dlg:menuitem dlg:value="Czech"/>
+    <dlg:menuitem dlg:value="Danish"/>
+    <dlg:menuitem dlg:value="Dutch"/>
+    <dlg:menuitem dlg:value="English"/>
+    <dlg:menuitem dlg:value="Esperanto"/>
+    <dlg:menuitem dlg:value="Estonian"/>
+    <dlg:menuitem dlg:value="Faeroese"/>
+    <dlg:menuitem dlg:value="Fiji"/>
+    <dlg:menuitem dlg:value="Finnish"/>
+    <dlg:menuitem dlg:value="French"/>
+    <dlg:menuitem dlg:value="Frisian"/>
+    <dlg:menuitem dlg:value="Gaelic"/>
+    <dlg:menuitem dlg:value="Galician"/>
+    <dlg:menuitem dlg:value="Georgian"/>
+    <dlg:menuitem dlg:value="German"/>
+    <dlg:menuitem dlg:value="Greek"/>
+    <dlg:menuitem dlg:value="Greenlandic"/>
+    <dlg:menuitem dlg:value="Guarani"/>
+    <dlg:menuitem dlg:value="Gujarati"/>
+    <dlg:menuitem dlg:value="Hausa"/>
+    <dlg:menuitem dlg:value="Hebrew"/>
+    <dlg:menuitem dlg:value="Hindi"/>
+    <dlg:menuitem dlg:value="Hungarian"/>
+    <dlg:menuitem dlg:value="Icelandic"/>
+    <dlg:menuitem dlg:value="Indonesian"/>
+    <dlg:menuitem dlg:value="Interlingua"/>
+    <dlg:menuitem dlg:value="Interlingue"/>
+    <dlg:menuitem dlg:value="Inupiak"/>
+    <dlg:menuitem dlg:value="Irish"/>
+    <dlg:menuitem dlg:value="Italian"/>
+    <dlg:menuitem dlg:value="Japanese"/>
+    <dlg:menuitem dlg:value="Javanese"/>
+    <dlg:menuitem dlg:value="Kannada"/>
+    <dlg:menuitem dlg:value="Kashmiri"/>
+    <dlg:menuitem dlg:value="Kazakh"/>
+    <dlg:menuitem dlg:value="Kinyarwanda"/>
+    <dlg:menuitem dlg:value="Kirghiz"/>
+    <dlg:menuitem dlg:value="Kirundi"/>
+    <dlg:menuitem dlg:value="Korean"/>
+    <dlg:menuitem dlg:value="Kurdish"/>
+    <dlg:menuitem dlg:value="Laothian"/>
+    <dlg:menuitem dlg:value="Latin"/>
+    <dlg:menuitem dlg:value="Latvian"/>
+    <dlg:menuitem dlg:value="Lingala"/>
+    <dlg:menuitem dlg:value="Lithuanian"/>
+    <dlg:menuitem dlg:value="Macedonian"/>
+    <dlg:menuitem dlg:value="Malagasy"/>
+    <dlg:menuitem dlg:value="Malay"/>
+    <dlg:menuitem dlg:value="Malayalam"/>
+    <dlg:menuitem dlg:value="Maltese"/>
+    <dlg:menuitem dlg:value="Maori"/>
+    <dlg:menuitem dlg:value="Marathi"/>
+    <dlg:menuitem dlg:value="Moldavian"/>
+    <dlg:menuitem dlg:value="Mongolian"/>
+    <dlg:menuitem dlg:value="Nauru"/>
+    <dlg:menuitem dlg:value="Nepali"/>
+    <dlg:menuitem dlg:value="Norwegian"/>
+    <dlg:menuitem dlg:value="Occitan"/>
+    <dlg:menuitem dlg:value="Oriya"/>
+    <dlg:menuitem dlg:value="Oromo"/>
+    <dlg:menuitem dlg:value="Pashto"/>
+    <dlg:menuitem dlg:value="Persian"/>
+    <dlg:menuitem dlg:value="Polish"/>
+    <dlg:menuitem dlg:value="Portuguese"/>
+    <dlg:menuitem dlg:value="Punjabi"/>
+    <dlg:menuitem dlg:value="Quechua"/>
+    <dlg:menuitem dlg:value="Rhaeto-Romance"/>
+    <dlg:menuitem dlg:value="Romanian"/>
+    <dlg:menuitem dlg:value="Russian"/>
+    <dlg:menuitem dlg:value="Samoan"/>
+    <dlg:menuitem dlg:value="Sangro"/>
+    <dlg:menuitem dlg:value="Sanskrit"/>
+    <dlg:menuitem dlg:value="Serbian"/>
+    <dlg:menuitem dlg:value="Serbo-Croatian"/>
+    <dlg:menuitem dlg:value="Sesotho"/>
+    <dlg:menuitem dlg:value="Setswana"/>
+    <dlg:menuitem dlg:value="Shona"/>
+    <dlg:menuitem dlg:value="Sindhi"/>
+    <dlg:menuitem dlg:value="Singhalese"/>
+    <dlg:menuitem dlg:value="Siswati"/>
+    <dlg:menuitem dlg:value="Slovak"/>
+    <dlg:menuitem dlg:value="Slovenian"/>
+    <dlg:menuitem dlg:value="Somali"/>
+    <dlg:menuitem dlg:value="Spanish"/>
+    <dlg:menuitem dlg:value="Sudanese"/>
+    <dlg:menuitem dlg:value="Swahili"/>
+    <dlg:menuitem dlg:value="Swedish"/>
+    <dlg:menuitem dlg:value="Tagalog"/>
+    <dlg:menuitem dlg:value="Tajik"/>
+    <dlg:menuitem dlg:value="Tamil"/>
+    <dlg:menuitem dlg:value="Tatar"/>
+    <dlg:menuitem dlg:value="Tegulu"/>
+    <dlg:menuitem dlg:value="Thai"/>
+    <dlg:menuitem dlg:value="Tibetan"/>
+    <dlg:menuitem dlg:value="Tigrinya"/>
+    <dlg:menuitem dlg:value="Tonga"/>
+    <dlg:menuitem dlg:value="Tsonga"/>
+    <dlg:menuitem dlg:value="Turkish"/>
+    <dlg:menuitem dlg:value="Turkmen"/>
+    <dlg:menuitem dlg:value="Twi"/>
+    <dlg:menuitem dlg:value="Ukrainian"/>
+    <dlg:menuitem dlg:value="Urdu"/>
+    <dlg:menuitem dlg:value="Uzbek"/>
+    <dlg:menuitem dlg:value="Vietnamese"/>
+    <dlg:menuitem dlg:value="Volapuk"/>
+    <dlg:menuitem dlg:value="Welsh"/>
+    <dlg:menuitem dlg:value="Wolof"/>
+    <dlg:menuitem dlg:value="Xhosa"/>
+    <dlg:menuitem dlg:value="Yiddish"/>
+    <dlg:menuitem dlg:value="Yoruba"/>
+    <dlg:menuitem dlg:value="Zulu"/>
+   </dlg:menupopup>
+  </dlg:combobox>
+  <dlg:button dlg:style-id="1" dlg:id="butOk" dlg:tab-index="8" dlg:left="74" dlg:top="270" dlg:width="60" dlg:height="15" dlg:default="true" dlg:value="OK" dlg:button-type="ok">
+   <script:event script:event-name="on-performaction" script:macro-name="vnd.sun.star.script:iliasExport.Menu.MetaDlgOkClick?language=Basic&amp;location=application" script:language="Script"/>
+  </dlg:button>
+  <dlg:button dlg:id="butCanel" dlg:tab-index="9" dlg:left="138" dlg:top="270" dlg:width="60" dlg:height="15" dlg:value="Cancel" dlg:button-type="cancel"/>
+  <dlg:text dlg:id="Keywords" dlg:tab-index="14" dlg:left="11" dlg:top="94" dlg:width="37" dlg:height="9" dlg:value="Keywords"/>
+  <dlg:textfield dlg:style-id="0" dlg:id="edtDocKeywords" dlg:tab-index="4" dlg:left="52" dlg:top="93" dlg:width="210" dlg:height="50" dlg:vscroll="true" dlg:multiline="true"/>
+  <dlg:textfield dlg:style-id="0" dlg:id="edtDocTitle" dlg:tab-index="1" dlg:left="51" dlg:top="22" dlg:width="210" dlg:height="14"/>
+  <dlg:text dlg:id="Label2" dlg:tab-index="15" dlg:left="11" dlg:top="104" dlg:width="37" dlg:height="21" dlg:value="(comma separated)" dlg:multiline="true"/>
+  <dlg:text dlg:id="lblAuthors" dlg:tab-index="12" dlg:left="11" dlg:top="148" dlg:width="33" dlg:height="9" dlg:value="Authors"/>
+  <dlg:text dlg:id="Label1" dlg:tab-index="16" dlg:left="11" dlg:top="159" dlg:width="37" dlg:height="21" dlg:value="(comma separated)" dlg:multiline="true"/>
+  <dlg:text dlg:id="lblCopyright" dlg:tab-index="13" dlg:left="11" dlg:top="184" dlg:width="33" dlg:height="9" dlg:value="Copyright"/>
+  <dlg:titledbox dlg:id="FrameControl1" dlg:tab-index="17" dlg:left="4" dlg:top="231" dlg:width="263" dlg:height="34">
+   <dlg:title dlg:value="Document Properties"/>
+  </dlg:titledbox>
+  <dlg:textfield dlg:style-id="0" dlg:id="edtDocAuthors" dlg:tab-index="5" dlg:left="52" dlg:top="147" dlg:width="210" dlg:height="32" dlg:vscroll="true" dlg:multiline="true"/>
+  <dlg:textfield dlg:style-id="0" dlg:id="edtDocCopyright" dlg:tab-index="6" dlg:left="52" dlg:top="183" dlg:width="210" dlg:height="32" dlg:vscroll="true" dlg:multiline="true"/>
+  <dlg:checkbox dlg:id="chkPropOutlineNumbering" dlg:tab-index="7" dlg:left="13" dlg:top="244" dlg:width="123" dlg:height="12" dlg:value="Show outline numbering in ILIAS" dlg:checked="false"/>
+  <dlg:text dlg:id="Label3" dlg:tab-index="18" dlg:left="11" dlg:top="57" dlg:width="38" dlg:height="9" dlg:value="Description"/>
+  <dlg:textfield dlg:style-id="0" dlg:id="edtDocDescription" dlg:tab-index="3" dlg:left="52" dlg:top="57" dlg:width="210" dlg:height="32" dlg:vscroll="true" dlg:multiline="true"/>
+ </dlg:bulletinboard>
+</dlg:window>

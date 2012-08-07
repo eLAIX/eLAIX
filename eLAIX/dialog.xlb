@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE library:library PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "library.dtd">
+<library:library xmlns:library="http://openoffice.org/2000/library" library:name="eLAIX" library:readonly="false" library:passwordprotected="false">
+ <library:element library:name="DlgBookmark"/>
+ <library:element library:name="DlgStyle"/>
+ <library:element library:name="DlgCheck"/>
+ <library:element library:name="DlgAbout"/>
+ <library:element library:name="DlgTab"/>
+ <library:element library:name="DlgRef"/>
+ <library:element library:name="DlgMeta"/>
+ <library:element library:name="DlgEPUB"/>
+ <library:element library:name="DlgILIAS"/>
+</library:library>

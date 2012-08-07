@@ -1,0 +1,520 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">
+<script:module xmlns:script="http://openoffice.org/2000/script" script:name="List" script:language="StarBasic">&apos;****************************************************************************
+&apos; eLAIX   : Writing ILIAS learning modules offline with OpenOffice.org Writer
+&apos; Author  : Harry Boldt - h.boldt@boldt-media.de - http://elaix.org
+&apos; License : GPL
+&apos;****************************************************************************
+
+&apos; This module is part of eLAIX. You can redistribute it and/or
+&apos; modify it under the terms of the GNU Lesser General Public
+&apos; License as published by the Free Software Foundation, either
+&apos; version 3 of the License, or (at your option) any later version.
+&apos; 
+&apos; This program is distributed in the hope that it will be useful,
+&apos; but WITHOUT ANY WARRANTY; without even the implied warranty of
+&apos; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+&apos; Lesser General Public License for more details.
+&apos; 
+&apos; You should have received a copy of the GNU Lesser General Public
+&apos; License along with this program. If not, please visit the Free
+&apos; Software Foundation website at http://www.gnu.org/licenses/.
+
+
+Option Explicit
+
+
+&apos;public C_CHARS_UPPER_LETTER as integer = com.sun.star.style.NumberingType.CHARS_UPPER_LETTER
+&apos;public C_CHARS_LOWER_LETTER as integer = com.sun.star.style.NumberingType.CHARS_LOWER_LETTER
+&apos;public C_CHAR_SPECIAL as integer = com.sun.star.style.NumberingType.CHAR_SPECIAL
+&apos;public C_ARABIC as integer = com.sun.star.style.NumberingType.ARABIC
+&apos;public C_ROMAN_UPPER as integer= com.sun.star.style.NumberingType.ROMAN_UPPER
+&apos;public C_ROMAN_LOWER as integer = com.sun.star.style.NumberingType.ROMAN_LOWER
+
+const C_EXTLIST_NUMBERING_STYLENAME = &quot;Extended List&quot;
+
+type ExtListNumDef
+	Adjust as integer
+	ParentNumbering as integer
+	Prefix as string
+	Suffix as string
+	CharStyleName as string
+	StartWith as integer
+	PositionAndSpaceMode as integer
+	LabelFollowedBy as integer
+	IndentAt as integer
+	ListtabStopPosition as integer  
+	LeftMargin as integer
+	FirstLineOffset as integer 
+	SymbolTextDistance as integer
+	NumberingType as integer              
+end type
+
+&apos;******************************************************************************************
+&apos; Set indents
+&apos;******************************************************************************************
+
+
+sub SetExtListNumLevel0()
+	if not ExtListNumberingStyleExists() then 
+		NewExtListNumberingStyle
+	end if
+	SetExtListNumberingLevel(0)
+end sub
+
+
+sub SetExtListNumLevel1()
+	if not ExtListNumberingStyleExists() then 
+		NewExtListNumberingStyle
+	end if
+	SetExtListNumberingLevel(1)
+end sub
+
+
+sub SetExtlistNumLevel2()
+	if not ExtListNumberingStyleExists() then 
+		NewExtListNumberingStyle
+	end if
+	SetExtListNumberingLevel(2)
+end sub
+
+
+sub SetExtListNumLevel3()
+	if not ExtListNumberingStyleExists() then 
+		NewExtListNumberingStyle
+	end if
+	SetExtListNumberingLevel(3)
+end sub
+
+
+sub SetExtListNumLevel4()
+	if not ExtListNumberingStyleExists() then 
+		NewExtListNumberingStyle
+	end if
+	SetExtListNumberingLevel(4)
+end sub
+
+
+sub SetExtListNumLevel5()
+	if not ExtListNumberingStyleExists() then 
+		NewExtListNumberingStyle
+	end if
+	SetExtListNumberingLevel(5)
+end sub
+
+
+sub SetExtListNumLevel6()
+	if not ExtListNumberingStyleExists() then 
+		NewExtListNumberingStyle
+	end if
+	SetExtListNumberingLevel(6)
+end sub
+
+
+sub SetExtListNumberingLevel(iNumberingLevel as integer)
+dim oText as object
+Dim oSelections as object
+Dim oSel as object
+Dim lSelCount As integer
+dim lWhichSelection as integer
+
+	&apos;set the NumberingLevel to current selection
+	oText = ThisComponent.Text
+	oSelections = ThisComponent.getCurrentSelection()
+	if not oSelections.supportsService(&quot;com.sun.star.text.TextRanges&quot;) then
+		oSel = oSelections.Anchor
+		oSel.NumberingStyleName = C_EXTLIST_NUMBERING_STYLENAME
+		oSel.NumberingLevel = iNumberingLevel
+	else
+		lSelCount = oSelections.getCount()
+		For lWhichSelection = 0 To lSelCount - 1
+			oSel = oSelections.getByIndex(lWhichSelection)
+			oSel.NumberingStyleName = C_EXTLIST_NUMBERING_STYLENAME
+			oSel.NumberingLevel = iNumberingLevel
+		Next
+	endif	
+	&apos;xray oSel
+end sub
+
+
+sub SetStyleName(sStyleName as string)
+dim oText as object
+Dim oSelections as object
+Dim oSel as object
+Dim lSelCount As integer
+dim lWhichSelection as integer
+
+	&apos;set the NumberingLevel to current selection
+	oText = ThisComponent.Text
+	oSelections = ThisComponent.getCurrentSelection()
+	if not oSelections.supportsService(&quot;com.sun.star.text.TextRanges&quot;) then
+		oSel = oSelections.Anchor
+		oSel.NumberingStyleName = C_EXTLIST_NUMBERING_STYLENAME
+	else
+		lSelCount = oSelections.getCount()
+		For lWhichSelection = 0 To lSelCount - 1
+			oSel = oSelections.getByIndex(lWhichSelection)
+			oSel.NumberingStyleName = sStyleName
+		Next
+	endif	
+	&apos;xray oSel
+end sub
+
+
+
+function ExtListNumberingStyleExists() as boolean
+dim oFamilies as object
+dim oNumStyles as object
+
+	&apos;Get all Styles
+	oFamilies = ThisComponent.StyleFamilies
+	&apos;Get only Numbering Styles from all Styles
+	oNumStyles = oFamilies.getByName(&quot;NumberingStyles&quot;)
+	&apos;check if the corresponding NumberingStyle exists
+	ExtListNumberingStyleExists = oNumStyles.HasByName(C_EXTLIST_NUMBERING_STYLENAME) 
+end function
+
+
+sub NewExtListNumberingStyle
+dim aNumDefs()
+dim oFamilies as object
+dim oNumStyles as object
+dim oNumStyle as object
+dim oNumRules as object
+dim vNumRule as variant
+dim vProperty as variant
+dim sPropertyName as string
+dim i as integer, j as integer
+
+	aNumDefs = GetExtListNumberingDefinition()
+
+	oFamilies = ThisComponent.StyleFamilies  &apos;Get all Styles	
+	oNumStyles = oFamilies.getByName(&quot;NumberingStyles&quot;)  &apos;Get only Numbering Styles from all Styles
+	oNumStyle = ThisComponent.createInstance(&quot;com.sun.star.style.NumberingStyle&quot;)  &apos; create NumberingStyle 
+	oNumStyles.insertByName(C_EXTLIST_NUMBERING_STYLENAME, oNumStyle )  &apos; save style in order to set all properties
+	oNumStyle = oNumStyles.getByName(C_EXTLIST_NUMBERING_STYLENAME)  &apos;reopen style in order to change the NumberingType
+	
+		
+	&apos;iterate through the Numbering Rules
+	oNumRules = oNumStyle.NumberingRules
+	&apos;xray oNumStyle
+	
+	for j = 0 to UBound(aNumDefs())
+		vNumRule = oNumRules.getByIndex(j)
+		&apos;search the properties in the Property-Set 
+		for i = LBound(vNumRule()) To UBound(vNumRule())
+			vProperty = vNumRule(i)
+			sPropertyName = vProperty.Name
+			select case sPropertyName
+				&apos;case &quot;Adjust&quot;
+				&apos;	vProperty.Value = aNumDefs(j).Adjust		    
+				&apos;case &quot;ParentNumbering&quot;
+				&apos;	vProperty.Value = aNumDefs(j).ParentNumbering		    
+				case &quot;Prefix&quot;
+					vProperty.Value = aNumDefs(j).Prefix		    
+				case &quot;Suffix&quot;
+					vProperty.Value = aNumDefs(j).Suffix		    
+				&apos;case &quot;CharStyleName&quot;
+				&apos;	vProperty.Value = aNumDefs(j).CharStyleName		    
+				&apos;case &quot;StartWith&quot;
+				&apos;	vProperty.Value = aNumDefs(j).StartWith		    
+				&apos;case &quot;PositionAndSpaceMode&quot;
+				&apos;	vProperty.Value = aNumDefs(j).PositionAndSpaceMode		    
+				&apos;case &quot;LabelFollowedBy&quot;
+				&apos;	vProperty.Value = aNumDefs(j).LabelFollowedBy
+				&apos;case &quot;ListtabStopPosition&quot;
+				&apos;	vProperty.Value = aNumDefs(j).ListtabStopPosition		    
+				&apos;case &quot;IndentAt&quot;
+				&apos;	vProperty.Value = aNumDefs(j).IndentAt	
+				case &quot;LeftMargin&quot;
+					vProperty.Value = aNumDefs(j).LeftMargin	    
+				case &quot;FirstLineOffset&quot;
+					vProperty.Value = aNumDefs(j).FirstLineOffset	    
+				case &quot;SymbolTextDistance&quot;
+					vProperty.Value = aNumDefs(j).SymbolTextDistance			    
+				case &quot;NumberingType&quot;
+					vProperty.Value = aNumDefs(j).NumberingType		    
+			end select			  
+			vNumRule(i) = vProperty
+		next i
+		&apos;overwrite the old Property-Value
+		oNumRules.replaceByIndex(j, vNumRule)
+	next j
+	&apos;overwrite the old NumberingRules with the new ones
+	oNumStyle.NumberingRules = oNumRules
+end sub
+
+
+sub DeleteExtListNumberingStyles()
+dim oFamilies as object
+dim oNumStyles as object
+dim oNumStyle as object
+dim sStyleName as string
+dim j as integer
+
+	&apos;Get all Styles
+	oFamilies = ThisComponent.StyleFamilies
+
+	&apos;Get only Numbering Styles from all Styles
+	oNumStyles = oFamilies.getByName(&quot;NumberingStyles&quot;)
+	for j =  oNumStyles.GetCount() - 1 to 0 step -1
+	  oNumStyle = oNumStyles.GetByIndex(j)
+	  sStyleName = oNumStyle.GetName
+	  if left(sStyleName, 7) = &quot;ExtList&quot; then
+	    oNumStyles.removeByName(sStylename)
+	  end if
+	next j
+end sub
+
+
+
+sub StartNewNumbering()
+rem ----------------------------------------------------------------------
+rem define variables
+dim document   as object
+dim dispatcher as object
+rem ----------------------------------------------------------------------
+rem get access to the document
+document   = ThisComponent.CurrentController.Frame
+dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+
+rem ----------------------------------------------------------------------
+dim args1(0) as new com.sun.star.beans.PropertyValue
+args1(0).Name = &quot;NumberingStart&quot;
+args1(0).Value = true
+
+dispatcher.executeDispatch(document, &quot;.uno:NumberingStart&quot;, &quot;&quot;, 0, args1())
+end sub
+
+
+sub StartNewNumbering_byCode
+dim oText as object
+dim oSelections as object
+dim oSel as object
+dim lSelCount as integer
+dim lWhichSelection as integer
+dim iNewValue as integer
+dim iListCount as integer
+
+	oText = ThisComponent.Text
+	oSelections = ThisComponent.getCurrentSelection()
+	
+
+	
+	if not oSelections.supportsService(&quot;com.sun.star.text.TextRanges&quot;) then
+		oSel = oSelections.Anchor
+		iNewValue =  abs(oSel.NumberingStartValue - 1)
+		oSel.NumberingStart = not oSel.NumberingStart
+	else
+		lSelCount = oSelections.getCount()
+		For lWhichSelection = 0 To lSelCount - 1
+			oSel = oSelections.getByIndex(lWhichSelection)
+			oSel.NumberingStart = not oSel.NumberingStart
+		Next
+	endif	
+
+end sub
+
+
+sub ContinueNumbering()
+rem ----------------------------------------------------------------------
+rem define variables
+dim document   as object
+dim dispatcher as object
+rem ----------------------------------------------------------------------
+rem get access to the document
+document   = ThisComponent.CurrentController.Frame
+dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+
+rem ----------------------------------------------------------------------
+dim args1(0) as new com.sun.star.beans.PropertyValue
+args1(0).Name = &quot;NumberingStart&quot;
+args1(0).Value = false
+
+dispatcher.executeDispatch(document, &quot;.uno:NumberingStart&quot;, &quot;&quot;, 0, args1())
+end sub
+
+
+function GetExtListNumberingDefinition() as object
+dim aNumDefs(6)
+dim oNumDef as object
+
+	&apos;define level 0
+	oNumDef = createObject(&quot;ExtListNumDef&quot;)
+	with oNumDef
+		.Prefix               = &quot;&quot;
+		.Suffix               = &quot;.&quot;
+		.LeftMargin           = 800
+		.FirstLineOffset      = -800
+		.SymbolTextDistance   = 200
+		.NumberingType        = com.sun.star.style.NumberingType.CHARS_UPPER_LETTER
+	end with
+	aNumDefs(0) = oNumDef
+
+	&apos;define level 1
+	oNumDef = createObject(&quot;ExtListNumDef&quot;)
+	with oNumDef
+		.Prefix               = &quot;&quot;
+		.Suffix               = &quot;.&quot;
+		.LeftMargin           = 1600
+		.FirstLineOffset      = -800
+		.SymbolTextDistance   = 200
+		.NumberingType        = com.sun.star.style.NumberingType.ROMAN_UPPER
+	end with
+	aNumDefs(1) = oNumDef
+
+	&apos;define level 2
+	oNumDef = createObject(&quot;ExtListNumDef&quot;)
+	with oNumDef
+		.Prefix               = &quot;&quot;
+		.Suffix               = &quot;.&quot;
+		.LeftMargin           = 2400
+		.FirstLineOffset      = -800
+		.SymbolTextDistance   = 200
+		.NumberingType        = com.sun.star.style.NumberingType.ARABIC
+	end with
+	aNumDefs(2) = oNumDef
+
+	&apos;define level 3
+	oNumDef = createObject(&quot;ExtListNumDef&quot;)
+	with oNumDef
+		.Prefix               = &quot;&quot;
+		.Suffix               = &quot;)&quot;
+		.LeftMargin           = 3200
+		.FirstLineOffset      = -800
+		.SymbolTextDistance   = 200
+		.NumberingType        = com.sun.star.style.NumberingType.CHARS_LOWER_LETTER
+	end with
+	aNumDefs(3) = oNumDef
+
+	&apos;define level 4
+	oNumDef = createObject(&quot;ExtListNumDef&quot;)
+	with oNumDef
+		.Prefix               = &quot;(&quot;
+		.Suffix               = &quot;)&quot;
+		.LeftMargin           = 4000
+		.FirstLineOffset      = -800
+		.SymbolTextDistance   = 200
+		.NumberingType        = com.sun.star.style.NumberingType.ARABIC
+	end with
+	aNumDefs(4) = oNumDef
+
+	&apos;define level 5
+	oNumDef = createObject(&quot;ExtListNumDef&quot;)
+	with oNumDef
+		.Prefix               = &quot;(&quot;
+		.Suffix               = &quot;)&quot;
+		.LeftMargin           = 4800
+		.FirstLineOffset      = -800
+		.SymbolTextDistance   = 200
+		.NumberingType        = com.sun.star.style.NumberingType.CHARS_LOWER_LETTER
+	end with
+	aNumDefs(5) = oNumDef
+	
+	&apos;define level 6
+	oNumDef = createObject(&quot;ExtListNumDef&quot;)
+	with oNumDef
+		.Prefix               = &quot;[&quot;
+		.Suffix               = &quot;]&quot;
+		.LeftMargin           = 5600
+		.FirstLineOffset      = -800
+		.SymbolTextDistance   = 200
+		.NumberingType        = com.sun.star.style.NumberingType.CHARS_LOWER_LETTER
+	end with
+	aNumDefs(6) = oNumDef
+
+	GetExtListNumberingDefinition = aNumDefs
+end function
+
+
+sub AddParagraph()
+rem ----------------------------------------------------------------------
+rem define variables
+dim document   as object
+dim dispatcher as object
+rem ----------------------------------------------------------------------
+rem get access to the document
+document   = ThisComponent.CurrentController.Frame
+dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+
+rem ----------------------------------------------------------------------
+dispatcher.executeDispatch(document, &quot;.uno:InsertNeutralParagraph&quot;, &quot;&quot;, 0, Array())
+
+
+end sub
+
+
+sub AddBulletListOld()
+rem ----------------------------------------------------------------------
+rem define variables
+dim document   as object
+dim dispatcher as object
+rem ----------------------------------------------------------------------
+rem get access to the document
+document   = ThisComponent.CurrentController.Frame
+dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+
+rem ----------------------------------------------------------------------
+dispatcher.executeDispatch(document, &quot;.uno:InsertNeutralParagraph&quot;, &quot;&quot;, 0, Array())
+
+SetListBullet()
+
+
+end sub
+
+
+sub AddBulletList
+rem ----------------------------------------------------------------------
+rem define variables
+dim document   as object
+dim dispatcher as object
+rem ----------------------------------------------------------------------
+rem get access to the document
+document   = ThisComponent.CurrentController.Frame
+dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+
+rem ----------------------------------------------------------------------
+dispatcher.executeDispatch(document, &quot;.uno:InsertNeutralParagraph&quot;, &quot;&quot;, 0, Array())
+
+rem ----------------------------------------------------------------------
+&apos;dispatcher.executeDispatch(document, &quot;.uno:DecrementLevel&quot;, &quot;&quot;, 0, Array())
+
+rem ----------------------------------------------------------------------
+dim args3(0) as new com.sun.star.beans.PropertyValue
+args3(0).Name = &quot;On&quot;
+args3(0).Value = true
+
+dispatcher.executeDispatch(document, &quot;.uno:DefaultBullet&quot;, &quot;&quot;, 0, args3())
+
+SetExtListBullet	
+
+end sub
+
+
+
+sub SetExtListBullet()
+dim sStyleName as string
+dim oFamilies as object
+dim oParaStyles as object
+dim oStyle as object
+
+	sStyleName = &quot;Extended List Bullet&quot;
+	&apos;create style if it does not exists
+	oFamilies = ThisComponent.StyleFamilies
+	oParaStyles = oFamilies.getByName( &quot;ParagraphStyles&quot; )
+	if not oParaStyles.HasByName( sStyleName ) then
+		&apos; create paragraph style here
+		oStyle = ThisComponent.createInstance(&quot;com.sun.star.style.ParagraphStyle&quot;)
+		oStyle.ParentStyle = &quot;Standard&quot;
+		oStyle.FollowStyle = sStyleName
+		oStyle.ParaOrphans = 3
+		oStyle.ParaWidows = 3
+		oStyle.ParaLeftMargin = 600  &apos; margin on the left of border
+		oParaStyles.insertByName( sStyleName, oStyle )
+	end if
+	
+	&apos;assign selected text to this style
+	SetParagraphStyle(sStyleName)	
+end sub
+
+</script:module>

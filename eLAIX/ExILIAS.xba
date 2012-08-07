@@ -1,0 +1,2244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">
+<script:module xmlns:script="http://openoffice.org/2000/script" script:name="ExILIAS" script:language="StarBasic">&apos;****************************************************************************
+&apos; eLAIX   : Writing ILIAS learning modules offline with OpenOffice.org Writer
+&apos; Author  : Harry Boldt - h.boldt@boldt-media.de - http://elaix.org
+&apos; License : GPL
+&apos;****************************************************************************
+
+&apos; This module is part of eLAIX. You can redistribute it and/or
+&apos; modify it under the terms of the GNU Lesser General Public
+&apos; License as published by the Free Software Foundation, either
+&apos; version 3 of the License, or (at your option) any later version.
+&apos; 
+&apos; This program is distributed in the hope that it will be useful,
+&apos; but WITHOUT ANY WARRANTY; without even the implied warranty of
+&apos; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+&apos; Lesser General Public License for more details.
+&apos; 
+&apos; You should have received a copy of the GNU Lesser General Public
+&apos; License along with this program. If not, please visit the Free
+&apos; Software Foundation website at http://www.gnu.org/licenses/.
+
+
+Option Explicit
+
+private psFrameCaption as string
+private piBacksteps as integer
+
+sub SetIliasPathGlobals() &apos;after export filename has been set
+dim vFileName as string
+dim vTempFolder as string
+dim vFileFolder as string
+dim sfa As Object &apos; SimpleFileAccess object
+dim vaExt(1) As String
+dim vZipDefault as string
+
+  vTempFolder = GetRandomString(&quot;tmp-&quot;,12)
+  vFilename = FilenameOutOfPath(gsExportZIP, gsPathSeparator) &apos; the Filename of the zip file
+  vFileFolder = GetFilenameWithoutExtension(vFileName) &apos; the Filename of the zip file without extension
+  &apos;gsExportZipDir = gsCurDir &amp; gsPathSeparator &amp; vTempFolder &amp; vFileFolder
+  &apos;gsExportXmlDir = gsCurDir &amp; gsPathSeparator &amp; vTempFolder &amp; vFileFolder &amp; gsPathSeparator &amp; vFileFolder
+  gsExportZipDir = gsCurDir &amp; gsPathSeparator &amp; vTempFolder 
+  gsExportXmlDir = gsCurDir &amp; gsPathSeparator &amp; vTempFolder &amp; gsPathSeparator &amp; vFileFolder
+  gsExportStyleDir = gsExportXmlDir &amp; gsPathSeparator &amp; &quot;style&quot;
+  ChDir(gsExportXmlDir)
+  If Dir(gsExportZipDir,16)&lt;&gt; &quot;&quot; then &apos; Delete existing folder
+    sfa = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)
+    sfa.setReadOnly(gsExportZipDir, false) &apos; gsExportZipDir is then not readonly
+    RmDir(gsExportZipDir)
+  end if
+  MkDir(gsExportXmlDir)
+  gsExportXML = ConvertToURL(gsExportXmlDir &amp; gsPathSeparator &amp; vFileFolder &amp; gsExtensionXML)
+  gsExportMediaDir = gsExportXmlDir &amp; gsPathSeparator &amp; &quot;objects&quot;
+  If Dir(gsExportMediaDir,16)= &quot;&quot; then &apos; Folder does not exist
+    MkDir gsExportMediaDir
+  end if  
+end sub
+
+
+Sub ExportToILIAS
+	WriteToStream(goExportXML, gsHead)
+	WriteToStream(goExportXML, GetTag(&quot;ContentObject&quot;, &quot;Type=&quot; &amp; gsType, &quot;&quot;, false))
+    ExportDocMetaData
+    ExportStructure
+    ExportDocument
+    ExportMedia    
+    ExportDocProperties
+	WriteToStream(goExportXML, &quot;&lt;/ContentObject&gt;&quot;)
+	ExportStyles
+End Sub
+
+
+sub ExportDocMetaData
+dim sIdent as string
+dim sTitle as string
+dim sDescription as string
+dim aKeywords()
+dim aAuthors()
+dim oMetadata as object
+dim iCount as integer
+dim i as integer
+dim sAuthor as string
+
+	oMetadata = GetDocMetadata()
+
+    sIdent = &quot;&quot;&quot;il_0_lm_0&quot;&quot;&quot;
+    sTitle = ReplaceSymbolsMetadata(oMetadata.docTitle)
+    sDescription = ReplaceSymbolsMetadata(oMetadata.docDescription)
+    aKeywords = ArrayOutOfString(ReplaceSymbolsMetadata(oMetadata.docKeywords), &quot;,&quot;)
+    gsLang = GetLanguageCode(oMetadata.docLanguage)
+    ExportMetaData(sIdent, sTitle, sDescription, aKeywords(), false)   
+
+    aAuthors = ArrayOutOfString(ReplaceSymbolsMetadata(oMetadata.docAuthors), &quot;,&quot;)
+	if oMetadata.docAuthors &lt;&gt; &quot;&quot; then
+	    WriteToStream(goExportXML, &quot;&lt;Lifecycle Status=&quot;&quot;&quot;&quot;&gt;&quot;)
+	    WriteToStream(goExportXML, &quot;&lt;Version Language=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot;/&gt;&quot;)
+		WriteToStream(goExportXML, &quot;&lt;Contribute Role=&quot;&quot;Author&quot;&quot;&gt;&quot;)
+		for i = 0 to ubound(aAuthors())
+			sAuthor = ltrim(rtrim(aAuthors(i))
+			WriteToStream(goExportXML, &quot;&lt;Entity&gt;&quot; &amp; sAuthor &amp; &quot;&lt;/Entity&gt;&quot;)
+		next i
+		WriteToStream(goExportXML, &quot;&lt;Date/&gt;&lt;/Contribute&gt;&lt;/Lifecycle&gt;&quot;
+	end if  
+	
+	if oMetadata.docCopyright &lt;&gt; &quot;&quot; then
+		WriteToStream(goExportXML, &quot;&lt;Rights Costs=&quot;&quot;&quot;&quot; CopyrightAndOtherRestrictions=&quot;&quot;Yes&quot;&quot;&gt;&quot;)
+		WriteToStream(goExportXML, GetTag(&quot;Description&quot;, &quot;Language=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot;&quot;, oMetadata.docCopyright, true))
+		WriteToStream(goExportXML, &quot;&lt;/Rights&gt;&quot;
+	end if
+	WriteToStream(goExportXML, &quot;&lt;/MetaData&gt;&quot;)
+    
+end sub
+
+
+sub ExportStructure
+dim iChapterCount as integer
+dim iChapter as integer
+dim iPage as integer
+dim iLevel as integer
+	
+	iChapterCount = ubound(gaDocChapter())
+	piBacksteps = 0
+	iChapter = 0
+	iPage = 0
+	iChapter = ExportStructureElements(iChapterCount, iChapter, iPage)	
+end sub
+
+
+function ExportStructureElements(iChapterCount as integer, iChapter as integer, iPage as integer) as integer
+dim sHeadIdent as string
+dim sTitle as string
+dim sDescription as string
+dim aKeywords()
+dim iLevel as integer
+dim bContinue as boolean
+dim iNextLevel as integer
+dim aChapterList()
+dim iID as long
+
+	aChapterList() = GetChapterSetByType(CHAPTER_TYPE_HEADING)
+	&apos;aChapterList() = gaDocChapter()
+	iChapterCount = ubound(aChapterList())
+
+	bContinue = true
+	do while (iChapter &lt; iChapterCount) and bContinue
+
+		if piBacksteps = 0 then		
+			iChapter = iChapter + 1
+			WriteToStream(goExportXML, &quot;&lt;StructureObject&gt;&quot;)		
+			sHeadIdent = &quot;&quot;&quot;il_0_st_&quot; &amp; CStr(iChapter) &amp; &quot;&quot;&quot;&quot;
+			sTitle = ReplaceSymbolsHeading(aChapterList(iChapter).GetString)
+			sDescription = &quot;&quot;
+			ExportMetadata(sHeadIdent, sTitle, sDescription, aKeywords(), true)
+			
+			if (aChapterList(iChapter).HasContent) then
+				iID = aChapterList(iChapter).ID
+				ExportStructurePages(iChapterCount, iID)
+			end if	
+		
+			&apos;check if there is a next chapter
+			if iChapter &lt; iChapterCount then
+				iNextLevel = aChapterList(iChapter + 1).Level
+				
+				&apos;check if the next chapter has a higher level
+				if (iNextLevel &gt; aChapterList(iChapter).Level) then
+					&apos;call this function recursively
+					iChapter = ExportStructureElements(iChapterCount, iChapter, iPage)
+					
+				&apos;check if this level is lower than the last level	
+				elseif (iNextLevel &lt; aChapterList(iChapter).Level) then
+					piBacksteps = aChapterList(iChapter).Level - iNextLevel - 1
+					bContinue = false
+				end if				
+			end if
+			
+			WriteToStream(goExportXML, &quot;&lt;/StructureObject&gt;&quot;)
+		else
+			piBacksteps = piBacksteps - 1
+			bContinue = false
+		end if
+	loop	
+	ExportStructureElements = iChapter		
+end function
+
+
+sub ExportStructurePages(iChapterCount as long, iChapter as long)
+dim iPage as long
+dim sPageIdent as string
+&apos;dim iCount as long
+
+	&apos;write the page of this structure level
+	&apos;iPage = gaDocChapter(iChapter).ID
+	sPageIdent = &quot;&quot;&quot;il_0_pg_&quot; &amp; CStr(iChapter) &amp; &quot;&quot;&quot;&quot;
+	WriteToStream(goExportXML, &quot;&lt;PageObject&gt;&quot;)
+	WriteToStream(goExportXML, GetTag(&quot;PageAlias&quot;, &quot;OriginId=&quot; &amp; sPageIdent, &quot;&quot;, true))
+	WriteToStream(goExportXML, &quot;&lt;/PageObject&gt;&quot;)	
+	
+	&apos;look for more pages on this structure level (page breaks)
+	&apos;iCount = ubound(gaDocChapter())
+	do while (iChapter &lt; iChapterCount)
+		iChapter = iChapter + 1
+		if gaDocChapter(iChapter).ChapterType = CHAPTER_TYPE_PAGE then
+			&apos;iPage = gaDocChapter(iChapter).ID
+			sPageIdent = &quot;&quot;&quot;il_0_pg_&quot; &amp; CStr(iChapter) &amp; &quot;&quot;&quot;&quot;
+			WriteToStream(goExportXML, &quot;&lt;PageObject&gt;&quot;)
+			WriteToStream(goExportXML, GetTag(&quot;PageAlias&quot;, &quot;OriginId=&quot; &amp; sPageIdent, &quot;&quot;, true))
+			WriteToStream(goExportXML, &quot;&lt;/PageObject&gt;&quot;)	
+		else
+			exit do
+		end if
+	loop
+end sub
+
+
+sub ExportDocument
+dim iChapter as long
+dim oChapter as object
+dim sIdent as string
+dim sTitle as string
+dim sDescription as string
+dim aKeywords() as string
+dim aParaSet() as long
+dim oPara as object
+dim iParaCount as long
+dim i as long
+dim sCharacteristic as string
+dim iActPageID as long
+
+	iActPageID = 0
+
+	for iChapter = 1 to ubound(gaDocChapter())
+	
+		oChapter = gaDocChapter(iChapter)
+
+		&apos;generate a new page object if this chapter is the first or follows solo-headline 
+		if oChapter.HasContent then
+		
+			&apos;get the paragraphs of this chapter
+			aParaSet() = GetParaSetOfChapter(oChapter.ID)	
+			iParaCount = ubound(aParaSet())	
+			
+			&apos;export the metadata of the page		
+			WriteToStream(goExportXML, &quot;&lt;PageObject&gt;&quot;)
+			&apos;iActPageID = iActPageID + 1
+			&apos;iActPageID = iActPageID + 1
+			sIdent = &quot;&quot;&quot;il_0_pg_&quot; &amp; CStr(oChapter.ID) &amp; &quot;&quot;&quot;&quot;
+			&apos;sTitle = ReplaceSymbolsHeading(oChapter.GetString)
+			sTitle = oChapter.GetString
+			sDescription = &quot;&quot;
+			ExportMetadata(sIdent, sTitle, sDescription, aKeywords(), true)
+		
+			&apos;select all paragraphs of this chapter and export them
+			for i = 1 to iParaCount
+				oPara = gaDocParagraph(aParaSet(i)) 
+				if oPara.State &lt;&gt; PARA_STATE_EXPORTED then
+					ExportParagraph(oPara)
+				end if	
+				goDlgExport.Model.lblCountWrite.Label = oPara.ID
+			next i
+			
+			WriteToStream(goExportXML, &quot;&lt;/PageObject&gt;&quot;)
+		end if		
+		
+	next iChapter
+
+	iActPageID = oChapter.ID
+	
+	&apos;if the header should be exported, do it here
+	if gbOptIncludeHeader then
+		iActPageID = iActPageID + 1
+		ExportHeader(iActPageID)
+	end if
+
+	&apos;if the footer should be exported, do it here
+	if gbOptIncludeFooter then
+		iActPageID = iActPageID + 1
+		ExportFooter(iActPageID)
+	end if
+	
+end sub	
+
+
+sub ExportHeader(iActPage as long)
+dim sIdent as string
+dim sTitle as string
+dim sDescription as string
+dim aKeywords() as string
+dim aParaSet() as long
+dim oPara as object
+dim i as long
+
+	giHeaderPageID = iActPage
+	WriteToStream(goExportXML, &quot;&lt;PageObject&gt;&quot;)
+	sIdent = &quot;&quot;&quot;il_0_pg_&quot; &amp; CStr(giHeaderPageID) &amp; &quot;&quot;&quot;&quot;
+	sTitle = &quot;Header&quot;
+	sDescription = &quot;&quot;
+	ExportMetadata(sIdent, sTitle, sDescription, aKeywords(), true)
+	
+	aParaSet() = GetParaSetPageArea(PAGE_AREA_HEADER)		
+	for i = 1 to ubound(aParaSet())
+		oPara = gaDocParagraph(aParaSet(i)) 
+		if oPara.State &lt;&gt; PARA_STATE_EXPORTED then
+			ExportParagraph(oPara)
+		end if	
+	next i	
+	WriteToStream(goExportXML, &quot;&lt;/PageObject&gt;&quot;)
+end sub
+
+
+sub ExportFooter(iActPage as long)
+dim sIdent as string
+dim sTitle as string
+dim sDescription as string
+dim aKeywords() as string
+dim aParaSet() as long
+dim oPara as object
+dim i as long
+
+	giFooterPageID = iActPage
+	WriteToStream(goExportXML, &quot;&lt;PageObject&gt;&quot;)
+	sIdent = &quot;&quot;&quot;il_0_pg_&quot; &amp; CStr(giFooterPageID) &amp; &quot;&quot;&quot;&quot;
+	sTitle =&quot;Footer&quot;
+	sDescription = &quot;&quot;
+	ExportMetadata(sIdent, sTitle, sDescription, aKeywords(), true)
+	
+	aParaSet() = GetParaSetPageArea(PAGE_AREA_FOOTER)		
+	for i = 1 to ubound(aParaSet())
+		oPara = gaDocParagraph(aParaSet(i)) 
+		if oPara.State &lt;&gt; PARA_STATE_EXPORTED then
+			ExportParagraph(oPara)
+		end if	
+	next i
+	WriteToStream(goExportXML, &quot;&lt;/PageObject&gt;&quot;)
+end sub
+
+
+sub ExportParagraph(oPara as object)
+dim iParaType as integer
+dim aParaSet() as long
+dim iCount as long 
+dim iStartPos as long
+dim iStopPos as integer
+dim iLevel as integer
+
+	iParaType = oPara.ParaType	
+	select case iParaType
+		case PARA_TYPE_TEXT
+			ExportTextPortions(oPara)
+
+		case PARA_TYPE_LIST
+			ExportList(oPara, true)
+			
+		case PARA_TYPE_TABLE
+			ExportTable(oPara)
+
+		case PARA_TYPE_FRAMESTART
+			ExportFrameStart(oPara)
+
+		case PARA_TYPE_FRAMESTOP
+			ExportFrameStop(oPara)
+
+		case PARA_TYPE_FILELIST
+			ExportFileList(oPara)
+		
+		end select
+	&apos;check if there&apos;s a pagebreak after the paragraph
+	&apos;if (oPara.ID &lt; ubound(gaDocParagraph())) and (oPara.BreakType = com.sun.star.style.BreakType.PAGE_AFTER) then
+	&apos;	ExportPageBreak(oPara)
+	&apos;end if
+end sub
+
+
+sub ExportTextPortions(oPara As Object) 
+  &apos; oParagraph : the paragraph to be exported
+  &apos; pAlign     : if set, use the frame alignment instead of object alignment
+  &apos; pCaption   : if set, this is the caption of a graphic
+  &apos; pLocation  : indicates where the paragraph is located, values: C_CONTENT, C_HEADER, C_FOOTER
+  
+dim sExportString as string 
+dim aPortionSet()
+dim iPortionCount as long
+dim sTextPortionType as string
+dim oPortion as object
+dim aMediaSet()
+dim oMedia as object
+dim i as long
+dim j as integer
+dim iCount as integer
+dim iLen as integer
+dim sLaTeX as string
+dim sIdent as long
+dim iNoTextWrap as long
+
+
+	&apos;step 1: get the text portions of the paragraph
+	sExportString = &quot;&quot; 
+	aPortionSet() = GetTextPortionSet(oPara.ID)
+
+	&apos;step 2: concatenate all text portions and handle media export of textportions
+	iPortionCount = ubound(aPortionSet())
+	for i = 1 to iPortionCount
+		oPortion = gaDocTextPortion(aPortionSet(i))
+		sTextPortionType = oPortion.TextPortionType
+		&apos;do not export graphic captions, these are handled by AppendMediaRec, accordion captions are also handeled
+		if (oPortion.ParaStylename &lt;&gt; &quot;Illustration&quot;) and (oPortion.ParaStylename &lt;&gt; &quot;ILIAS_Accordion_Caption&quot;) then
+			Select Case sTextPortionType
+				Case &quot;Text&quot; &apos;this portion is a text object! 
+					&apos;check if last portion was a formula and append a blank if there is none
+					iLen = len(sExportString)
+					if iLen &gt; 6 then
+						if mid(sExportString, iLen - 5) = &quot;[/tex]&quot; then
+							sExportString = sExportString &amp; &quot; &quot; 
+						end if
+					end if	
+					sExportString = sExportString &amp; GetTextPortionExportString(oPortion)
+					
+				Case &quot;TextField&quot; &apos;this portion is a reference
+					sExportString = sExportString &amp; GetTextFieldExportString(oPortion)
+					
+				Case &quot;Bookmark&quot; &apos;this portion is a bookmark
+					sExportString = sExportString &amp; GetBookmarkExportString(oPortion)
+
+				Case &quot;Footnote&quot; &apos;this portion is a footnote
+					sExportString = sExportString &amp; GetFootnoteExportString(oPortion)
+
+				Case &quot;Marginale&quot; &apos;this portion is a marginale
+					sExportString = sExportString &amp; GetMarginaleExportString(oPortion)
+
+				Case &quot;Frame&quot; &apos;this portion is a frame
+					&apos;it could be a formula
+					if oPortion.FrameStyleName = &quot;Formula&quot; then
+						sLaTeX = &quot;[tex]&quot; &amp; ReplaceTexString(oPortion.FormulaTeX) &amp; &quot;[/tex]&quot;
+						&apos;set a blank before formula if there is text before
+						iLen = len(sExportString)
+						if iLen &gt; 0 then
+							if mid(sExportString, iLen) &lt;&gt; &quot; &quot; then 
+								sLaTeX = &quot; &quot; &amp; sLaTeX
+							end	if
+						end if
+			    		sExportString = sExportString &amp; sLaTeX
+					end if					
+			end select
+		end if	
+    	&apos;export media joined to this text portion
+		iNoTextWrap = com.sun.star.text.WrapTextMode.NONE
+		oMedia = GetDocMediaByPortionID(oPortion.ID)
+		if not isNull(oMedia) then
+			&apos;graphics with surrounding portions should be exported as IntLink	
+			if (oMedia.TextWrap = iNoTextWrap) and (oMedia.AnchorType = 1) and (oMedia.HoriOrient = 3) and (iPortionCount &gt; 1) then
+				sExportString = sExportString &amp; &quot;&lt;IntLink Target=&quot;&quot;il_0_mob_&quot; &amp; oMedia.ID &amp; &quot;&quot;&quot; Type=&quot;&quot;MediaObject&quot;&quot;/&gt;&quot;
+			else
+				&apos;a single graphic should be exported as a MediaTag
+				ExportMediaTag(oMedia)
+			end if	
+		end if		
+
+	next i
+	 
+	&apos;step 3: export the concatenated text
+	if sExportString &lt;&gt; &quot;&quot; then 
+	    ExportParagraphTag (oPara, sExportString)
+	endif
+end sub
+
+
+function ExportList(oPara as object, bSetClass as boolean) as object
+dim iParaCount as long
+dim iListLevel as integer
+dim iListType as integer
+dim iNumberingLevel as integer
+dim iNumberingType as integer
+dim oNextPara as object
+dim sStylename as string
+dim iRow as integer
+dim iCol as integer
+dim iChapter as integer
+
+	iParaCount = UBound(gaDocParagraph())
+	ExportListHeader(oPara, bSetClass)
+	iListLevel = oPara.NumberingLevel
+	iListType = oPara.NumberingType
+	sStyleName = oPara.ParaStyleName
+	iRow = oPara.TableRow
+	iCol = oPara.TableCol
+	iChapter = oPara.ChapterID
+	
+    &apos;enumerate paragraphs that are list items (NumberingType ist not an empty string)
+	do while (oPara.NumberingType &lt;&gt; &quot;&quot;) and (oPara.NumberingLevel = iListLevel) and _
+			(oPara.NumberingType = iListType) and (oPara.ParaStylename = sStylename) and _
+			(oPara.TableRow = iRow) and (oPara.TableCol = iCol) and _
+			(oPara.ChapterID = iChapter)
+	
+		WriteToStream(goExportXML, &quot;&lt;ListItem&gt;&quot;)
+		ExportTextPortions(oPara)
+		gaDocParagraph(oPara.ID).State = PARA_STATE_EXPORTED
+		
+		&apos;check next item to decide wether it has to be handeled within this item
+		if (oPara.ID &lt; iParaCount) then
+			iNumberingLevel = oPara.NumberingLevel
+			iNumberingType = oPara.NumberingType
+			oNextPara = gaDocParagraph(oPara.ID + 1)
+			
+			&apos;do nothing, if the next paragraph has another Stylename
+			if oNextPara.ParaStylename &lt;&gt; sStylename then
+
+			&apos;the item has a higher level (is a new list)
+			elseif oNextPara.NumberingLevel &gt; oPara.NumberingLevel then
+				oPara = ExportList(oNextPara, false)
+				&apos;gaDocParagraph(oPara.ID).State = PARA_STATE_PENDING
+				
+			&apos;the item has the same level and could be a bullet list or an unnumbered paragraph)	
+			elseif oNextPara.NumberingLevel = iNumberingLevel then
+			&apos;elseif ((oPara.NumberingType &lt;&gt; 6) and (oNextPara.NumberingType = 6)) or not (oNextPara.NumberingIsNumber) then
+				oPara = oNextPara
+				gaDocParagraph(oPara.ID).State = PARA_STATE_PENDING
+				&apos;enumerate all items with the same level
+				do while oPara.NumberingLevel = iNumberingLevel
+					&apos;the item could be an unnumbered paragraph
+					if not oPara.NumberingIsNumber then 
+						ExportTextPortions(oPara)
+						gaDocParagraph(oNextPara.ID).State = PARA_STATE_EXPORTED
+					&apos;the item could be a bullet list	
+					elseif (oPara.NumberingType = 6) and (iNumberingType &lt;&gt; 6) then	
+						oPara = ExportList(oPara, true)
+						&apos;gaDocParagraph(oPara.ID).State = PARA_STATE_PENDING
+					else
+						exit do	
+					end if	
+					
+					if oPara.State = PARA_STATE_EXPORTED then
+						if (oPara.ID &lt; iParaCount) then
+							oPara = gaDocParagraph(oPara.ID + 1)
+						else
+							exit do
+						end if	
+					end if
+				loop			
+			
+			end if
+			
+		end if
+		WriteToStream(goExportXML, &quot;&lt;/ListItem&gt;&quot;)	
+		
+		if oPara.State = PARA_STATE_EXPORTED then
+			if (oPara.ID &lt; iParaCount) then
+				oPara = gaDocParagraph(oPara.ID + 1)
+			else
+				exit do
+			end if
+		end if	
+	
+	loop
+	ExportListFooter
+	ExportList = oPara
+end function
+
+
+sub ExportListHeader(oPara as object, bSetClass as boolean)
+dim sNumberingType as string
+dim sStylestring as string
+
+	WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;)
+    sNumberingType = GetILIASListType(oPara.NumberingType)
+	sStyleString = oPara.ParaStyleName
+    if sNumberingType = &quot;Unordered&quot; then
+    	if bSetClass then
+			WriteToStream(goExportXML, &quot;&lt;List Type=&quot;&quot;Unordered&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleString &amp; &quot;&quot;&quot;&gt;&quot;)
+		else
+			WriteToStream(goExportXML, &quot;&lt;List Type=&quot;&quot;Unordered&quot;&quot;&gt;&quot;)
+		end if	
+    else
+    	if bSetClass then
+			WriteToStream(goExportXML, &quot;&lt;List Type=&quot;&quot;Ordered&quot;&quot; NumberingType=&quot;&quot;&quot; &amp; sNumberingType &amp; &quot;&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleString &amp; &quot;&quot;&quot;&gt;&quot;)
+		else
+			WriteToStream(goExportXML, &quot;&lt;List Type=&quot;&quot;Ordered&quot;&quot; NumberingType=&quot;&quot;&quot; &amp; sNumberingType &amp; &quot;&quot;&quot;&gt;&quot;)
+		end if	
+    end if  	
+
+end sub
+
+sub ExportListFooter
+	WriteToStream(goExportXML, &quot;&lt;/List&gt;&quot;)
+	WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;)
+end sub
+
+
+function GetLastNumberingTypeByLevel(oPara as object)
+dim iPos as long
+
+	iPos = oPara.ID - 1
+	do while iPos &gt; 0
+		if gaDocParagraph(iPos).NumberingLevel = oPara.NumberingLevel then
+			exit do
+		end if
+		iPos = iPos - 1
+	loop
+
+	GetLastNumberingType = gaDocParagraph(iPos).NumberingType
+end function
+
+
+sub ExportTable(oPara as object)
+dim iTableRelativeWidth as integer
+dim iTableBorderWidth as integer
+dim oTablePara as object
+dim iActRow as long
+dim iActCol as long
+dim iParaCount as long
+dim aParaSet() as long
+dim i as long
+
+
+	WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;)
+
+	if oPara.TableIsWidthRelative then 
+		iTableRelativeWidth = oPara.TableRelativeWidth
+	elseif oPara.TableWidth &lt; oPara.PageInnerWidth then
+		iTableRelativeWidth = oPara.TableWidth / oPara.PageInnerWidth * 100
+	else	
+		iTableRelativeWidth = 100
+	end if		
+	
+	if oPara.TableBorderWidth &gt; 0 then 
+		iTableBorderWidth = 1
+	else
+		iTableBorderWidth = 0
+	end if
+
+	aParaSet() = GetParaSetTable(oPara.ID)		
+	iParaCount = ubound(aParaSet())
+	i = 1
+	WriteToStream(goExportXML, &quot;&lt;Table Language=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot; Border=&quot;&quot;&quot; &amp; iTableBorderWidth &amp;_
+					&quot;&quot;&quot; Width=&quot;&quot;&quot; &amp; iTableRelativeWidth &amp; &quot;%&quot;&quot;&quot; &amp; &quot; CellSpacing=&quot;&quot;1&quot;&quot; CellPadding=&quot;&quot;4&quot;&quot;&gt;&quot;)
+	if oPara.TableCaption &lt;&gt; &quot;&quot; then
+		WriteToStream(goExportXML, &quot;&lt;Caption Align=&quot;&quot;bottom&quot;&quot;&gt;&quot; &amp; oPara.TableCaption &amp; &quot;&lt;/Caption&gt;&quot;
+	end if	
+	do while i &lt;= iParaCount
+		WriteToStream(goExportXML, &quot;&lt;TableRow&gt;&quot;)
+		oTablePara = gaDocParagraph(aParaSet(i))
+		iActRow = oTablePara.TableRow
+		do while (i &lt;= iParaCount) and (oTablePara.TableRow = iActRow)
+			iActCol = oTablePara.TableCol
+						
+			if iTableBorderWidth = 0 then 
+				WriteToStream(goExportXML, &quot;&lt;TableData&gt;&quot;)
+			elseif oTablePara.ParaStyleName = &quot;Table Heading&quot; then
+				WriteToStream(goExportXML, &quot;&lt;TableData Class=&quot;&quot;ilc_Cell1&quot;&quot;&gt;&quot;)
+			else
+				WriteToStream(goExportXML, &quot;&lt;TableData Class=&quot;&quot;ilc_Cell2&quot;&quot;&gt;&quot;)
+			end if
+			
+			do while (oTablePara.TableRow = iActRow) and (oTablePara.TableCol = iActCol)
+				if gaDocParagraph(aParaSet(i)).State &lt;&gt; PARA_STATE_EXPORTED then
+					ExportParagraph(oTablePara)
+					gaDocParagraph(aParaSet(i)).State = PARA_STATE_EXPORTED
+				end if	
+				i = i + 1
+				if i &lt;= iParaCount then
+					oTablePara = gaDocParagraph(aParaSet(i))	
+				else
+					exit do
+				end if
+			loop	
+			WriteToStream(goExportXML, &quot;&lt;/TableData&gt;&quot;)			
+		loop
+		WriteToStream(goExportXML, &quot;&lt;/TableRow&gt;&quot;)
+	loop				
+	WriteToStream(goExportXML, &quot;&lt;/Table&gt;&quot;)
+	WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;)
+End sub
+
+
+
+sub ExportFrameStart(oPara as object)
+dim sFrameType as string
+dim sFrameCaption as string
+dim sFrameStylename as string
+dim i as long
+dim IsFirstAccordion as boolean
+
+
+	if oPara.FrameStyleName = &quot;ILIAS_FileList&quot; then
+		WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;
+		WriteToStream(goExportXML, &quot;&lt;FileList&gt;&quot;
+
+	elseif oPara.FrameStyleName = &quot;ILIAS_Accordion_Vertical&quot; then
+		WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;
+		WriteToStream(goExportXML, &quot;&lt;Tabs Type=&quot;&quot;VerticalAccordion&quot;&quot; HorizontalAlign=&quot;&quot;Center&quot;&quot; Behavior=&quot;&quot;AllClosed&quot;&quot; Template=&quot;&quot;VerticalAccordion&quot;&quot;&gt;&quot;)
+
+	elseif oPara.FrameStyleName = &quot;ILIAS_Accordion_Horizontal&quot; then
+		WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;
+		WriteToStream(goExportXML, &quot;&lt;Tabs Type=&quot;&quot;HorizontalAccordion&quot;&quot; HorizontalAlign=&quot;&quot;Center&quot;&quot; Behavior=&quot;&quot;AllClosed&quot;&quot; Template=&quot;&quot;HorizontalAccordion&quot;&quot;&gt;&quot;)
+
+	elseif oPara.FrameStyleName = &quot;ILIAS_Accordion_Element&quot; then
+		psFrameCaption = GetParagraphString(oPara.ID + 1) 
+		WriteToStream(goExportXML, &quot;&lt;Tab PCID=&quot;&quot;&quot; &amp; oPara.ID &amp; &quot;&quot;&quot;&gt;&quot;)
+		&apos;WriteToStream(goExportXML, &quot;&lt;TabCaption&gt;&quot; &amp; sFrameCaption &amp; &quot;&lt;/TabCaption&gt;&quot;)
+		
+	elseif left(oPara.FrameStylename, 5) = &quot;ILIAS&quot; then
+		sFrameStylename	= Mid(oPara.FrameStylename, 7)
+		WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;
+		WriteToStream(goExportXML, &quot;&lt;Section Characteristic=&quot;&quot;&quot; &amp; sFrameStylename  &amp; &quot;&quot;&quot; PCID=&quot;&quot;&quot; &amp; oPara.ID &amp; &quot;&quot;&quot;&gt;&quot;)
+	else
+		WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;
+		WriteToStream(goExportXML, &quot;&lt;Section Characteristic=&quot;&quot;&quot; &amp; oPara.FrameStylename &amp; &quot;&quot;&quot; PCID=&quot;&quot;&quot; &amp; oPara.ID &amp; &quot;&quot;&quot;&gt;&quot;)
+	end if
+end sub
+
+
+sub ExportFrameStop(oPara as object)
+dim sFrameType as string
+dim i as long
+dim IsLastAccordion as boolean
+dim iParaCount as long
+dim sFrameCaption as string
+
+	if oPara.FrameStyleName = &quot;ILIAS_FileList&quot; then
+		WriteToStream(goExportXML, &quot;&lt;/FileList&gt;&quot;
+		WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;
+
+	elseif oPara.FrameStyleName = &quot;ILIAS_Accordion_Vertical&quot; then
+		WriteToStream(goExportXML, &quot;&lt;/Tabs&gt;&quot;)
+		WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;
+		
+	elseif oPara.FrameStyleName = &quot;ILIAS_Accordion_Horizontal&quot; then
+		WriteToStream(goExportXML, &quot;&lt;/Tabs&gt;&quot;)
+		WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;
+
+	elseif oPara.FrameStyleName = &quot;ILIAS_Accordion_Element&quot; then
+		WriteToStream(goExportXML, &quot;&lt;TabCaption&gt;&quot; &amp; psFrameCaption &amp; &quot;&lt;/TabCaption&gt;&quot;)
+		WriteToStream(goExportXML, &quot;&lt;/Tab&gt;&quot;)
+	else
+		WriteToStream(goExportXML, &quot;&lt;/Section&gt;&quot;)
+		WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;)
+	end if
+end sub
+
+
+sub ExportFileList(oPara as object)
+dim sExportString as string
+dim sFileName as string
+dim aPortionSet()
+dim oPortionRec as object
+dim iCount as integer
+dim i as integer
+
+	&apos;step 1: get the text portions of the paragraph
+	sExportString = &quot;&quot; 
+	aPortionSet() = GetTextPortionSet(oPara.ID)
+
+	&apos;it could be the caption of the FileList
+	if oPara.ParaStyleName = &quot;ILIAS_FileList_Caption&quot; then
+		iCount = ubound(aPortionSet())
+		for i = 1 to iCount
+			oPortionRec = gaDocTextPortion(aPortionSet(i))
+			sExportString = sExportString &amp; oPortionRec.GetString
+		next i
+		WriteToStream(goExportXML, &quot;&lt;Title Language=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot;&gt;&quot; &amp; sExportString &amp; &quot;&lt;/Title&gt;&quot;)
+			
+	elseif oPara.ParaStyleName = &quot;ILIAS_FileList_Element&quot; then
+		oPortionRec = gaDocTextPortion(aPortionSet(1))
+		sExportString = FileNameOutOfPath(oPortionRec.HyperLinkURL)
+		sFilename = GetCleanFilename(ConvertFromURL(sExportString))
+		WriteToStream(goExportXML, &quot;&lt;FileItem PCID=&quot;&quot;&quot; &amp; oPara.ID &amp; &quot;&quot;&quot;&gt;&quot; 
+		WriteToStream(goExportXML, &quot;&lt;Identifier Catalog=&quot;&quot;ILIAS&quot;&quot; Entry=&quot;&quot;il_0_file_&quot; &amp; oPara.ID &amp; &quot;&quot;&quot;/&gt;&quot;
+		WriteToStream(goExportXML, &quot;&lt;Location Type=&quot;&quot;LocalFile&quot;&quot;&gt;&quot; &amp; sFilename &amp; &quot;&lt;/Location&gt;&quot;
+		WriteToStream(goExportXML, &quot;&lt;Format&gt;application/&quot; &amp; GetFileNameExtension(sExportString) &amp; &quot;&lt;/Format&gt;&quot;
+		WriteToStream(goExportXML, &quot;&lt;/FileItem&gt;&quot; 
+	end if	
+end sub
+
+
+function GetParagraphString(iParaID as long) as string
+dim i as long
+dim iPortionCount as long
+dim sString as string
+dim oPara as object
+
+	iPortionCount = ubound(gaDocTextPortion())
+	for i = 1 to iPortionCount
+		oPara = gaDocTextPortion(i)
+		if gaDocTextPortion(i).ParaID = iParaID then
+			sString = sString &amp; gaDocTextPortion(i).GetString
+		elseif gaDocTextPortion(i).ParaID &gt; iParaID then
+			exit for
+		end if
+	next i
+	GetParagraphString = sString
+end function
+
+
+sub ExportMediaTag(oMedia as object)
+dim sIdent as string
+dim sPurpose as string
+dim sLayout as string
+dim sAlign as string
+
+	sIdent = &quot;il_0_mob_&quot; &amp; CStr(oMedia.ID) &amp; &quot;&quot;&quot;&quot;
+	sPurpose = &quot;&quot;&quot;Standard&quot;&quot;&quot;	
+	if gbOptNoScaleGraphics then
+		sLayout = &quot;&quot;
+	else
+		sLayout = GetMediaLayoutString(oMedia)
+	end if  
+	sAlign = &quot;HorizontalAlign=&quot; &amp; GetIliasAlignString(oMedia)
+
+	WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;)
+	WriteToStream(goExportXML, &quot;&lt;MediaObject&gt;&quot;)
+	WriteToStream(goExportXML, GetTag(&quot;MediaAlias&quot;, &quot;OriginId=&quot;&quot;&quot; &amp; sIdent, &quot;&quot;, true))
+	WriteToStream(goExportXML, GetTag(&quot;MediaAliasItem&quot;, &quot;Purpose=&quot; &amp; sPurpose, &quot;&quot;, false))
+	WriteToStream(goExportXML, GetTag(&quot;Layout&quot;, sLayout &amp; &quot; &quot; &amp; sAlign, &quot;&quot;, true))
+	if oMedia.Caption &lt;&gt; &quot;&quot; then
+		WriteToStream(goExportXML, GetTag(&quot;Caption&quot;, &quot;Align=&quot;&quot;bottom&quot;&quot;&quot;, oMedia.Caption, true))
+	end if
+	WriteToStream(goExportXML, &quot;&lt;/MediaAliasItem&gt;&quot;)
+	if not gbOptNoScaleGraphics and oMedia.IsScaled then
+		WriteToStream(goExportXML, GetTag(&quot;MediaAliasItem&quot;, &quot;Purpose=&quot;&quot;&quot; &amp; &quot;Fullscreen&quot;&quot;&quot;, &quot;&quot;, true))
+	end if
+	WriteToStream(goExportXML, &quot;&lt;/MediaObject&gt;&quot;)
+	WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;)
+end sub
+
+
+function GetTextPortionExportString(oPortion as object) as string   
+dim sNumberingStyleName As String
+dim sResult as string
+dim vLink as string
+dim vURL as string
+dim vPos as integer
+dim lCharColor as long
+dim sTextFarbe as string
+dim vParaStyle as string
+dim vCharStyle as string
+dim vEsc as integer
+dim aList()
+dim i as integer
+dim sClass as string
+dim sAnchor as string
+dim sTempStr as string
+dim iAsc as integer
+dim sType as string
+
+	sResult = oPortion.GetString
+	if sResult &lt;&gt; &quot;&quot; then
+		&apos;first check if paragraph is ILIAS Code formatted
+		vParaStyle = left(oPortion.ParaStyleName, 10)
+		if vParaStyle = &quot;ILIAS Code&quot; then
+			sResult = ReplaceSymbolsCode(sResult)
+			
+		&apos;then check if textportion is a hyperlink
+		elseif oPortion.HyperLinkURL &lt;&gt; &quot;&quot; then
+			&apos;it could be an external Link
+			if left(oPortion.HyperLinkURL, 4) = &quot;http&quot; then
+				dim sTarget as string
+				&apos;the target should be something that does not start with &quot;_&quot;
+				if oPortion.HyperLinkTarget &lt;&gt; &quot;&quot; then
+					if left(oPortion.HyperLinkTarget, 1) &lt;&gt; &quot;_&quot; then
+						sTarget = &quot; TargetFrame=&quot;&quot;&quot; &amp; oPortion.HyperLinkTarget &amp; &quot;&quot;&quot;&quot; 
+					end if	
+				end if
+				vURL = &quot; Href=&quot;&quot;&quot; &amp; ReplaceSymbols(oPortion.HyperLinkURL) &amp; &quot;&quot;&quot;&quot;
+				vLink = ReplaceSymbols(sResult)
+				sResult = &quot;&lt;ExtLink&quot; &amp; vURL &amp; sTarget &amp; &quot;&gt;&quot; &amp; vLink &amp; &quot;&lt;/ExtLink&gt;&quot;
+			&apos;it could be an internal link	
+			elseif left(oPortion.CharStyleName, 10) = &quot;ILIAS Link&quot; then
+				dim sLink as string
+				sLink = mid(oPortion.HyperLinkURL, 2)
+				sType = mid(oPortion.CharStyleName, 12)
+				sResult = &quot;&lt;IntLink Target=&quot;&quot;&quot; &amp; sLink &amp; &quot;&quot;&quot; Type=&quot;&quot;&quot; &amp; sType &amp; &quot;&quot;&quot; TargetFrame=&quot;&quot;&quot; &amp; oPortion.HyperLinkTarget &amp;_
+						 &quot;&quot;&quot;&gt;&quot; &amp; oPortion.GetString &amp; &quot;&lt;/IntLink&gt;&quot;
+			&apos;it could be an internal link to a bookmark
+			elseif left(oPortion.HyperLinkURL, 1) = &quot;#&quot; then
+				dim sBookmark as string
+				dim iChapterID as long
+				dim oBookmarkPortion as object
+				sBookmark = mid(oPortion.HyperLinkURL, 2)
+				oBookmarkPortion = GetTextPortionByBookmark(sBookmark)
+				if not isnull (oBookmarkPortion) then
+					iChapterId = gaDocParagraph(oBookmarkPortion.ParaID).ChapterID
+					sResult = &quot;&lt;IntLink Target=&quot;&quot;il_0_pg_&quot; &amp; CStr(iChapterID) &amp; &quot;&quot;&quot; Type=&quot;&quot;PageObject&quot;&quot; Anchor=&quot;&quot;&quot; &amp; sBookmark &amp; &quot;&quot;&quot;&gt;&quot; &amp; oPortion.Getstring &amp; &quot;&lt;/IntLink&gt;&quot;
+				end if    
+			end if    
+		else
+			sResult = ReplaceSymbols(sResult) 	
+			&apos;check if textportion is a list
+			sNumberingStyleName = oPortion.NumberingStyleName
+			if sNumberingStyleName &lt;&gt; &quot;&quot; then  &apos;the paragraph is a list
+				vPos = InStr(sResult, &quot;.&quot;)
+				if vPos &gt; 0 then
+					if IsNumeric(Left(sResult, vPos - 1)) then
+						sResult = Mid(sResult,vPos + 1)
+					end if
+				end if	
+			&apos;the TextPortion could be a list formatted as a paragraph
+			elseif gaDocParagraph(oPortion.ParaID).ParaFirstLineIndent &lt; 0 then
+				aList = ArrayOutOfString(sResult, chr(9))
+				if uBound(aList()) &gt; 0 then
+					if len(aList(0)) &lt;= 4 then
+						sClass = oPortion.ParaStyleName &amp; &quot;Label&quot;
+						sResult = &quot;&amp;lt;span class=&quot;&quot;ilc_text_inline_&quot; &amp; sClass &amp; &quot;&quot;&quot;&amp;gt;&quot; &amp; aList(0) &amp; &quot;&amp;lt;/span&amp;gt;&quot;
+						for i = 1 to ubound(aList)
+							sResult = sResult &amp; aList(i)
+						next i
+					end if	
+				end if	
+			end if
+	
+			&apos;delete the CharStyleName here, if the text portion is hard formatted
+			&apos;if oPortion.CharFontNameState = com.sun.star.beans.PropertyState.DIRECT_VALUE  then
+			&apos;	vCharStyle = &quot;&quot;
+			&apos;else	
+				vCharStyle = oPortion.CharStyleName
+			&apos;end if   
+			
+			if oPortion.Id = 11 then
+				vCharStyle = vCharStyle
+			end if
+	
+			if vCharStyle = &quot;&quot; then
+				&apos;only reflect hard formatted text portions, if the character style is standard
+				if oPortion.CharWeight = com.sun.star.awt.FontWeight.BOLD then  &apos;this portion is formatted in bold
+					if len(sResult) &gt; 1 then
+						sResult = &quot;&lt;Strong&gt;&quot; &amp; sResult &amp; &quot;&lt;/Strong&gt;&quot; 
+					elseif asc(sResult) &lt;&gt; 9 and sResult &lt;&gt; &quot; &quot; then
+						sResult = &quot;&lt;Strong&gt;&quot; &amp; sResult &amp; &quot;&lt;/Strong&gt;&quot; 
+					end if    
+				end if    
+		
+				&apos;check textcolor other than black
+				lCharColor = oPortion.CharColor
+				if (lCharColor &lt;&gt; -1) and (oPortion.HyperLinkURL = &quot;&quot;) and (oPortion.CharStyleName = &quot;&quot;) _
+				and (oPortion.ParaStylename &lt;&gt; gsMarginaleLeftStyle) and (oPortion.ParaStylename &lt;&gt; gsMarginaleRightStyle) then
+					sTextFarbe = GetHexColorString(lCharColor)
+					sResult = &quot;&amp;lt;font color=&quot;&quot;&quot; &amp; sTextFarbe &amp; &quot;&quot;&quot;&amp;gt;&quot; &amp; sResult &amp; &quot;&amp;lt;/font&amp;gt;&quot;
+				end if
+		
+				&apos;check subscript and superscript formatting
+				vEsc = oPortion.CharEscapement
+				if oPortion.CharEscapement &lt; 0 then  &apos;this portion is formatted in subscript
+					sResult = &quot;&amp;lt;sub&amp;gt;&amp;lt;font size=&quot;&quot;-2&quot;&quot;&amp;gt;&quot; &amp; sResult &amp; &quot;&amp;lt;/sub&amp;gt;&amp;lt;/font&amp;gt;&quot; 
+				elseif oPortion.CharEscapement &gt; 0 then  &apos;this portion is formatted in superscript
+					sResult = &quot;&amp;lt;sup&amp;gt;&amp;lt;font size=&quot;&quot;-2&quot;&quot;&amp;gt;&quot; &amp; sResult &amp; &quot;&amp;lt;/sup&amp;gt;&amp;lt;/font&amp;gt;&quot; 
+				end if
+		
+				if (oPortion.CharPosture = com.sun.star.awt.FontSlant.ITALIC) then  &apos;this portion is formatted in italic
+					sResult = &quot;&lt;Emph&gt;&quot; &amp; sResult &amp; &quot;&lt;/Emph&gt;&quot;  
+				end if
+		
+				&apos;check if the textportion is underlined
+				if (oPortion.CharUnderline &gt; 0) then
+					sResult = &quot;&amp;lt;u&amp;gt;&quot; &amp; sResult &amp; &quot;&amp;lt;/u&amp;gt;&quot;	
+				end if         	
+
+				if oPortion.CharFontPitch =  com.sun.star.awt.FontPitch.FIXED then
+			        sResult = &quot;&lt;Code&gt;&quot; &amp; sResult &amp; &quot;&lt;/Code&gt;&quot; 
+				end if
+			else	
+				vCharStyle = ReplaceString(vCharStyle, &quot;_&quot;, &quot; &quot;)
+				select case vCharStyle
+					case  &quot;ILIAS_Important&quot; : sResult = &quot;&lt;Important&gt;&quot; &amp; sResult &amp; &quot;&lt;/Important&gt;&quot;
+					case  &quot;ILIAS_Comment&quot;   : sResult = &quot;&lt;Comment Language=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/Comment&gt;&quot;
+					case  &quot;ILIAS_Quotation&quot; : sResult = &quot;&lt;Quotation Language=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/Quotation&gt;&quot;
+					case  &quot;ILIAS_Accent&quot;    : sResult = &quot;&lt;Accent&gt;&quot; &amp; sResult &amp; &quot;&lt;/Accent&gt;&quot;
+					case  &quot;ILIAS_Keyword&quot;   : sResult = &quot;&lt;Keyw&gt;&quot; &amp; sResult &amp; &quot;&lt;/Keyw&gt;&quot;
+					&apos;case  &quot;ILIAS Code&quot;      : sResult = &quot;&lt;Code&gt;&quot; &amp; sResult &amp; &quot;&lt;/Code&gt;&quot;
+					case  &quot;ILIAS_LaTeX&quot;     : sResult = &quot;[tex]&quot; &amp; sResult &amp; &quot;[/tex]&quot;
+					case  &quot;Standard&quot;     	
+				end select	        
+				sResult = &quot;&amp;lt;span class=&quot;&quot;ilc_text_inline_&quot; &amp; vCharStyle &amp; &quot;&quot;&quot;&amp;gt;&quot; &amp; sResult &amp; &quot;&amp;lt;/span&amp;gt;&quot;
+			end if  
+
+			if (oPortion.ParaStyleName = gsMarginaleLeftStyle) or (oPortion.ParaStyleName = gsMarginaleRightStyle) then
+				sAnchor = ReplaceString(oPortion.GetString, &quot;_&quot;, &quot;.&quot;)
+				sAnchor = ReplaceString(sAnchor, &quot;_&quot;, &quot; &quot;)
+				sResult = &quot;&lt;Anchor Name=&quot;&quot;a&quot; &amp; sAnchor &amp; &quot;&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/Anchor&gt;&quot;
+			end if
+
+		end if	
+	else  &apos;the paragraph is only a return
+		&apos;check if paragraph is ILIAS Code formatted
+		vParaStyle = left(oPortion.ParaStyleName, 10)
+		if vParaStyle = &quot;ILIAS Code&quot; then
+			sResult = &quot;&lt;br/&gt;&quot;
+		else
+			sResult = &quot;&lt;br/&gt;&lt;br/&gt;&quot;
+		end if  
+	end if
+	GetTextPortionExportString = sResult
+end function
+
+
+function GetBookmarkExportString(oPortionRec as object) as string
+dim sAnchor as string
+
+	sAnchor = ReplaceString(oPortionRec.Bookmark, &quot;_&quot;, &quot; &quot;)
+	GetBookmarkExportString = &quot;&lt;Anchor Name=&quot;&quot;&quot; &amp; sAnchor &amp; &quot;&quot;&quot;&gt;&quot; &amp; oPortionRec.GetString &amp; &quot;&lt;/Anchor&gt;&quot;
+
+end function
+
+
+function GetTextFieldExportString(oPortionRec as object) as string
+dim sResult as string
+dim sTarget as string
+dim sText as string
+dim sRef as string
+dim i as integer
+dim lCharColor as long
+dim sTextColor as string
+dim iNumberOfNull as integer
+
+	sTarget = &quot;&quot;
+	sResult = oPortionRec.GetString
+	if sResult &lt;&gt; &quot;&quot; then
+		&apos;first get the Paragraph to which is referenced
+		for i = 1 to ubound(gaDocChapter())
+			if gaDocChapter(i).ReferenceMark = oPortionRec.TextField then
+				sTarget = &quot;il_0_st_&quot; &amp; gaDocParagraph(i).ID
+				exit for
+			end if
+		next i
+  		
+  		if sTarget &lt;&gt; &quot;&quot; then
+			sText = ReplaceSymbols(oPortionRec.GetString)
+			sResult = &quot;&lt;IntLink Target=&quot;&quot;&quot; &amp; sTarget &amp; &quot;&quot;&quot; Type=&quot;&quot;StructureObject&quot;&quot;&gt;&quot; &amp; sText &amp; &quot;&lt;/IntLink&gt;&quot;
+		else	
+			sResult = oPortionRec.GetString
+		end if
+
+		if oPortionRec.CharWeight = com.sun.star.awt.FontWeight.BOLD THEN  &apos;this portion is formatted in bold
+			if len(sResult) &gt; 1 then
+		        sResult = &quot;&lt;Strong&gt;&quot; &amp; sResult &amp; &quot;&lt;/Strong&gt;&quot; 
+		    elseif asc(sResult) &lt;&gt; 9 and sResult &lt;&gt; &quot; &quot; then
+		        sResult = &quot;&lt;Strong&gt;&quot; &amp; sResult &amp; &quot;&lt;/Strong&gt;&quot; 
+		    end if    
+		endif    
+    
+      &apos;check textcolor other than black
+      lCharColor = oPortionRec.CharColor
+      if lCharColor &lt;&gt; -1 AND oPortionRec.HyperLinkURL = &quot;&quot; AND oPortionRec.CharStyleName &lt;&gt; &quot;ILIAS Zitat&quot; then
+        sTextColor = GetHexColorString(lCharColor)
+        sResult = &quot;&amp;lt;font color=&quot;&quot;&quot; &amp; sTextColor &amp; &quot;&quot;&quot;&amp;gt;&quot; &amp; sResult &amp; &quot;&amp;lt;/font&amp;gt;&quot;
+      endif
+    
+      &apos;check subscript and superscript formatting
+      if oPortionRec.CharEscapement &lt; 0 THEN  &apos;this portion is formatted in subscript
+        sResult = &quot;&amp;lt;sub&amp;gt;&amp;lt;font size=&quot;&quot;-2&quot;&quot;&amp;gt;&quot; &amp; sResult &amp; &quot;&amp;lt;/sub&amp;gt;&amp;lt;/font&amp;gt;&quot; 
+      elseif oPortionRec.CharEscapement &gt; 0 THEN  &apos;this portion is formatted in superscript
+        sResult = &quot;&amp;lt;sup&amp;gt;&amp;lt;font size=&quot;&quot;-2&quot;&quot;&amp;gt;&quot; &amp; sResult &amp; &quot;&amp;lt;/sup&amp;gt;&amp;lt;/font&amp;gt;&quot; 
+      endif
+
+      &apos;check citation: only format citation if paragraph isn&apos;t already citation
+      if (oPortionRec.CharStyleName = &quot;ILIAS Citation&quot;) and (oPortionRec.ParaStyleName &lt;&gt; &quot;ILIAS Citation&quot;) then
+        sResult = &quot;&lt;Quotation Language=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/Quotation&gt;&quot; 
+      end if  
+
+		if oPortionRec.CharFontPitch =  com.sun.star.awt.FontPitch.FIXED then
+	        sResult = &quot;&lt;Code&gt;&quot; &amp; sResult &amp; &quot;&lt;/Code&gt;&quot; 
+		end if
+		
+		if oPortionRec.CharPosture = com.sun.star.awt.FontSlant.ITALIC THEN  &apos;this portion is formatted in italic
+	        sResult = &quot;&lt;Emph&gt;&quot; &amp; sResult &amp; &quot;&lt;/Emph&gt;&quot;  
+		endif
+	end if	
+      
+	GetTextFieldExportString = sResult
+end function 
+
+
+function GetFootnoteExportString(oPortionRec as object) as string
+dim aList()
+dim sResult as string
+dim iPos as integer
+dim sURL as string
+dim sLink as string
+dim i as integer
+  
+	aList = ArrayOutOfString(oPortionRec.Footnote, &quot; &quot;)
+	sResult = &quot;&quot;
+	for i = 0 to ubound(aList())    
+		if (left(aList(i),4) = &quot;http&quot;) or (left(aList(i),3) = &quot;www&quot;) then  &apos;this portion is a hyperlink
+			sURL = ReplaceString(aList(i), &quot;&amp;amp;amp;&quot;, &quot;&amp;&quot;  )
+			sLink = ReplaceSymbolsFootnote(aList(i))
+			sResult = sResult &amp; &quot;&amp;lt;a href=&quot;&quot;&quot; &amp; sURL &amp; &quot;&quot;&quot; target=&quot;&quot;_blank&quot;&quot;&amp;gt;&quot; &amp; sLink &amp; &quot;&amp;lt;/a&amp;gt;&quot; &amp; &quot; &quot;
+		else
+			sResult = sResult &amp; ReplaceSymbols(aList(i)) &amp; &quot; &quot;
+		end if  
+	next i
+	GetFootnoteExportString = &quot;&lt;Footnote&gt;&quot; &amp; sResult &amp; &quot;&lt;/Footnote&gt;&quot;   &apos;get the footnote text
+end function
+
+
+sub ExportParagraphTagOld(oPara as object, sExportString as string) 
+&apos;exports the text of the paragraph, pString is the prepared concatenated paragraph string
+dim oLastPara as object
+dim sLastParaStyle as string
+dim sLastParaStyleShort as string
+dim oNextPara as object
+dim sNextParaStyle as string
+dim sNextParaStyleShort as string
+dim sParaStyleShort as string
+dim sStyle as string
+dim sSubStyle as string
+dim sCharacterStr as string
+	
+	if oPara.ParaType = PARA_TYPE_LIST then
+		WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;) 
+		WriteToStream(goExportXML, &quot;&lt;Paragraph Language=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot; Characteristic=&quot;&quot;List&quot;&quot;&gt;&quot;) &apos;write new paragraph
+		WriteToStream(goExportXML, sExportString) 
+		WriteToStream(goExportXML, &quot;&lt;/Paragraph&gt;&quot;) 
+		WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;) 
+
+	else  &apos;the paragraph is not a list
+		&apos;check the ParaStyleName of the current paragraph
+		sParaStyleShort = left(oPara.ParaStyleName, 4)  
+		if sParaStyleShort = &quot;ILIAS&quot; then
+			sStyle = GetIliasParagraphStyleString(oPara.ParaStyleName)
+			sSubStyle = GetIliasParagraphSubStyleString(oPara.ParaStyleName)
+		end if	
+			
+		&apos;******* added to reflect table content format *************
+		if oPara.ParaStyleName = &quot;Table Contents&quot; then
+			sStyle = &quot;TableContent&quot;
+			sSubStyle = &quot;&quot;
+		&apos;***********************************************************				
+		else 
+			sStyle = oPara.ParaStyleName
+			sSubStyle = &quot;&quot;
+		end if		
+
+		&apos;if this is a none ILIAS paragraph, it can be directly exported
+		if sParaStyleShort &lt;&gt; &quot;ILIAS&quot; then
+			sCharacterStr =  &quot;Characteristic=&quot;&quot;&quot; &amp; sStyle &amp; &quot;&quot;&quot; &quot;
+			
+			if sSubStyle &lt;&gt; &quot;&quot; then &apos; this paragraph is formatted as Code
+				sCharacterStr = sCharacterStr &amp; &quot;SubCharacteristic=&quot;&quot;&quot; &amp; sSubStyle &amp; _
+			                            &quot;&quot;&quot; ShowLineNumbers=&quot;&quot;&quot; &amp; gsOptShowLineNo &amp;  &quot;&quot;&quot; AutoIndent=&quot;&quot;y&quot;&quot; &quot;
+			end if
+			                            
+			WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;) &apos;write new paragraph
+			WriteToStream(goExportXML, GetTag(&quot;Paragraph&quot;, sCharacterStr &amp; &quot;Language=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot;&quot;, sExportString, true))
+			WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;) &apos;write new paragraph			
+
+		else  &apos;ILIAS paragraph: the ParaStyleNames of the previous and next paragraphs decide how to export		
+			&apos;check the ParaStyleName of the previous paragraph
+			oLastPara = gaDocParagraph(oPara.ID - 1)
+			if not isnull(oLastPara) then
+				sLastParaStyle = oLastPara.ParaStyleName
+				sLastParaStyleShort = left(oLastPara.ParaStyleName, 5)				
+			else
+				sLastParaStyle = &quot;&quot;
+				sLastParaStyleShort = &quot;&quot;
+			end if	
+			
+			if oPara.ID &lt; ubound(gaDocParagraph()) then
+				oNextPara = gaDocParagraph(oPara.ID + 1)
+				sNextParaStyle = oNextPara.ParaStyleName
+				sNextParaStyleShort = left(oNextPara.ParaStyleName, 5)				
+			else
+				sLastParaStyle = &quot;&quot;
+				sLastParaStyleShort = &quot;&quot;
+			end if	
+
+			&apos;from non ILIAS paragraph to ILIAS paragraph 
+			if sLastParaStyleShort &lt;&gt; &quot;ILIAS&quot; then
+				sCharacterStr =  &quot;Characteristic=&quot;&quot;&quot; &amp; sStyle &amp; &quot;&quot;&quot; &quot;
+				if sSubStyle &lt;&gt; &quot;&quot; then &apos; this paragraph is formatted as Code
+					sCharacterStr = sCharacterStr &amp; &quot;SubCharacteristic=&quot;&quot;&quot; &amp; sSubStyle &amp; _
+				                            &quot;&quot;&quot; ShowLineNumbers=&quot;&quot;&quot; &amp; gsOptShowLineNo &amp;  &quot;&quot;&quot; AutoIndent=&quot;&quot;y&quot;&quot; &quot;
+				end if  
+				WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;) &apos;write new paragraph
+				WriteToStream(goExportXML, GetTag(&quot;Paragraph&quot;, sCharacterStr &amp; &quot;Language=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot;&quot;, sExportString, false))
+		
+			&apos;from ILIAS paragraph to ILIAS paragraph 
+			else
+				if oPara.ParaStyleName = sLastParaStyle then &apos;this is the same paragraph style as the last one
+					if (left(oPara.ParaStyleName, 10) = &quot;ILIAS Code&quot;) then
+						if sExportString = &quot;&lt;br/&gt;&quot; then
+							WriteToStream(goExportXML, &quot;&lt;br/&gt;&quot;)  &apos; this is an empty line
+						else  
+							WriteToStream(goExportXML, &quot;&lt;br/&gt;&quot; &amp; sExportString) &apos;this is a new code line
+						end if
+					else
+						WriteToStream(goExportXML, &quot;&amp;lt;br/&amp;gt;&amp;lt;br/&amp;gt;&quot; &amp; sExportString) 
+					end if  
+				else	
+					sCharacterStr =  &quot;Characteristic=&quot;&quot;&quot; &amp; sStyle &amp; &quot;&quot;&quot; &quot;
+					if sSubStyle &lt;&gt; &quot;&quot; then &apos; this paragraph is formatted as Code
+						sCharacterStr = sCharacterStr &amp; &quot;SubCharacteristic=&quot;&quot;&quot; &amp; sSubStyle &amp; _
+						&quot;&quot;&quot; ShowLineNumbers=&quot;&quot;&quot; &amp; gsOptShowLineNo &amp;  &quot;&quot;&quot; AutoIndent=&quot;&quot;y&quot;&quot; &quot;
+					end if  
+					WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;) &apos;write new paragraph
+					WriteToStream(goExportXML, GetTag(&quot;Paragraph&quot;, sCharacterStr &amp; &quot;Language=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot;&quot;, sExportString, false))
+				end if 
+			end if
+			if sNextParaStyle &lt;&gt; oPara.ParaStyleName then
+				WriteToStream(goExportXML, &quot;&lt;/Paragraph&gt;&quot;)
+				WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;)
+			end if 
+		end if	
+	end if
+end sub
+
+
+sub ExportParagraphTag(oPara as object, sExportString as string) 
+&apos;exports the text of the paragraph, pString is the prepared concatenated paragraph string
+dim sParaStyleShort as string
+dim sStyle as string
+dim sSubStyle as string
+dim sCharacterStr as string
+dim sAlign as string
+	
+	if oPara.ParaType = PARA_TYPE_LIST then
+		WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;) 
+		WriteToStream(goExportXML, &quot;&lt;Paragraph Language=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot; Characteristic=&quot;&quot;List&quot;&quot;&gt;&quot;) &apos;write new paragraph
+		WriteToStream(goExportXML, sExportString) 
+		WriteToStream(goExportXML, &quot;&lt;/Paragraph&gt;&quot;) 
+		WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;) 
+
+	else  &apos;the paragraph is not a list
+		&apos;check the ParaStyleName of the current paragraph
+		sParaStyleShort = left(oPara.ParaStyleName, 4)  
+		if sParaStyleShort = &quot;ILIAS&quot; then
+			sStyle = GetIliasParagraphStyleString(oPara.ParaStyleName)
+			sSubStyle = GetIliasParagraphSubStyleString(oPara.ParaStyleName)
+		end if	
+			
+		&apos;******* added to reflect table content format *************
+		if oPara.ParaStyleName = &quot;Table Contents&quot; then
+			sStyle = &quot;TableContent&quot;
+			sSubStyle = &quot;&quot;
+		&apos;***********************************************************				
+		else 
+			sStyle = oPara.ParaStyleName
+			sSubStyle = &quot;&quot;
+		end if		
+		
+		&apos;the alignment of this paragraph could be hard formatted
+		if oPara.ParaAdjust &gt; 0 then
+			sAlign = GetCssAlignString(oPara.ParaAdjust)
+			sStyle = sStyle &amp; &quot; ilc_text_block_align&quot; &amp; sAlign
+		end if
+
+		sCharacterStr =  &quot;Characteristic=&quot;&quot;&quot; &amp; sStyle &amp; &quot;&quot;&quot; &quot;
+		
+		if sSubStyle &lt;&gt; &quot;&quot; then &apos; this paragraph is formatted as Code
+			sCharacterStr = sCharacterStr &amp; &quot;SubCharacteristic=&quot;&quot;&quot; &amp; sSubStyle &amp; _
+		                            &quot;&quot;&quot; ShowLineNumbers=&quot;&quot;&quot; &amp; gsOptShowLineNo &amp;  &quot;&quot;&quot; AutoIndent=&quot;&quot;y&quot;&quot; &quot;
+		end if
+		                            
+		WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;) &apos;write new paragraph
+		WriteToStream(goExportXML, GetTag(&quot;Paragraph&quot;, sCharacterStr &amp; &quot;Language=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot;&quot;, sExportString, true))
+		WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;) &apos;write new paragraph			
+
+	end if
+end sub
+
+
+function GetMediaLayoutString(oMedia as object) as string
+dim iWidth as integer
+dim iHeight as integer
+dim iMediaType as integer
+dim sExtension as string
+
+	iMediaType = gaExtMedia(oMedia.ExtMediaID).MediaType
+	
+	if iMediaType = MEDIA_TYPE_MEDIA then
+		sExtension = GetFileNameExtension(oMedia.MediaURL)
+		select case sExtension
+			case &quot;mp3&quot;
+				iWidth = 200
+				iHeight = 20
+			case else	
+				if oMedia.Width &gt; 200 then
+					iWidth = oMedia.Width
+				else
+					iWidth = 200
+				end if
+				if oMedia.Height &gt; 200 then
+					iHeight = oMedia.Height
+				else
+					iHeight = 200
+				end if	
+		end select		
+		GetMediaLayoutString = &quot;Width=&quot;&quot;&quot; &amp; iWidth &amp; &quot;&quot;&quot; Height=&quot;&quot;&quot; &amp; iHeight &amp; &quot;&quot;&quot;&quot;
+
+	&apos;for graphics and embbeded elements
+	else
+		if oMedia.Width &gt; 0 then
+			iWidth = CStr(Int(oMedia.Width / 26.459))
+			iHeight = CStr(Int(oMedia.Height / 26.459))
+			GetMediaLayoutString = &quot;Width=&quot;&quot;&quot; &amp; iWidth &amp; &quot;&quot;&quot; Height=&quot;&quot;&quot; &amp; iHeight &amp; &quot;&quot;&quot;&quot;
+		else
+			GetMediaLayoutString = &quot;&quot;
+		end if  
+	end if			
+end function
+
+
+function GetIliasAlignString(oMedia as object)
+
+	&apos;check the horizontal orientation and wrap mode
+	if (oMedia.HoriOrient = com.sun.star.text.HoriOrientation.RIGHT) or _
+		(oMedia.TextWrap = com.sun.star.text.WrapTextMode.LEFT) then
+		GetILIASAlignString = &quot;&quot;&quot;RightFloat&quot;&quot;&quot;
+		
+	elseif (oMedia.HoriOrient = com.sun.star.text.HoriOrientation.LEFT) or _
+		(oMedia.TextWrap = com.sun.star.text.WrapTextMode.RIGHT) then
+		GetILIASAlignString = &quot;&quot;&quot;LeftFloat&quot;&quot;&quot;
+	
+	&apos;nothing of that, so the graphic is aligned according ParaAdjust
+	elseif oMedia.ParaAdjust = com.sun.star.style.ParagraphAdjust.LEFT then
+		GetILIASAlignString = &quot;&quot;&quot;Left&quot;&quot;&quot;
+	elseif oMedia.ParaAdjust = com.sun.star.style.ParagraphAdjust.RIGHT then
+		GetILIASAlignString = &quot;&quot;&quot;Right&quot;&quot;&quot;
+	else
+		GetILIASAlignString = &quot;&quot;&quot;Center&quot;&quot;&quot;
+	end if
+		
+end function
+
+
+function GetPageAlias(piPos as integer) as string
+dim vStr as string
+
+	vStr = CStr(Ubound(gaHeadIdent()))
+	vStr = &quot;&quot;&quot;il_0_pg_&quot; &amp; CStr(piPos) &amp; &quot;&quot;&quot;&quot;
+	GetPageAlias = vStr
+end function
+
+
+sub ExportMetadata(psEntry, psTitle, psDescription as string, paKeywords(), bClose as boolean)
+dim vItem as string
+dim i as integer
+dim vAnz as integer
+
+  WriteToStream(goExportXML, &quot;&lt;MetaData&gt;&quot;)
+  WriteToStream(goExportXML, GetTag(&quot;General&quot;, &quot;Structure=&quot; &amp; gsStru, &quot;&quot;, false))
+  WriteToStream(goExportXML, GetTag(&quot;Identifier&quot;, &quot;Catalog=&quot; &amp; gsCata &amp; &quot; &quot; &amp; &quot;Entry=&quot; &amp; psEntry, &quot;&quot;, true)) 
+  WriteToStream(goExportXML, GetTag(&quot;Title&quot;,&quot;Language=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot;&quot;, psTitle, true))
+  WriteToStream(goExportXML, &quot;&lt;Language Language=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot;/&gt;&quot;)
+  WriteToStream(goExportXML, GetTag(&quot;Description&quot;,&quot;Language=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot;&quot;, psDescription, true))
+  vAnz = Ubound(paKeywords())
+  if vAnz &lt; 1 then
+    WriteToStream(goExportXML, GetTag(&quot;Keyword&quot;,&quot;Language=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot;&quot;, &quot;&quot;, true))
+  else
+    for i = 0 to vAnz
+      vItem = LTrim(RTrim(paKeywords(i)))
+      WriteToStream(goExportXML, GetTag(&quot;Keyword&quot;,&quot;Language=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot;&quot;, vItem, true))
+    next i
+  end if  
+  WriteToStream(goExportXML, &quot;&lt;/General&gt;&quot;)
+  if bClose then WriteToStream(goExportXML, &quot;&lt;/MetaData&gt;&quot;)
+end sub
+
+
+sub ExportMedia
+dim iCount as integer
+dim i as integer
+dim sTitle as string
+dim sDescription as string
+dim sFilename as string
+dim sIdent as string
+dim aKeywords(0)
+dim sLayout as string
+dim sAlign as string
+dim sExtension as string
+dim sImageTyp as string
+dim iMediaType as integer
+dim iPos as integer
+
+	iPos = 0
+	iCount = ubound(gaDocMedia())
+	for i = 1 to iCount
+		if gaDocMedia(i).IsInUse then
+			iPos = iPos + 1			
+			iMediaType = gaExtMedia(gaDocMedia(i).ExtMediaID).MediaType
+			
+			&apos;the media is an image
+			if iMediaType = MEDIA_TYPE_IMAGE then			
+				sDescription = gaDocMedia(i).Title
+				sTitle = gaDocMedia(i).MediaName
+				sFileName = FileNameOutOfPath(gaExtMedia(gaDocMedia(i).ExtMediaID).FileName)
+				sIdent = &quot;&quot;&quot;il_0_mob_&quot; &amp; CStr(i) &amp; &quot;&quot;&quot;&quot;
+				if gbOptNoScaleGraphics then
+					sLayout = &quot;&quot;
+				else
+					sLayout = GetMediaLayoutString(gaDocMedia(i))
+				end if  
+				sAlign = &quot;HorizontalAlign=&quot; &amp; GetIliasAlignString(gaDocMedia(i))
+				sExtension = GetFileNameExtension(sFileName)
+				if sExtension &lt;&gt; &quot;jpg&quot; then
+					sImageTyp = &quot;image/&quot; &amp; sExtension
+				else
+					sImageTyp = &quot;image/jpeg&quot;
+				end if
+
+				WriteToStream(goExportXML, &quot;&lt;MediaObject&gt;&quot;)
+				ExportMetadata(sIdent, sTitle, sDescription, aKeywords(), true)			
+				WriteToStream(goExportXML, &quot;&lt;MediaItem Purpose=&quot;&quot;Standard&quot;&quot;&gt;&quot;)
+				WriteToStream(goExportXML, GetTag(&quot;Location&quot;,&quot;Type=&quot;&quot;LocalFile&quot;&quot;&quot;, sFileName, true))
+				WriteToStream(goExportXML, &quot;&lt;Format&gt;&quot; &amp; sImageTyp &amp; &quot;&lt;/Format&gt;&quot;)
+				WriteToStream(goExportXML, GetTag(&quot;Layout&quot;, sLayout &amp; &quot; &quot; &amp; sAlign, &quot;&quot;, true))
+				WriteToStream(goExportXML, &quot;&lt;/MediaItem&gt;&quot;)
+				WriteToStream(goExportXML, &quot;&lt;MediaItem Purpose=&quot;&quot;Fullscreen&quot;&quot;&gt;&quot;)
+				WriteToStream(goExportXML, GetTag(&quot;Location&quot;,&quot;Type=&quot;&quot;LocalFile&quot;&quot;&quot;, sFileName, true))
+				WriteToStream(goExportXML, &quot;&lt;Format&gt;&quot; &amp; sImageTyp &amp; &quot;&lt;/Format&gt;&quot;)
+				WriteToStream(goExportXML, GetTag(&quot;Layout &quot;, sAlign, &quot;&quot;, true))
+				WriteToStream(goExportXML, &quot;&lt;/MediaItem&gt;&quot;)
+				WriteToStream(goExportXML, &quot;&lt;/MediaObject&gt;&quot;)  
+
+			&apos;the media is a sound, video or flash element
+			else
+				WriteToStream(goExportXML, &quot;&lt;MediaObject&gt;&quot;)
+				if FileExists(gaDocMedia(i).MediaName) then
+					sTitle = sFileName
+				else
+					sTitle = gaDocMedia(i).MediaName
+				end if	
+				sDescription = gaDocMedia(i).Title
+				sFileName = FileNameOutOfPath(gaExtMedia(gaDocMedia(i).ExtMediaID).FileName)
+				sIdent = &quot;&quot;&quot;il_0_mob_&quot; &amp; CStr(i) &amp; &quot;&quot;&quot;&quot;
+				sLayout = GetMediaLayoutString(gaDocMedia(i))
+				ExportMetadata(sIdent, sTitle, sDescription, aKeywords(), true)
+				WriteToStream(goExportXML, &quot;&lt;MediaItem Purpose=&quot;&quot;Standard&quot;&quot;&gt;&quot;)
+				WriteToStream(goExportXML, GetTag(&quot;Location&quot;,&quot;Type=&quot;&quot;LocalFile&quot;&quot;&quot;, sFileName, true))
+				WriteToStream(goExportXML, GetTag(&quot;Layout&quot;, sLayout &amp; &quot; &quot; &amp; sAlign, &quot;&quot;, true))
+				WriteToStream(goExportXML, &quot;&lt;/MediaItem&gt;&quot;)
+				WriteToStream(goExportXML, &quot;&lt;/MediaObject&gt;&quot;)
+  			end if	                
+		end if	
+     next i
+end sub    
+
+
+sub ExportPageBreak(oPara as object, iPageID as long)
+dim sIdent as string
+dim sTitle as string
+dim sDescription as string
+dim aKeywords()
+
+		WriteToStream(goExportXML, &quot;&lt;/PageObject&gt;&quot;)
+		WriteToStream(goExportXML, &quot;&lt;PageObject&gt;&quot;)
+		sIdent = &quot;&quot;&quot;il_0_pg_&quot; &amp; iPageID &amp; &quot;&quot;&quot;&quot;
+		sTitle = &quot;&quot;
+		sDescription = &quot;&quot;
+		ExportMetadata(sIdent, sTitle, sDescription, aKeywords(), true)
+
+end sub
+
+
+sub AddPrefixToTextPortion(oPara as object, sPrefix as string)
+dim iPortionCount as long
+dim i as integer
+
+	iPortionCount = ubound(gaDocTextPortion())
+	for i = 1 to iPortionCount
+		if gaDocTextPortion(i).ParaID = oPara.ID then
+			gaDocTextPortion(i).GetString = sPrefix &amp; gaDocTextPortion(i).GetString
+			exit for
+		end if
+	next i	
+end sub
+
+
+
+function GetTag(aTag as String, aAttribut as String, aText as String, aClose as boolean) as string
+Dim vString as String
+
+  vString = &quot;&lt;&quot; &amp; aTag
+  If aAttribut &lt;&gt; &quot;&quot; then
+    vString = vString &amp; &quot; &quot; &amp; aAttribut &amp; &quot;&gt;&quot;
+  end if  
+  if aText &lt;&gt; &quot;&quot; then &apos; es gibt Text
+    vString = vString &amp; aText
+  end if  
+  if aClose then
+    vString = vString &amp; &quot;&lt;/&quot; &amp; aTag &amp; &quot;&gt;&quot;
+  end if
+  GetTag = vString
+end function
+
+
+sub WriteToStream(pStream as object, pString as string)
+  pStream.writeString(pString &amp; gsCR)
+end sub  
+
+
+sub SetTableCaptions
+dim i as long
+dim iParaID as long
+dim iTableID as long
+dim sCaption as string
+dim bGoOn as boolean
+
+	for i = ubound(gaDocTextPortion()) to 1 step -1
+		if gaDocTextPortion(i).ParaStyleName = &quot;Table&quot; then
+			&apos;set the paragraph.state of these portions to PARA_STATE_EXPORTED
+			iParaID = gaDocTextPortion(i).ParaID
+			gaDocParagraph(iParaID).State = PARA_STATE_EXPORTED
+			bGoOn = true
+			sCaption = &quot;&quot;
+			do while bGoOn
+				if (gaDocTextPortion(i).ParaStyleName = &quot;Table&quot;) then 
+					&apos;concatenate the table caption
+					sCaption = gaDocTextPortion(i).GetString &amp; sCaption
+				else 
+					bGoOn = false
+				end if	
+				if bGoOn then
+					i = i - 1
+					bGoOn = i &gt; 0
+				end if	
+			loop
+			if (i &gt; 0) and (sCaption &lt;&gt; &quot;&quot;) then
+				&apos;get the ParaRec of the last portion of the upper table
+				iParaID = gaDocTextPortion(i).ParaID
+				&apos;check if the paragraph is part of a table
+				iTableID = gaDocParagraph(iParaID).TableParentID
+				if iTableID &gt; 0 then
+					&apos;set the table caption
+					gaDocParagraph(iTableID).TableCaption = sCaption 
+				end if	
+			end if
+		end if	
+	next i	
+end sub
+
+
+function GetChapterSetByType(sType as string)
+dim aChapterList()
+dim iChapterCount as long
+dim i as long
+dim j as long
+
+	j = 0
+	iChapterCount = ubound(gaDocChapter())
+	redim aChapterList(iChapterCount)
+	for i = 1 to iChapterCount
+		if gaDocChapter(i).ChapterType = sType then
+			j = j + 1
+			aChapterList(j) = gaDocChapter(i)
+		end if
+	next i
+	redim preserve aChapterList(j)
+	GetChapterSetByType = aChapterList()
+end function
+
+
+function GetParaSetOfChapter(iChapterID as long)
+dim aParaList()
+dim iParaCount as long
+dim i as long
+dim j as long
+
+	j = 0
+	iParaCount = ubound(gaDocParagraph())
+	redim aParaList(iParaCount)
+	for i = 1 to iParaCount
+		if gaDocParagraph(i).ChapterID = iChapterID then
+			j = j + 1
+			aParaList(j) = gaDocParagraph(i).ID
+		elseif gaDocParagraph(i).ChapterID &gt; iChapterID then
+			exit for
+		end if
+	next i
+	redim preserve aParaList(j)
+	GetParaSetOfChapter = aParaList()
+end function
+
+
+function GetParaSetPageArea(iPageArea as integer)
+dim aParaList()
+dim iParaCount as long
+dim i as long
+dim j as long
+
+	j = 0
+	iParaCount = ubound(gaDocParagraph())
+	redim aParaList(iParaCount)
+	for i = 1 to iParaCount
+		if gaDocParagraph(i).PageArea = iPageArea then
+			j = j + 1
+			aParaList(j) = gaDocParagraph(i).ID
+		elseif gaDocParagraph(i).PageArea &gt; iPageArea then
+			exit for
+		end if
+	next i
+	redim preserve aParaList(j)
+	GetParaSetPageArea = aParaList()
+end function
+
+
+function GetParaSetTable(iParaID as long) 
+dim aParaList() as long
+dim iParaCount as long
+dim i as long
+dim j as long
+
+	j = 0
+	iParaCount = ubound(gaDocParagraph())
+	redim aParaList(iParaCount)
+	for i = 1 to iParaCount
+		if gaDocParagraph(i).TableParentID = iParaID then
+			j = j + 1
+			aParaList(j) = gaDocParagraph(i).ID
+		end if
+	next i
+	redim preserve aParaList(j)
+	GetParaSetTable = aParaList()
+end function
+
+
+function GetParaSetList(iParaID as long)
+dim aParaList()
+dim iParaCount as long
+dim i as long
+dim j as long
+
+	j = 0
+	iParaCount = ubound(gaDocParagraph())
+	redim aParaList(iParaCount)
+	for i = iParaID to iParaCount
+		if gaDocParagraph(i).NumberingType &lt;&gt; &quot;&quot; then
+			j = j + 1
+			aParaList(j) = gaDocParagraph(i).ID
+		else
+			exit for	
+		end if
+	next i
+	redim preserve aParaList(j)
+	GetParaSetList = aParaList()
+end function
+
+
+
+function GetTextPortionByBookmark(sBookmark as string) as object
+dim iCount as long
+dim i as long
+
+	iCount = ubound(gaDocTextPortion())
+	for i = 1 to iCount
+		if gaDocTextPortion(i).Bookmark = sBookmark then
+			GetTextPortionByBookmark = gaDocTextPortion(i)
+			exit for	
+		end if
+	next i
+end function
+
+
+function GetParaSetListOld(iParaID as long)
+dim aParaList()
+dim iParaCount as long
+dim iNumberingType as integer
+dim i as long
+dim j as long
+
+	j = 0
+	iParaCount = ubound(gaDocParagraph())
+	&apos;sNumberingStyleName = gaDocParagraph(iParaID).NumberingStyleName
+	iNumberingType = gaDocParagraph(iParaID).NumberingType
+	redim aParaList(iParaCount)
+	for i = iParaID to iParaCount
+		if gaDocParagraph(i).NumberingType = iNumberingType then
+			j = j + 1
+			aParaList(j) = gaDocParagraph(i).ID
+		else
+			exit for	
+		end if
+	next i
+	redim preserve aParaList(j)
+	GetParaSetList = aParaList()
+end function
+
+
+function GetTextPortionSet(iParaID as long)
+dim iPortionCount as long
+dim aPortionList()
+dim i as long
+dim j as long
+
+	j = 0
+	iPortionCount = ubound(gaDocTextPortion())
+	redim aPortionList(iPortionCount)
+	for i = 1 to iPortionCount
+		if gaDocTextPortion(i).ParaID = iParaID then
+			j = j + 1
+			aPortionList(j) = gaDocTextPortion(i).ID
+		elseif gaDocTextPortion(i).ParaID &gt; iParaID then
+			exit for
+		end if
+	next i
+	redim preserve aPortionList(j)
+	GetTextPortionSet = aPortionList()
+end function
+
+
+function GetDocMediaSet(iPortionID as long)
+dim iMediaCount as long
+dim aMediaList()
+dim i as long
+dim j as long
+
+	j = 0
+	iMediaCount = ubound(gaDocMedia())
+	redim aMediaList(iMediaCount)
+	for i = 1 to iMediaCount
+		if gaDocMedia(i).TextPortionID = iPortionID then
+			j = j + 1
+			aMediaList(j) = gaDocMedia(i).ID
+		end if
+	next i
+	redim preserve aMediaList(j)
+	GetDocMediaSet = aMediaList()
+end function
+
+
+function GetDocMediaByPortionID(iPortionID as long) as object
+dim iMediaCount as long
+dim i as long
+
+	iMediaCount = ubound(gaDocMedia())
+	for i = 1 to iMediaCount
+		if gaDocMedia(i).TextPortionID = iPortionID then
+			GetDocMediaByPortionID = gaDocMedia(i)
+			exit function
+		end if
+	next i
+end function
+
+
+function GetILIASListType(iType as integer)
+dim sType as string
+
+	select case iType
+		case 0: sType = &quot;Alphabetic&quot;
+		case 1: sType = &quot;alphabetic&quot;
+		case 2: sType = &quot;Roman&quot;
+		case 3: sType = &quot;roman&quot;
+		case 4: sType = &quot;Number&quot;
+		case 6: sType = &quot;Unordered&quot;
+	end select
+	GetILIASListType = sType
+end function
+
+
+function GetIliasParagraphStyleString(sParaStyle as string) as string
+dim sStyle as string
+
+	select case sParaStyle
+		case &quot;ILIAS Additional&quot;: sStyle = &quot;Additional&quot;
+        case &quot;ILIAS Citation&quot;: sStyle = &quot;Citation&quot;
+        case &quot;ILIAS Example&quot;: sStyle = &quot;Example&quot;
+        case &quot;ILIAS Mnemonic&quot;: sStyle = &quot;Mnemonic&quot;
+        case &quot;ILIAS Remark&quot;: sStyle = &quot;Remark&quot;
+        case &quot;ILIAS Code other&quot;: sStyle = &quot;Code&quot;
+        case &quot;ILIAS Code C&quot;: sStyle = &quot;Code&quot;
+        case &quot;ILIAS Code C++&quot;: sStyle = &quot;Code&quot;
+        case &quot;ILIAS Code Java&quot;: sStyle = &quot;Code&quot;
+        case &quot;ILIAS Code PHP&quot;: sStyle = &quot;Code&quot;
+        case &quot;ILIAS Code HTML&quot;: sStyle = &quot;Code&quot;
+        case &quot;ILIAS Code XML&quot;: sStyle = &quot;Code&quot;
+        case &quot;ILIAS Code VB&quot;: sStyle = &quot;Code&quot;
+        case &quot;ILIAS Code Latex&quot;: sStyle = &quot;Code&quot;
+        case &quot;ILIAS Code Delphi&quot;: sStyle = &quot;Code&quot;
+        case else 
+          sStyle = &quot;&quot;
+	end select
+	GetIliasParagraphStyleString = sStyle
+end function
+
+
+function GetIliasParagraphSubStyleString(sParaStyle as string) as string
+dim sSubStyle as string
+
+      select case sParaStyle
+        case &quot;ILIAS Additional&quot;: sSubStyle = &quot;&quot;
+        case &quot;ILIAS Citation&quot;: sSubStyle = &quot;&quot;
+        case &quot;ILIAS Example&quot;: sSubStyle = &quot;&quot;
+        case &quot;ILIAS Mnemonic&quot;: sSubStyle = &quot;&quot;
+        case &quot;ILIAS Remark&quot;: sSubStyle = &quot;&quot;
+        case &quot;ILIAS Code other&quot;: sSubStyle = &quot;n&quot;
+        case &quot;ILIAS Code C&quot;: sSubStyle = &quot;c&quot;
+        case &quot;ILIAS Code C++&quot;: sSubStyle = &quot;cpp&quot;
+        case &quot;ILIAS Code Java&quot;: sSubStyle = &quot;java122&quot;
+        case &quot;ILIAS Code PHP&quot;: sSubStyle = &quot;php3&quot;
+        case &quot;ILIAS Code HTML&quot;: sSubStyle = &quot;html&quot;
+        case &quot;ILIAS Code XML&quot;: sSubStyle = &quot;xml&quot;
+        case &quot;ILIAS Code VB&quot;: sSubStyle = &quot;vb&quot;
+        case &quot;ILIAS Code Latex&quot;: sSubStyle = &quot;latex&quot;
+        case &quot;ILIAS Code Delphi&quot;: sSubStyle = &quot;delphi&quot;
+        case else 
+          sSubStyle = &quot;&quot;
+      end select
+      GetIliasParagraphSubstyleString = sSubstyle
+end function
+
+
+sub ExportDocProperties
+dim sOutlineNumbering as string
+dim sValue as string
+
+	sOutlineNumbering = GetInternalDocString(&quot;elaixPropOutlineNumbering&quot;)
+	if sOutlineNumbering = &quot;1&quot; then 
+		sOutlineNumbering = &quot;y&quot;
+	else
+		sOutlineNumbering = &quot;n&quot;
+	end if	
+	
+	WriteToStream(goExportXML, &quot;&lt;Properties&gt;&quot;) 
+	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;Layout&quot;&quot; Value=&quot;&quot;toc2windyn&quot;&quot;/&gt;&quot;
+	&apos;WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;Layout&quot;&quot; Value=&quot;&quot;toc2win&quot;&quot;/&gt;&quot;
+	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;PageHeader&quot;&quot; Value=&quot;&quot;pg_title&quot;&quot;/&gt;&quot;
+	&apos;WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;PageHeader&quot;&quot; Value=&quot;&quot;st_title&quot;&quot;/&gt;&quot;
+	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;TOCMode&quot;&quot; Value=&quot;&quot;pages&quot;&quot;/&gt;&quot;
+	&apos;WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;TOCMode&quot;&quot; Value=&quot;&quot;chapters&quot;&quot;/&gt;&quot;
+	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;ActiveLMMenu&quot;&quot; Value=&quot;&quot;y&quot;&quot;/&gt;&quot;
+	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;ActiveNumbering&quot;&quot; Value=&quot;&quot;&quot; &amp; sOutlineNumbering &amp; &quot;&quot;&quot;/&gt;&quot;
+	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;ActiveTOC&quot;&quot; Value=&quot;&quot;y&quot;&quot;/&gt;&quot;
+	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;ActivePrintView&quot;&quot; Value=&quot;&quot;y&quot;&quot;/&gt;&quot;
+	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;CleanFrames&quot;&quot; Value=&quot;&quot;y&quot;&quot;/&gt;&quot;
+	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;PublicNotes&quot;&quot; Value=&quot;&quot;n&quot;&quot;/&gt;&quot;
+	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;HistoryUserComments&quot;&quot; Value=&quot;&quot;n&quot;&quot;/&gt;&quot;
+	if gbOptIncludeHeader then
+		sValue = &quot;il_0_pg_&quot; &amp; CStr(giHeaderPageID)
+		WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;HeaderPage&quot;&quot; Value=&quot;&quot;&quot; &amp; sValue &amp; &quot;&quot;&quot;/&gt;&quot;
+	end if	
+	if gbOptIncludeFooter then
+		sValue = &quot;il_0_pg_&quot; &amp; CStr(giFooterPageID)
+		WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;FooterPage&quot;&quot; Value=&quot;&quot;&quot; &amp; sValue &amp; &quot;&quot;&quot;/&gt;&quot;
+	end if	
+	WriteToStream(goExportXML, &quot;&lt;/Properties&gt;&quot;) 
+end sub
+
+
+function GetFirstDocMediaRecByExtMediaID(iExtMediaID as long) as object
+dim i as long
+
+	for i = 1 to ubound(gaDocMedia())
+		if (gaDocMedia(i).ExtMediaID = iExtMediaID) and (gaDocMedia(i).IsInUse) then
+			GetFirstDocMediaRecByExtMediaID = gaDocMedia(i)
+			exit function
+		end if
+	next i
+end function
+
+function GetLanguageCode(sLang) as string
+	select case sLang 
+		case &quot;Afar&quot; : sLang = &quot;aa&quot;
+		case &quot;Abkhazian&quot; : sLang = &quot;ab&quot;
+		case &quot;Afrikaans&quot; : sLang = &quot;af&quot;
+		case &quot;Amharic&quot; : sLang = &quot;am&quot;
+		case &quot;Arabic&quot; : sLang = &quot;ar&quot;
+		case &quot;Assamese&quot; : sLang = &quot;as&quot;
+		case &quot;Aymara&quot; : sLang = &quot;ay&quot;
+		case &quot;Azerbaijani&quot; : sLang = &quot;az&quot;
+		case &quot;Bashkir&quot; : sLang = &quot;ba&quot;
+		case &quot;Byelorussian&quot; : sLang = &quot;be&quot;
+		case &quot;Bulgarian&quot; : sLang = &quot;bg&quot;
+		case &quot;Bihari&quot; : sLang = &quot;bh&quot;
+		case &quot;Bislama&quot; : sLang = &quot;bi&quot;
+		case &quot;Bengali&quot; : sLang = &quot;bn&quot;
+		case &quot;Tibetan&quot; : sLang = &quot;bo&quot;
+		case &quot;Breton&quot; : sLang = &quot;br&quot;
+		case &quot;Catalan&quot; : sLang = &quot;ca&quot;
+		case &quot;Corsican&quot; : sLang = &quot;co&quot;
+		case &quot;Czech&quot; : sLang = &quot;cs&quot;
+		case &quot;Welsh&quot; : sLang = &quot;cy&quot;
+		case &quot;Danish&quot; : sLang = &quot;da&quot;
+		case &quot;German&quot; : sLang = &quot;de&quot;
+		case &quot;Bhutani&quot; : sLang = &quot;dz&quot;
+		case &quot;Greek&quot; : sLang = &quot;el&quot;
+		case &quot;English&quot; : sLang = &quot;en&quot;
+		case &quot;Esperanto&quot; : sLang = &quot;eo&quot;
+		case &quot;Spanish&quot; : sLang = &quot;es&quot;
+		case &quot;Estonian&quot; : sLang = &quot;et&quot;
+		case &quot;Basque&quot; : sLang = &quot;eu&quot;
+		case &quot;Persian&quot; : sLang = &quot;fa&quot;
+		case &quot;Finnish&quot; : sLang = &quot;fi&quot;
+		case &quot;Fiji&quot; : sLang = &quot;fj&quot;
+		case &quot;Faeroese&quot; : sLang = &quot;fo&quot;
+		case &quot;French&quot; : sLang = &quot;fr&quot;
+		case &quot;Frisian&quot; : sLang = &quot;fy&quot;
+		case &quot;Irish&quot; : sLang = &quot;ga&quot;
+		case &quot;Gaelic&quot; : sLang = &quot;gd&quot;
+		case &quot;Galician&quot; : sLang = &quot;gl&quot;
+		case &quot;Guarani&quot; : sLang = &quot;gn&quot;
+		case &quot;Gujarati&quot; : sLang = &quot;gu&quot;
+		case &quot;Hausa&quot; : sLang = &quot;ha&quot;
+		case &quot;Hindi&quot; : sLang = &quot;hi&quot;
+		case &quot;Croatian&quot; : sLang = &quot;hr&quot;
+		case &quot;Hungarian&quot; : sLang = &quot;hu&quot;
+		case &quot;Armenian&quot; : sLang = &quot;hy&quot;
+		case &quot;Interlingua&quot; : sLang = &quot;ia&quot;
+		case &quot;Interlingue&quot; : sLang = &quot;ie&quot;
+		case &quot;Inupiak&quot; : sLang = &quot;ik&quot;
+		case &quot;Indonesian&quot; : sLang = &quot;in&quot;
+		case &quot;Icelandic&quot; : sLang = &quot;is&quot;
+		case &quot;Italian&quot; : sLang = &quot;it&quot;
+		case &quot;Hebrew&quot; : sLang = &quot;iw&quot;
+		case &quot;Japanese&quot; : sLang = &quot;ja&quot;
+		case &quot;Yiddish&quot; : sLang = &quot;ji&quot;
+		case &quot;Javanese&quot; : sLang = &quot;jw&quot;
+		case &quot;Georgian&quot; : sLang = &quot;ka&quot;
+		case &quot;Kazakh&quot; : sLang = &quot;kk&quot;
+		case &quot;Greenlandic&quot; : sLang = &quot;kl&quot;
+		case &quot;Cambodian&quot; : sLang = &quot;km&quot;
+		case &quot;Kannada&quot; : sLang = &quot;kn&quot;
+		case &quot;Korean&quot; : sLang = &quot;ko&quot;
+		case &quot;Kashmiri&quot; : sLang = &quot;ks&quot;
+		case &quot;Kurdish&quot; : sLang = &quot;ku&quot;
+		case &quot;Kirghiz&quot; : sLang = &quot;ky&quot;
+		case &quot;Latin&quot; : sLang = &quot;la&quot;
+		case &quot;Lingala&quot; : sLang = &quot;ln&quot;
+		case &quot;Laothian&quot; : sLang = &quot;lo&quot;
+		case &quot;Lithuanian&quot; : sLang = &quot;lt&quot;
+		case &quot;Latvian&quot; : sLang = &quot;lv&quot;
+		case &quot;Malagasy&quot; : sLang = &quot;mg&quot;
+		case &quot;Maori&quot; : sLang = &quot;mi&quot;
+		case &quot;Macedonian&quot; : sLang = &quot;mk&quot;
+		case &quot;Malayalam&quot; : sLang = &quot;ml&quot;
+		case &quot;Mongolian&quot; : sLang = &quot;mn&quot;
+		case &quot;Moldavian&quot; : sLang = &quot;mo&quot;
+		case &quot;Marathi&quot; : sLang = &quot;mr&quot;
+		case &quot;Malay&quot; : sLang = &quot;ms&quot;
+		case &quot;Maltese&quot; : sLang = &quot;mt&quot;
+		case &quot;Burmese&quot; : sLang = &quot;my&quot;
+		case &quot;Nauru&quot; : sLang = &quot;na&quot;
+		case &quot;Nepali&quot; : sLang = &quot;ne&quot;
+		case &quot;Dutch&quot; : sLang = &quot;nl&quot;
+		case &quot;Norwegian&quot; : sLang = &quot;no&quot;
+		case &quot;Occitan&quot; : sLang = &quot;oc&quot;
+		case &quot;Oromo&quot; : sLang = &quot;om&quot;
+		case &quot;Oriya&quot; : sLang = &quot;or&quot;
+		case &quot;Punjabi&quot; : sLang = &quot;pa&quot;
+		case &quot;Polish&quot; : sLang = &quot;pl&quot;
+		case &quot;Pashto&quot; : sLang = &quot;ps&quot;
+		case &quot;Portuguese&quot; : sLang = &quot;pt&quot;
+		case &quot;Quechua&quot; : sLang = &quot;qu&quot;
+		case &quot;Rhaeto-Romance&quot; : sLang = &quot;rm&quot;
+		case &quot;Kirundi&quot; : sLang = &quot;rn&quot;
+		case &quot;Romanian&quot; : sLang = &quot;ro&quot;
+		case &quot;Russian&quot; : sLang = &quot;ru&quot;
+		case &quot;Kinyarwanda&quot; : sLang = &quot;rw&quot;
+		case &quot;Sanskrit&quot; : sLang = &quot;sa&quot;
+		case &quot;Sindhi&quot; : sLang = &quot;sd&quot;
+		case &quot;Sangro&quot; : sLang = &quot;sg&quot;
+		case &quot;Serbo-Croatian&quot; : sLang = &quot;sh&quot;
+		case &quot;Singhalese&quot; : sLang = &quot;si&quot;
+		case &quot;Slovak&quot; : sLang = &quot;sk&quot;
+		case &quot;Slovenian&quot; : sLang = &quot;sl&quot;
+		case &quot;Samoan&quot; : sLang = &quot;sm&quot;
+		case &quot;Shona&quot; : sLang = &quot;sn&quot;
+		case &quot;Somali&quot; : sLang = &quot;so&quot;
+		case &quot;Albanian&quot; : sLang = &quot;sq&quot;
+		case &quot;Serbian&quot; : sLang = &quot;sr&quot;
+		case &quot;Siswati&quot; : sLang = &quot;ss&quot;
+		case &quot;Sesotho&quot; : sLang = &quot;st&quot;
+		case &quot;Sudanese&quot; : sLang = &quot;su&quot;
+		case &quot;Swedish&quot; : sLang = &quot;sv&quot;
+		case &quot;Swahili&quot; : sLang = &quot;sw&quot;
+		case &quot;Tamil&quot; : sLang = &quot;ta&quot;
+		case &quot;Tegulu&quot; : sLang = &quot;te&quot;
+		case &quot;Tajik&quot; : sLang = &quot;tg&quot;
+		case &quot;Thai&quot; : sLang = &quot;th&quot;
+		case &quot;Tigrinya&quot; : sLang = &quot;ti&quot;
+		case &quot;Turkmen&quot; : sLang = &quot;tk&quot;
+		case &quot;Tagalog&quot; : sLang = &quot;tl&quot;
+		case &quot;Setswana&quot; : sLang = &quot;tn&quot;
+		case &quot;Tonga&quot; : sLang = &quot;to&quot;
+		case &quot;Turkish&quot; : sLang = &quot;tr&quot;
+		case &quot;Tsonga&quot; : sLang = &quot;ts&quot;
+		case &quot;Tatar&quot; : sLang = &quot;tt&quot;
+		case &quot;Twi&quot; : sLang = &quot;tw&quot;
+		case &quot;Ukrainian&quot; : sLang = &quot;uk&quot;
+		case &quot;Urdu&quot; : sLang = &quot;ur&quot;
+		case &quot;Uzbek&quot; : sLang = &quot;uz&quot;
+		case &quot;Vietnamese&quot; : sLang = &quot;vi&quot;
+		case &quot;Volapuk&quot; : sLang = &quot;vo&quot;
+		case &quot;Wolof&quot; : sLang = &quot;wo&quot;
+		case &quot;Xhosa&quot; : sLang = &quot;xh&quot;
+		case &quot;Yoruba&quot; : sLang = &quot;yo&quot;
+		case &quot;Chinese&quot; : sLang = &quot;zh&quot;
+		case &quot;Zulu&quot; : sLang = &quot;zu&quot;
+		case else
+			sLang = &quot;de&quot;
+	end select
+	GetLanguageCode = sLang
+end function
+
+
+function GetLanguageCode_DE(sLang) as string
+  select case sLang
+	case &quot;Afghanistan&quot; : sLang = &quot;AF&quot;
+	case &quot;Albanien&quot; : sLang = &quot;AL&quot;
+	case &quot;Algerien&quot; : sLang = &quot;DZ&quot;
+	case &quot;Amerikanisch Samoa&quot; : sLang = &quot;AS&quot;
+	case &quot;Andorra&quot; : sLang = &quot;AD&quot;
+	case &quot;Angola&quot; : sLang = &quot;AO&quot;
+	case &quot;Anguilla&quot; : sLang = &quot;AI&quot;
+	case &quot;Antarktis&quot; : sLang = &quot;AQ&quot;
+	case &quot;Antigua und Barbuda&quot; : sLang = &quot;AG&quot;
+	case &quot;Argentinien&quot; : sLang = &quot;AR&quot;
+	case &quot;Armenien&quot; : sLang = &quot;AM&quot;
+	case &quot;Aruba&quot; : sLang = &quot;AW&quot;
+	case &quot;Australien&quot; : sLang = &quot;AU&quot;
+	case &quot;Azerbaidschan&quot; : sLang = &quot;AZ&quot;
+	case &quot;Bahamas&quot; : sLang = &quot;BS&quot;
+	case &quot;Bahrain&quot; : sLang = &quot;BH&quot;
+	case &quot;Bangladesh&quot; : sLang = &quot;BD&quot;
+	case &quot;Barbados&quot; : sLang = &quot;BB&quot;
+	case &quot;Belgien&quot; : sLang = &quot;BE&quot;
+	case &quot;Belize&quot; : sLang = &quot;BZ&quot;
+	case &quot;Benin&quot; : sLang = &quot;BJ&quot;
+	case &quot;Bermudas&quot; : sLang = &quot;BM&quot;
+	case &quot;Bhutan&quot; : sLang = &quot;BT&quot;
+	case &quot;Bolivien&quot; : sLang = &quot;BO&quot;
+	case &quot;Bosnien-Herzegowina&quot; : sLang = &quot;BA&quot;
+	case &quot;Botswana&quot; : sLang = &quot;BW&quot;
+	case &quot;Bouvet Island&quot; : sLang = &quot;BV&quot;
+	case &quot;Brasilien&quot; : sLang = &quot;BR&quot;
+	case &quot;Britische Territorien im Indischen Ozean&quot; : sLang = &quot;IO&quot;
+	case &quot;Brunei&quot; : sLang = &quot;BN&quot;
+	case &quot;Bulgarien&quot; : sLang = &quot;BG&quot;
+	case &quot;Burkina Faso&quot; : sLang = &quot;BF&quot;
+	case &quot;Burundi&quot; : sLang = &quot;BI&quot;
+	case &quot;Chile&quot; : sLang = &quot;CL&quot;
+	case &quot;China&quot; : sLang = &quot;CN&quot;
+	case &quot;Cook Inseln&quot; : sLang = &quot;CK&quot;
+	case &quot;Costa Rica&quot; : sLang = &quot;CR&quot;
+	case &quot;Deutschland&quot; : sLang = &quot;DE&quot;
+	case &quot;Djibouti&quot; : sLang = &quot;DJ&quot;
+	case &quot;Dominica&quot; : sLang = &quot;DM&quot;
+	case &quot;Dominikanische Republik&quot; : sLang = &quot;DO&quot;
+	case &quot;Dänemark&quot; : sLang = &quot;DK&quot;
+	case &quot;Ekuador&quot; : sLang = &quot;EC&quot;
+	case &quot;El Salvador&quot; : sLang = &quot;SV&quot;
+	case &quot;Elfenbeinküste&quot; : sLang = &quot;CI&quot;
+	case &quot;Eritrea&quot; : sLang = &quot;ER&quot;
+	case &quot;Estland&quot; : sLang = &quot;EE&quot;
+	case &quot;Falkland Inseln&quot; : sLang = &quot;FK&quot;
+	case &quot;Faroer&quot; : sLang = &quot;FO&quot;
+	case &quot;Fiji&quot; : sLang = &quot;FJ&quot;
+	case &quot;Finnland&quot; : sLang = &quot;FI&quot;
+	case &quot;Frankreich&quot; : sLang = &quot;FR&quot;
+	case &quot;Frankreich&quot; : sLang = &quot;FX&quot;
+	case &quot;Französisch Guyana&quot; : sLang = &quot;GF&quot;
+	case &quot;Französisch Polynesien&quot; : sLang = &quot;PF&quot;
+	case &quot;Französische Südliche Territorien&quot; : sLang = &quot;TF&quot;
+	case &quot;Gabun&quot; : sLang = &quot;GA&quot;
+	case &quot;Gambia&quot; : sLang = &quot;GM&quot;
+	case &quot;Georgien&quot; : sLang = &quot;GE&quot;
+	case &quot;Ghana&quot; : sLang = &quot;GH&quot;
+	case &quot;Gibraltar&quot; : sLang = &quot;GI&quot;
+	case &quot;Grenada&quot; : sLang = &quot;GD&quot;
+	case &quot;Griechenland&quot; : sLang = &quot;GR&quot;
+	case &quot;Grönland&quot; : sLang = &quot;GL&quot;
+	case &quot;Guadeloupe&quot; : sLang = &quot;GP&quot;
+	case &quot;Guam&quot; : sLang = &quot;GU&quot;
+	case &quot;Guatemala&quot; : sLang = &quot;GT&quot;
+	case &quot;Guernsey (Kanalinsel)&quot; : sLang = &quot;GG&quot;
+	case &quot;Guinea&quot; : sLang = &quot;GN&quot;
+	case &quot;Guinea-Bissau&quot; : sLang = &quot;GW&quot;
+	case &quot;Guyana&quot; : sLang = &quot;GY&quot;
+	case &quot;Haiti&quot; : sLang = &quot;HT&quot;
+	case &quot;Heard und McDonald Inseln&quot; : sLang = &quot;HM&quot;
+	case &quot;Honduras&quot; : sLang = &quot;HN&quot;
+	case &quot;Hong Kong&quot; : sLang = &quot;HK&quot;
+	case &quot;Indien&quot; : sLang = &quot;IN&quot;
+	case &quot;Indonesien&quot; : sLang = &quot;ID&quot;
+	case &quot;Insel Man&quot; : sLang = &quot;IM&quot;
+	case &quot;Irak&quot; : sLang = &quot;IQ&quot;
+	case &quot;Iran&quot; : sLang = &quot;IR&quot;
+	case &quot;Irland&quot; : sLang = &quot;IE&quot;
+	case &quot;Island&quot; : sLang = &quot;IS&quot;
+	case &quot;Israel&quot; : sLang = &quot;IL&quot;
+	case &quot;Italien&quot; : sLang = &quot;IT&quot;
+	case &quot;Jamaika&quot; : sLang = &quot;JM&quot;
+	case &quot;Japan&quot; : sLang = &quot;JP&quot;
+	case &quot;Jemen&quot; : sLang = &quot;YE&quot;
+	case &quot;Jersey (Kanalinsel)&quot; : sLang = &quot;JE&quot;
+	case &quot;Jordanien&quot; : sLang = &quot;JO&quot;
+	case &quot;Kaiman Inseln&quot; : sLang = &quot;KY&quot;
+	case &quot;Kambodscha&quot; : sLang = &quot;KH&quot;
+	case &quot;Kamerun&quot; : sLang = &quot;CM&quot;
+	case &quot;Kanada&quot; : sLang = &quot;CA&quot;
+	case &quot;Kapverdische Inseln&quot; : sLang = &quot;CV&quot;
+	case &quot;Kasachstan&quot; : sLang = &quot;KZ&quot;
+	case &quot;Katar&quot; : sLang = &quot;QA&quot;
+	case &quot;Kenia&quot; : sLang = &quot;KE&quot;
+	case &quot;Kirgisien&quot; : sLang = &quot;KG&quot;
+	case &quot;Kiribati&quot; : sLang = &quot;KI&quot;
+	case &quot;Kokos (Keeling) Inseln&quot; : sLang = &quot;CC&quot;
+	case &quot;Kolumbien&quot; : sLang = &quot;CO&quot;
+	case &quot;Komoren&quot; : sLang = &quot;KM&quot;
+	case &quot;Kongo&quot; : sLang = &quot;CG&quot;
+	case &quot;Kroatien&quot; : sLang = &quot;HR&quot;
+	case &quot;Kuba&quot; : sLang = &quot;CU&quot;
+	case &quot;Kuwait&quot; : sLang = &quot;KW&quot;
+	case &quot;Laos&quot; : sLang = &quot;LA&quot;
+	case &quot;Lesotho&quot; : sLang = &quot;LS&quot;
+	case &quot;Lettland&quot; : sLang = &quot;LV&quot;
+	case &quot;Libanon&quot; : sLang = &quot;LB&quot;
+	case &quot;Liberia&quot; : sLang = &quot;LR&quot;
+	case &quot;Libyen&quot; : sLang = &quot;LY&quot;
+	case &quot;Liechtenstein&quot; : sLang = &quot;LI&quot;
+	case &quot;Litauen&quot; : sLang = &quot;LT&quot;
+	case &quot;Luxemburg&quot; : sLang = &quot;LU&quot;
+	case &quot;Macau&quot; : sLang = &quot;MO&quot;
+	case &quot;Madagaskar&quot; : sLang = &quot;MG&quot;
+	case &quot;Malawi&quot; : sLang = &quot;MW&quot;
+	case &quot;Malaysia&quot; : sLang = &quot;MY&quot;
+	case &quot;Malediven&quot; : sLang = &quot;MV&quot;
+	case &quot;Mali&quot; : sLang = &quot;ML&quot;
+	case &quot;Malta&quot; : sLang = &quot;MT&quot;
+	case &quot;Marokko&quot; : sLang = &quot;MA&quot;
+	case &quot;Marshall Inseln&quot; : sLang = &quot;MH&quot;
+	case &quot;Martinique&quot; : sLang = &quot;MQ&quot;
+	case &quot;Mauretanien&quot; : sLang = &quot;MR&quot;
+	case &quot;Mauritius&quot; : sLang = &quot;MU&quot;
+	case &quot;Mayotte&quot; : sLang = &quot;YT&quot;
+	case &quot;Mazedonien&quot; : sLang = &quot;MK&quot;
+	case &quot;Mexiko&quot; : sLang = &quot;MX&quot;
+	case &quot;Mikronesien&quot; : sLang = &quot;FM&quot;
+	case &quot;Moldawien&quot; : sLang = &quot;MD&quot;
+	case &quot;Monaco&quot; : sLang = &quot;MC&quot;
+	case &quot;Mongolei&quot; : sLang = &quot;MN&quot;
+	case &quot;Montenegro&quot; : sLang = &quot;ME&quot;
+	case &quot;Montserrat&quot; : sLang = &quot;MS&quot;
+	case &quot;Mozambik&quot; : sLang = &quot;MZ&quot;
+	case &quot;Myanmar&quot; : sLang = &quot;MM&quot;
+	case &quot;Namibia&quot; : sLang = &quot;NA&quot;
+	case &quot;Nauru&quot; : sLang = &quot;NR&quot;
+	case &quot;Nepal&quot; : sLang = &quot;NP&quot;
+	case &quot;Neu Kaledonien&quot; : sLang = &quot;NC&quot;
+	case &quot;Neuseeland&quot; : sLang = &quot;NZ&quot;
+	case &quot;Nicaragua&quot; : sLang = &quot;NI&quot;
+	case &quot;Niederlande&quot; : sLang = &quot;NL&quot;
+	case &quot;Niederländische Antillen&quot; : sLang = &quot;AN&quot;
+	case &quot;Niger&quot; : sLang = &quot;NE&quot;
+	case &quot;Nigeria&quot; : sLang = &quot;NG&quot;
+	case &quot;Niue&quot; : sLang = &quot;NU&quot;
+	case &quot;Nord-Korea (Volksrepublik Korea)&quot; : sLang = &quot;KP&quot;
+	case &quot;Norfolk Inseln&quot; : sLang = &quot;NF&quot;
+	case &quot;Norwegen&quot; : sLang = &quot;NO&quot;
+	case &quot;Nördliche Mariannen-Inseln&quot; : sLang = &quot;MP&quot;
+	case &quot;Oman&quot; : sLang = &quot;OM&quot;
+	case &quot;Osttimor&quot; : sLang = &quot;TL&quot;
+	case &quot;Pakistan&quot; : sLang = &quot;PK&quot;
+	case &quot;Palau&quot; : sLang = &quot;PW&quot;
+	case &quot;Palästinensische Autonomiegebiete&quot; : sLang = &quot;PS&quot;
+	case &quot;Panama&quot; : sLang = &quot;PA&quot;
+	case &quot;Papua-Neuguinea&quot; : sLang = &quot;PG&quot;
+	case &quot;Paraguay&quot; : sLang = &quot;PY&quot;
+	case &quot;Peru&quot; : sLang = &quot;PE&quot;
+	case &quot;Philippinen&quot; : sLang = &quot;PH&quot;
+	case &quot;Pitcairn&quot; : sLang = &quot;PN&quot;
+	case &quot;Polen&quot; : sLang = &quot;PL&quot;
+	case &quot;Portugal&quot; : sLang = &quot;PT&quot;
+	case &quot;Puerto Rico&quot; : sLang = &quot;PR&quot;
+	case &quot;Reunion&quot; : sLang = &quot;RE&quot;
+	case &quot;Ruanda&quot; : sLang = &quot;RW&quot;
+	case &quot;Rumänien&quot; : sLang = &quot;RO&quot;
+	case &quot;Russische Föderation&quot; : sLang = &quot;RU&quot;
+	case &quot;Saint Kitts und Nevis&quot; : sLang = &quot;KN&quot;
+	case &quot;Saint Lucia&quot; : sLang = &quot;LC&quot;
+	case &quot;Saint Vincent und Grenadines&quot; : sLang = &quot;VC&quot;
+	case &quot;Saint-Barthélemy&quot; : sLang = &quot;BL&quot;
+	case &quot;Saint-Martin (franz. Teil)&quot; : sLang = &quot;MF&quot;
+	case &quot;Sambia&quot; : sLang = &quot;ZM&quot;
+	case &quot;Samoa&quot; : sLang = &quot;WS&quot;
+	case &quot;San Marino&quot; : sLang = &quot;SM&quot;
+	case &quot;Sao Tome und Principe&quot; : sLang = &quot;ST&quot;
+	case &quot;Saudi-Arabien&quot; : sLang = &quot;SA&quot;
+	case &quot;Schweden&quot; : sLang = &quot;SE&quot;
+	case &quot;Schweiz&quot; : sLang = &quot;CH&quot;
+	case &quot;Senegal&quot; : sLang = &quot;SN&quot;
+	case &quot;Serbien&quot; : sLang = &quot;RS&quot;
+	case &quot;Seychellen&quot; : sLang = &quot;SC&quot;
+	case &quot;Sierra Leone&quot; : sLang = &quot;SL&quot;
+	case &quot;Simbabwe&quot; : sLang = &quot;ZW&quot;
+	case &quot;Singapur&quot; : sLang = &quot;SG&quot;
+	case &quot;Slowakei&quot; : sLang = &quot;SK&quot;
+	case &quot;Slowenien&quot; : sLang = &quot;SI&quot;
+	case &quot;Solomon Inseln&quot; : sLang = &quot;SB&quot;
+	case &quot;Somalia&quot; : sLang = &quot;SO&quot;
+	case &quot;Spanien&quot; : sLang = &quot;ES&quot;
+	case &quot;Sri Lanka&quot; : sLang = &quot;LK&quot;
+	case &quot;St. Helena&quot; : sLang = &quot;SH&quot;
+	case &quot;St. Pierre und Miquelon&quot; : sLang = &quot;PM&quot;
+	case &quot;Sudan&quot; : sLang = &quot;SD&quot;
+	case &quot;Surinam&quot; : sLang = &quot;SR&quot;
+	case &quot;Svalbard und Jan Mayen Inseln&quot; : sLang = &quot;SJ&quot;
+	case &quot;Swaziland&quot; : sLang = &quot;SZ&quot;
+	case &quot;Syrien&quot; : sLang = &quot;SY&quot;
+	case &quot;Süd-Georgia und die Südlichen Sandwich-Inseln&quot; : sLang = &quot;GS&quot;
+	case &quot;Süd-Korea (Republik)&quot; : sLang = &quot;KR&quot;
+	case &quot;Südafrika&quot; : sLang = &quot;ZA&quot;
+	case &quot;Tadschikistan&quot; : sLang = &quot;TJ&quot;
+	case &quot;Taiwan&quot; : sLang = &quot;TW&quot;
+	case &quot;Tansania&quot; : sLang = &quot;TZ&quot;
+	case &quot;Thailand&quot; : sLang = &quot;TH&quot;
+	case &quot;Togo&quot; : sLang = &quot;TG&quot;
+	case &quot;Tokelau&quot; : sLang = &quot;TK&quot;
+	case &quot;Tonga&quot; : sLang = &quot;TO&quot;
+	case &quot;Trinidad und Tobago&quot; : sLang = &quot;TT&quot;
+	case &quot;Tschad&quot; : sLang = &quot;TD&quot;
+	case &quot;Tschechische Republik&quot; : sLang = &quot;CZ&quot;
+	case &quot;Tunesien&quot; : sLang = &quot;TN&quot;
+	case &quot;Turkmenistan&quot; : sLang = &quot;TM&quot;
+	case &quot;Turks und Caicos Inseln&quot; : sLang = &quot;TC&quot;
+	case &quot;Tuvalu&quot; : sLang = &quot;TV&quot;
+	case &quot;Türkei&quot; : sLang = &quot;TR&quot;
+	case &quot;U.S. Minor Outlying Inseln&quot; : sLang = &quot;UM&quot;
+	case &quot;Uganda&quot; : sLang = &quot;UG&quot;
+	case &quot;Ukraine&quot; : sLang = &quot;UA&quot;
+	case &quot;Ungarn&quot; : sLang = &quot;HU&quot;
+	case &quot;Uruguay&quot; : sLang = &quot;UY&quot;
+	case &quot;Usbekistan&quot; : sLang = &quot;UZ&quot;
+	case &quot;Vanuatu&quot; : sLang = &quot;VU&quot;
+	case &quot;Vatikan&quot; : sLang = &quot;VA&quot;
+	case &quot;Venezuela&quot; : sLang = &quot;VE&quot;
+	case &quot;Vereinigte Arabische Emirate&quot; : sLang = &quot;AE&quot;
+	case &quot;Vereinigte Staaten&quot; : sLang = &quot;US&quot;
+	case &quot;Vereinigtes Königreich&quot; : sLang = &quot;GB&quot;
+	case &quot;Vietnam&quot; : sLang = &quot;VN&quot;
+	case &quot;Virgin Islands (Britisch)&quot; : sLang = &quot;VG&quot;
+	case &quot;Virgin Islands (US)&quot; : sLang = &quot;VI&quot;
+	case &quot;Wallis und Futuna&quot; : sLang = &quot;WF&quot;
+	case &quot;Weihnachtsinseln&quot; : sLang = &quot;CX&quot;
+	case &quot;Weißrussland&quot; : sLang = &quot;BY&quot;
+	case &quot;West-Sahara&quot; : sLang = &quot;EH&quot;
+	case &quot;Zentralafrikanische Republik&quot; : sLang = &quot;CF&quot; 
+	case &quot;Zypern&quot; : sLang = &quot;CY&quot; 
+	case &quot;Ägypten&quot; : sLang = &quot;EG&quot;
+	case &quot;Äquatorial-Guinea&quot; : sLang = &quot;GQ&quot;
+	case &quot;Äthiopien&quot; : sLang = &quot;ET&quot;
+	case &quot;Åland&quot; : sLang = &quot;AX&quot;
+	case &quot;Österreich&quot; : sLang = &quot;AT&quot;
+  case else sLang = &quot;en&quot;
+  end select
+  GetLanguageCode_DE = sLang
+end function
+
+</script:module>

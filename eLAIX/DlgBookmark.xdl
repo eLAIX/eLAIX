@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE dlg:window PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "dialog.dtd">
+<dlg:window xmlns:dlg="http://openoffice.org/2000/dialog" xmlns:script="http://openoffice.org/2000/script" dlg:id="DlgBookmark" dlg:left="85" dlg:top="29" dlg:width="193" dlg:height="185" dlg:closeable="true" dlg:moveable="true" dlg:title="Insert Link to Bookmark">
+ <dlg:bulletinboard>
+  <dlg:titledbox dlg:id="FrameControl1" dlg:tab-index="4" dlg:left="5" dlg:top="36" dlg:width="120" dlg:height="143">
+   <dlg:title dlg:value="Bookmarks"/>
+  </dlg:titledbox>
+  <dlg:titledbox dlg:id="FrameControl2" dlg:tab-index="5" dlg:left="5" dlg:top="5" dlg:width="120" dlg:height="28">
+   <dlg:title dlg:value="Link Text"/>
+  </dlg:titledbox>
+  <dlg:menulist dlg:id="listBookmarks" dlg:tab-index="3" dlg:left="9" dlg:top="50" dlg:width="111" dlg:height="126">
+   <script:event script:event-name="on-itemstatechange" script:macro-name="vnd.sun.star.script:eLAIX.Menu.SetBookmarkDialogButtons?language=Basic&amp;location=application" script:language="Script"/>
+  </dlg:menulist>
+  <dlg:textfield dlg:id="txtLink" dlg:tab-index="1" dlg:left="9" dlg:top="16" dlg:width="111" dlg:height="12"/>
+  <dlg:button dlg:id="btnInsert" dlg:tab-index="0" dlg:left="133" dlg:top="9" dlg:width="52" dlg:height="15" dlg:page="1" dlg:help-text="&amp;669.DlgBookmark.btnInsert.HelpText" dlg:default="true" dlg:value="Insert" dlg:button-type="ok"/>
+  <dlg:button dlg:id="btnCancel" dlg:tab-index="2" dlg:left="133" dlg:top="27" dlg:width="52" dlg:height="15" dlg:value="Cancel" dlg:button-type="cancel"/>
+ </dlg:bulletinboard>
+</dlg:window>

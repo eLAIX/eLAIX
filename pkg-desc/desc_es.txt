@@ -1,0 +1,2 @@
+Crea módulos de aprendizaje para ILIAS desde OpenOffice.org.
+Copyright (c) 2004-2011 Harry Boldt

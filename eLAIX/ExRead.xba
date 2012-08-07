@@ -1,0 +1,1517 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">
+<script:module xmlns:script="http://openoffice.org/2000/script" script:name="ExRead" script:language="StarBasic">&apos;****************************************************************************
+&apos; eLAIX   : Writing ILIAS learning modules offline with OpenOffice.org Writer
+&apos; Author  : Harry Boldt - h.boldt@boldt-media.de - http://elaix.org
+&apos; License : GPL
+&apos;****************************************************************************
+
+&apos; This module is part of eLAIX. You can redistribute it and/or
+&apos; modify it under the terms of the GNU Lesser General Public
+&apos; License as published by the Free Software Foundation, either
+&apos; version 3 of the License, or (at your option) any later version.
+&apos; 
+&apos; This program is distributed in the hope that it will be useful,
+&apos; but WITHOUT ANY WARRANTY; without even the implied warranty of
+&apos; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+&apos; Lesser General Public License for more details.
+&apos; 
+&apos; You should have received a copy of the GNU Lesser General Public
+&apos; License along with this program. If not, please visit the Free
+&apos; Software Foundation website at http://www.gnu.org/licenses/.
+
+
+Option Explicit
+
+&apos;******************************************************************************************
+&apos; TYPES FOR ALL MODULES
+&apos;******************************************************************************************
+
+type docTable
+	TableID as long
+	Row as integer
+	Col as integer	
+end type
+
+type docChapter
+	ID as long
+	ChapterType as integer
+	GetString as string
+	Level as integer
+	ReferenceMark as string
+	HasContent as boolean
+end type
+
+type docParagraph
+	ID as long
+	ChapterID as long
+	FrameStylename as string
+	&apos;FrameTitle as string
+	FrameCaption as string
+	GetString as string
+	PageArea as integer
+	ParaType as integer
+	ParaAdjust as integer
+	ParaFirstLineIndent as integer
+	ParaStyleName as string
+	NumberingRestart as boolean
+	NumberingStyleName as string
+	NumberingType as string
+	NumberingLevel as string
+	NumberingIsNumber as boolean
+	BreakType as integer
+	PageInnerWidth as long  &apos;must be long
+	TableName as string
+	TableWidth as long  &apos;must be long!
+	TableIsWidthRelative as boolean
+	TableRelativeWidth as integer
+	TableBorderWidth as integer
+	TableCaption as string
+	TableParentID as long &apos;the docParagraph.ID of the table to which this table-element belongs
+	TableRow as integer
+	TableCol as integer
+	State as integer
+end type
+
+type docTextPortion
+	ID as long
+	ParaID as long
+	TextPortionType as string
+	ParaStyleName as string
+	FrameStyleName as string
+	NumberingStyleName as string
+	Bookmark as string
+	HyperLinkURL as string
+	HyperLinkName as string
+	HyperLinkTarget as string
+	TextField as string
+	GetString as string
+	Footnote as string
+	FormulaOOo as string
+	FormulaTeX as string
+	CharWeight as integer
+	CharColor as long
+	CharStyleName as string
+	CharFontNameState as long
+	CharEscapement as integer
+	CharFontFamily as integer
+	CharFontPitch as integer
+	CharPosture as long
+	CharUnderline as integer
+end type
+
+type docMedia
+	ID as long
+	TextPortionID as long
+	ExtMediaID as long
+	ImplementationName as string
+	MediaName as string
+	MediaURL as string
+	Title as string
+	Caption as string
+	HoriOrient as integer
+	ParaAdjust as integer
+	AnchorType as long
+	TextWrap as long
+	Width as long
+	Height as long
+	IsInUse as boolean
+	IsScaled as boolean
+end type
+
+type extMedia
+	ID as long
+	MediaType as integer
+	MediaTypeText as string
+	ObjectName as string
+	FileName as string
+	Width as long &apos;original width
+	Height as long &apos;original height
+end type
+
+
+&apos;******************************************************************************************
+&apos; CONSTANTS FOR ALL MODULES
+&apos;******************************************************************************************
+
+global const CHAPTER_TYPE_HEADING = 1
+global const CHAPTER_TYPE_PAGE    = 2
+
+global const PAGE_AREA_TEXT       = 1
+global const PAGE_AREA_HEADER     = 2
+global const PAGE_AREA_FOOTER     = 3
+
+global const PARA_TYPE_TABLE      = 1
+global const PARA_TYPE_LIST       = 2
+global const PARA_TYPE_TEXT       = 3
+global const PARA_TYPE_FRAMESTART = 4
+global const PARA_TYPE_FRAMESTOP  = 5
+global const PARA_TYPE_FILELIST   = 6
+
+global const PARA_STATE_PENDING   = 0
+global const PARA_STATE_EXPORTED  = 1
+
+global const MEDIA_TYPE_IMAGE     = 1 &apos;graphic
+global const MEDIA_TYPE_MEDIA     = 2 &apos;sound and movie
+global const MEDIA_TYPE_EMBEDDED  = 3 &apos;flash
+
+
+
+
+&apos;******************************************************************************************
+&apos; FUNCTIONS
+&apos;******************************************************************************************
+
+sub ReadDocStandardHeader
+dim oStyleFamilies As Object
+dim oPageStyles As Object
+dim oStandardPage As Object
+dim oHeader as object
+dim oEnum as object
+dim oPara as object
+  
+	oStyleFamilies = thisComponent().StyleFamilies
+	oPageStyles = oStyleFamilies.getByName(&quot;PageStyles&quot;)
+	oStandardPage = oPageStyles.getByName(&quot;Standard&quot;)
+	oHeader = oStandardPage.HeaderText  
+	oEnum = oHeader.createEnumeration() 
+	&apos;read the complete header 
+	while oEnum.HasMoreElements 
+		oPara = oEnum.nextElement()
+		ReadParagraph(oPara, PAGE_AREA_HEADER, 0)
+	wend	
+end sub
+
+
+sub ReadDocStandardFooter
+dim oStyleFamilies As Object
+dim oPageStyles As Object
+dim oStandardPage As Object
+dim oFooter as object
+dim oEnum as object
+dim oPara as object
+  
+	oStyleFamilies = thisComponent().StyleFamilies
+	oPageStyles = oStyleFamilies.getByName(&quot;PageStyles&quot;)
+	oStandardPage = oPageStyles.getByName(&quot;Standard&quot;)
+	oFooter = oStandardPage.FooterText  
+	oEnum = oFooter.createEnumeration() 
+	&apos;read the complete footer 
+	while oEnum.HasMoreElements 
+		oPara = oEnum.nextElement()
+		ReadParagraph(oPara, PAGE_AREA_FOOTER, 0)
+	wend	
+end sub
+
+
+sub ReadGraphics
+dim oDocument as object
+dim oGraphics as object
+dim oGraphic as object
+dim oMediaRec as object
+dim i as long
+dim iNewPos as long
+dim iExtMediaID as long
+
+	oDocument = ThisComponent()
+	oGraphics = oDocument.getGraphicObjects
+	&apos; for all pictures in document ...
+	For i = 0 to oGraphics.getCount - 1
+		oGraphic = oGraphics.getByIndex(i)
+		&apos;xray oGraphic
+		&apos;check if the graphic already exists in gaExtMedia
+		iExtMediaID = GetExtMediaIDByName(oGraphic.getName)
+		if iExtMediaID = 0 then
+			&apos;insert the graphic into gaExtMedia - returns the ID of the record in gaExtMedia
+			iExtMediaID = AppendFileToExtMedia(MEDIA_TYPE_IMAGE, oGraphic)			
+		end if	
+		&apos;create media record, edit and append it in gaDocMedia()
+		oMediaRec = createObject(&quot;docMedia&quot;)
+		iNewPos = ubound(gaDocMedia()) + 1
+		redim preserve gaDocMedia(iNewPos)
+		with oMediaRec
+			.ID = iNewPos
+			.ExtMediaID = iExtMediaID
+			.MediaName = oGraphic.getName
+			.IsInUse = false
+		end with
+		gaDocMedia(iNewPos) = oMediaRec
+	next i
+end sub
+
+
+
+sub ReadDocument
+dim oEnum as object
+dim oPara as object
+dim sParaStyle as string
+dim iActChapterID as long
+dim oChapterRec as object
+dim oParaRec as object
+dim bIsHeading as boolean
+dim iOutlineLevel as integer
+dim iFromChapter as integer
+dim iToChapter as integer
+dim bReadChapter as boolean
+
+const c_BreakBefore = 4 &apos;com.sun.star.style.BreakType.PAGE_BEFORE
+const c_BreakAfter = 5  &apos;com.sun.star.style.BreakType.PAGE_AFTER
+
+	iFromChapter = 0
+	iToChapter = 0
+	bReadChapter = true
+
+	&apos;create the enumeration object of the document
+	oEnum = thisComponent.Text.createEnumeration()
+	
+	&apos;jump over startpages to first chapter title (Heading)
+	do while oEnum.hasMoreElements()
+		oPara = oEnum.nextElement()
+		if oPara.supportsService(&quot;com.sun.star.text.Paragraph&quot;) then
+			if oPara.OutlineLevel &gt; 0 then
+				&apos;check if this is a chapter to export (export from chapter)
+				if (giFromChapter &gt; 0) and (oPara.OutlineLevel = 1) then
+					iFromChapter = iFromChapter + 1
+					bReadChapter = iFromChapter &gt;= giFromChapter
+				end if	
+				if bReadChapter then
+					iActChapterID = AppendChapterRec(oPara, CHAPTER_TYPE_HEADING)
+					exit do  &apos;step out to continue 
+				end if	
+			end if
+		end if
+	loop
+		
+	&apos;read the complete document starting at the current position of oEnum
+	do while oEnum.HasMoreElements 
+		bIsHeading = false
+		oPara = oEnum.nextElement()
+		&apos;check if the paragraph is a heading
+	    if oPara.supportsService(&quot;com.sun.star.text.Paragraph&quot;) Then
+			iOutlineLevel = oPara.OutlineLevel
+			if iOutlineLevel &gt; 0 then
+				if (iOutlineLevel = 1) and (giToChapter &gt; 0) then
+					iToChapter = iToChapter + 1
+					if iToChapter &gt; giToChapter - giFromChapter then
+						exit do
+					end if
+				end if
+				bIsHeading = true
+				iActChapterID = AppendChapterRec(oPara, CHAPTER_TYPE_HEADING)
+ 			elseif oPara.BreakType = com.sun.star.style.BreakType.PAGE_BEFORE then
+				iActChapterID = AppendChapterRec(oPara, CHAPTER_TYPE_PAGE)
+				oPara = oEnum.nextElement()
+			end if	
+		end if
+		if not bIsHeading then
+			gaDocChapter(iActChapterID).HasContent = true		
+			ReadParagraph(oPara, PAGE_AREA_TEXT, iActChapterID)
+		end if	
+	loop	
+end sub	
+	
+
+sub ReadParagraph(oPara as object, iPageArea as integer, iActChapterID as long, optional oTableRec as object)
+&apos;oPara      : document paragraph object
+&apos;iPageArea  : PAGE_AREA_HEADER, PAGE_AREA_TEXT or PAGE_AREA_FOOTER
+&apos;iActChapterID : actual chapter no
+&apos;oTableRec  : Table information if oPara is part of a table
+dim sParaStyleName as string
+dim sNumberingStyle as string
+dim oParaRec as object
+dim iActParaID as long
+dim iTableWidth as integer	
+dim iPageInnerWidth as integer
+dim iBorderWidth as integer
+dim oRules as object
+
+	&apos;xray oPara
+	&apos;A paragraph can be a standard paragraph or a table. First check if it&apos;s a paragraph
+	if oPara.supportsService(&quot;com.sun.star.text.Paragraph&quot;) then
+
+		&apos; first reset list in code view to standard paragraph
+		sParaStyleName =  ReplaceString(oPara.ParaStyleName, &quot;_&quot;, &quot; &quot;)
+		if left(sParaStyleName, 10) = &quot;ILIAS_Code&quot; then &apos;
+			sNumberingStyle = oPara.NumberingStyleName &apos;property can NOT be read directly!!!
+			if sNumberingStyle &lt;&gt; &quot;&quot; then
+				oPara.NumberingStyleName = &quot;&quot;
+				giListInCode = giListInCode + 1
+			end if  
+		end if
+			
+		&apos;check if the paragraph is a list
+		sNumberingStyle = oPara.NumberingStyleName 
+		if sNumberingStyle &lt;&gt; &quot;&quot; then   
+		
+			&apos;oRules = oPara.NumberingRules
+			          
+			&apos;create a new paragraph record
+			iActParaID = ubound(gaDocParagraph()) + 1
+
+			&apos;if (iActParaID = 139) then
+			&apos;	xray oPara
+			&apos;end if
+
+			oParaRec = createObject(&quot;docParagraph&quot;)
+			with oParaRec
+				.ID = iActParaID
+				.PageArea = iPageArea	
+				.ChapterID = iActChapterID
+				.ParaType = PARA_TYPE_LIST
+				.ParaAdjust = oPara.ParaAdjust
+				.ParaFirstLineIndent = oPara.ParaFirstLineIndent
+				.ParaStyleName = sParaStyleName
+				.NumberingRestart = oPara.ParaIsNumberingRestart
+				.NumberingStyleName = sNumberingStyle
+				.NumberingType = GetNumberingType(oPara)
+				.NumberingLevel = oPara.NumberingLevel
+				.NumberingIsNumber = oPara.NumberingIsNumber
+				.BreakType = oPara.BreakType
+				.State = PARA_STATE_PENDING
+			end with	
+			&apos;check if oPara is part of a table
+			if not isMissing(oTableRec) then
+				oParaRec.TableParentID = oTableRec.TableID
+				oParaRec.TableRow = oTableRec.Row
+				oParaRec.TableCol = oTableRec.Col
+			end if
+			&apos;append ParaRec to the array of paragraphs
+			redim preserve gaDocParagraph(iActParaID)
+			goDlgExport.Model.lblCountRead.Label = iActParaID
+			gaDocParagraph(iActParaID) = oParaRec	
+			&apos;read the parts of this paragraph
+			&apos;portions can contain frames as part of a table, so optional oTableRec has to be passed
+			if isMissing(oTableRec) then
+				ReadTextPortions(iActChapterID, oPara, oParaRec)
+			else	
+				ReadTextPortions(iActChapterID, oPara, oParaRec, oTableRec)
+			end if
+						
+		&apos;the paragraph is other than a list (text, graphics, OLE, frames...)
+		else	
+			&apos;create a new paragraph record
+			&apos;xRay oPara
+			iActParaID = ubound(gaDocParagraph()) + 1
+			oParaRec = createObject(&quot;docParagraph&quot;)
+			with oParaRec
+				.ID = iActParaID
+				.ChapterID = iActChapterID
+				.PageArea = iPageArea
+				.ParaFirstLineIndent = oPara.ParaFirstLineIndent
+				.ParaStyleName = sParaStyleName
+				.State = PARA_STATE_PENDING
+				.BreakType = oPara.BreakType
+				&apos;check if oPara is part of a table
+				if not isMissing(oTableRec) then
+					.TableParentID = oTableRec.TableID
+					.TableRow = oTableRec.Row
+					.TableCol = oTableRec.Col
+				end if
+				if left(sParaStyleName, 14) = &quot;ILIAS_FileList&quot; then
+					.ParaType = PARA_TYPE_FILELIST
+				else	
+					.ParaType = PARA_TYPE_TEXT
+				end if
+				if 	oPara.GetPropertyState(&quot;ParaAdjust&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then		
+					.ParaAdjust = oPara.ParaAdjust
+				end if
+			end with
+			&apos;append oParaRec to the array of paragraphs
+			redim preserve gaDocParagraph(iActParaID)
+			gaDocParagraph(iActParaID) = oParaRec	
+			goDlgExport.Model.lblCountRead.Label = iActParaID			
+			&apos;read the parts of this paragraphs
+			&apos;portions can contain frames as part of a table, so optional oTableRec has to be passed
+			if isMissing(oTableRec) then
+				ReadTextPortions(iActChapterID, oPara, oParaRec)
+			else	
+				ReadTextPortions(iActChapterID, oPara, oParaRec, oTableRec)
+			end if
+		end if		
+			
+	&apos;check if the paragraph is a table		
+	elseif oPara.supportsService(&quot;com.sun.star.text.TextTable&quot;) Then
+		iActParaID = ubound(gaDocParagraph()) + 1
+			oParaRec = createObject(&quot;docParagraph&quot;)
+			with oParaRec
+				.ID = iActParaID
+				.ChapterID = iActChapterID
+				.PageArea = iPageArea
+				.ParaType = PARA_TYPE_TABLE
+				.BreakType = oPara.BreakType
+				.PageInnerWidth = GetInnerPageWidth(oPara)	
+				.TableName = oPara.GetName
+				.TableWidth = oPara.Width 
+				.TableIsWidthRelative = oPara.IsWidthRelative
+				.TableRelativeWidth = oPara.RelativeWidth
+				.TableBorderWidth = oPara.getCellByPosition(0,0).LeftBorder.OuterLineWidth
+				.State = PARA_STATE_PENDING
+				&apos;check if oPara is part of a table
+				if not isMissing(oTableRec) then
+					.TableParentID = oTableRec.TableID
+					.TableRow = oTableRec.Row
+					.TableCol = oTableRec.Col
+				end if
+			end with
+		&apos;append ParaRec to the array of paragraphs
+		redim preserve gaDocParagraph(iActParaID)
+		gaDocParagraph(iActParaID) = oParaRec	
+		goDlgExport.Model.lblCountRead.Label = iActParaID		
+		ReadTable(oPara, oParaRec)
+	end if  
+end sub
+
+
+sub ReadTextPortions(iChapterID as integer, oPara as object, oParaRec as object, optional oTableRec as object) 
+&apos;oParagraph : the paragraph to be enumerated
+&apos;oParaRec   : Parent paragraph record
+
+Dim oParaEnum As object
+dim oTextPortion As object
+dim oTextPortionRec as object
+dim oPortionEnum as object
+dim oPortionObj as object
+dim oFrameEnum as object
+dim oFrameObj as object
+dim oEmbeddedEnum as object
+dim oEmbeddedObj as object
+dim oContentEnum as object
+dim oContentObj as object
+dim oParaPageEnum As Object
+dim oParaPageObj As Object
+dim iNewPos as long
+dim oBookmark as object
+dim oFrameObjEnum as object
+dim oFormula as object
+Dim oFormulaW2L as object
+dim sTextPortionType as string
+dim sFrameStylename as string
+&apos;dim sFrameTitle as string
+dim sGetString as string
+dim iActParaID as long
+dim bCheckClosingBookmark as boolean
+dim sURL as string
+
+&apos;STEP 1: look for content anchored to or as a character
+&apos;on error goto errorhandler
+
+	&apos;enumerate the paragraph object
+	oParaEnum = oPara.createEnumeration()
+	while oParaEnum.hasMoreElements()
+		&apos;get the next TextPortion element
+		oTextPortion = oParaEnum.nextElement()	
+		
+		if bCheckClosingBookmark and oTextPortion.TextPortionType = &quot;Bookmark&quot; then
+			&apos;do nothing, this is just a closing bookmark portion
+			bCheckClosingBookmark = false
+		else		
+		  	&apos;set TextPortion Record
+		    oTextPortionRec = createObject(&quot;docTextPortion&quot;)
+		    iNewPos = Ubound(gaDocTextPortion()) + 1
+		    redim preserve gaDocTextPortion(iNewPos)
+			with oTextPortionRec
+				.ID = iNewPos
+				.ParaID = oParaRec.ID
+				.GetString = oTextPortion.GetString
+				.TextPortionType = oTextPortion.TextPortionType
+				.ParaStyleName = ReplaceString(oTextPortion.ParaStyleName, &quot;_&quot;, &quot; &quot;)
+				.HyperLinkURL = oTextPortion.HyperLinkURL
+				.HyperLinkName = oTextPortion.HyperLinkName
+				.HyperLinkTarget = oTextPortion.HyperLinkTarget
+				.NumberingStyleName = oTextPortion.NumberingStyleName
+				.CharWeight = oTextPortion.CharWeight
+				.CharColor = oTextPortion.CharColor
+				.CharStyleName = oTextPortion.CharStyleName
+				.CharFontNameState = oTextPortion.getPropertyState(&quot;CharFontName&quot;)
+				.CharEscapement = oTextPortion.CharEscapement
+				.CharFontFamily = oTextPortion.CharFontFamily
+				.CharFontPitch = oTextPortion.CharFontPitch
+				.CharPosture = oTextPortion.CharPosture
+			end with
+			&apos;set underline if Paragraph isn&apos;t already underlined
+			if oPara.CharUnderline &lt; 1 then
+				oTextPortionRec.CharUnderline = oTextPortion.CharUnderline			
+			end if
+			gaDocTextPortion(iNewPos) = oTextPortionRec
+			
+			&apos;just for debugging purposes
+			&apos;if oTextPortionRec.ID = 143 then 
+			&apos;	iNewPos = iNewPos 
+			&apos;end if	
+			&apos;if oTextPortion.CharUnderline &gt; 0 then
+			&apos;	xray oPara
+			&apos;end if	
+			
+			&apos;if oTextPortionRec.HyperLinkURL = &quot;#il_1500_git_688&quot; then
+			&apos;	xray oTextPortion
+			&apos;end if
+			
+		
+			sTextPortionType = oTextPortion.TextPortionType
+			select case sTextPortionType
+			case &quot;Text&quot; &apos;could be a marginale
+			  	if (oTextPortionRec.ParaStyleName = gsMarginaleLeftStyle) or (oTextPortionRec.ParaStyleName = gsMarginaleRightStyle) then 
+			  		&apos;the string of the marginal number could be a list label
+			  		if oTextPortion.GetString = &quot;&quot; then 
+			  			oTextPortionRec.GetString = oTextPortion.ListLabelString
+			  		end if
+			  		&apos;Set the TextPortionType to Marginale
+			  		&apos;oTextPortionRec.TextPortionType = &quot;Marginale&quot;
+			  		&apos;Set the ParaType of the corresponding paragraph to PARA_TYPE_TEXT to avoid handling as a list
+			  		gaDocParagraph(oTextPortionRec.ParaID).ParaType = PARA_TYPE_TEXT
+			  	end if	
+		  	case &quot;Bookmark&quot;
+		  		&apos;xray oTextPortion
+		  		oTextPortionRec.Bookmark = oTextPortion.Bookmark.Name
+		  		&apos;check if the Bookmark has a range. Then the next Portion holds the text and the next Portion again is bookmark 
+		  		if oTextPortion.Bookmark.Anchor.String &lt;&gt; &quot;&quot; then
+			  		oTextPortionRec.GetString = oTextPortion.Bookmark.Anchor.String
+			  		if oParaEnum.hasMoreElements() then
+			  			oParaEnum.NextElement()
+			  			bCheckClosingBookmark = true
+			  		end if
+			  	end if				  	
+		  	case &quot;Hyperlink&quot;
+		  		&apos;xray oTextPortion
+
+		  	case &quot;Footnote&quot;
+		  		oTextPortionRec.Footnote = oTextPortion.Footnote.GetString
+		  	case &quot;TextField&quot;  &apos;(link to chapter)
+		  		&apos;xray oTextPortion
+		  		&apos;if oTextPortion.supportsService(&quot;com.sun.star.text.TextField&quot;) Then
+		  		if not isnull(oTextPortion.TextField) then
+		  			if oTextPortion.TextField.supportsService(&quot;com.sun.star.text.TextField.GetReference&quot;) Then
+		  				oTextPortionRec.TextField = oTextPortion.TextField.SourceName
+		  			end if
+				end if
+							
+			&apos;check if the TextPortionType is a none text object (Frame)
+			case &quot;Frame&quot; 
+				&apos;NOTE: oEnumObj should not be passed as parameter here -&gt; exception when closing document	
+				&apos;enumerate TextGraphicObjects of the non-text object
+				oPortionEnum = oTextPortion.createContentEnumeration(&quot;com.sun.star.text.TextGraphicObject&quot;)
+				while oPortionEnum.hasMoreElements()
+					oPortionObj = oPortionEnum.nextElement()
+					
+					&apos;check if the non-text object is a graphic or a shape
+				    if oPortionObj.ImplementationName = &quot;SwXTextGraphicObject&quot; or oPortionObj.ImplementationName = &quot;SwXShape&quot; then
+				    	&apos;it could be a MediaShape
+				    	if oPortionObj.supportsService(&quot;com.sun.star.drawing.MediaShape&quot;) then
+				    		AppendFileToExtMediaByName(MEDIA_TYPE_MEDIA, oPortionObj.MediaURL, oPortionObj.MediaURL)
+				    	end if					
+						AppendMediaRec(oPortionObj, oParaRec, oTextPortionRec)
+							
+					&apos;check if the non-text object is an embedded object
+				    elseif oPortionObj.ImplementationName = &quot;SwXTextEmbeddedObject&quot; then
+				    	&apos;xray oPortionObj
+				    	if not isnull(oPortionObj.EmbeddedObject) then
+					    	&apos;it could be a formula
+				    		oEmbeddedObj = oPortionObj.EmbeddedObject
+					    	if oEmbeddedObj.supportsService(&quot;com.sun.star.formula.FormulaProperties&quot;) then  &apos;&apos;&apos; check if not null
+					    		oFormulaW2L = createUnoService(&quot;org.openoffice.da.writer2latex.W2LStarMathConverter&quot;)
+					    		if not isnull(oFormulaW2L) then
+						    		oTextPortionRec.FrameStyleName = &quot;Formula&quot; 
+						    		oTextPortionRec.FormulaOOo = oEmbeddedObj.Formula
+						    		oTextPortionRec.FormulaTeX = ReplaceString(oFormulaW2L.convertFormula(oEmbeddedObj.Formula), &quot;&amp;amp;&quot;, &quot;&amp;&quot;)				    		
+						    	else
+						    		gbMissedWriter2Latex = true
+								end if		
+					    	end if
+					    else
+					    	&apos; it could be a plugin that has no embedded object but is embedded via path
+					    	sURL = oPortionObj.getExtendedControlOverEmbeddedObject.getComponent.PluginURL
+				    		AppendFileToExtMediaByName(MEDIA_TYPE_MEDIA, oPortionObj.Name, sURL)
+							AppendMediaRec(oPortionObj, oParaRec, oTextPortionRec)
+					    end if	
+		
+	
+					&apos;check if the non-text object is a real frame, that can contain any elements
+					elseif oPortionObj.ImplementationName = &quot;SwXTextFrame&quot; then
+	
+						&apos;for frames containing a graphic and a caption, ReadTextportions again (recursive)
+						if GetFrameContentType(oPortionObj) = &quot;GraphicFrame&quot; then
+							oFrameEnum = oPortionObj.GetText().CreateEnumeration()
+							while oFrameEnum.HasMoreElements()
+								oFrameObj = oFrameEnum.NextElement() 						
+								if isMissing(oTableRec) then
+									ReadTextPortions(iChapterID, oFrameObj, oParaRec)
+								else
+									ReadTextPortions(iChapterID, oFrameObj, oParaRec, oTableRec)
+								end if	
+							wend						
+	
+						&apos;this frame contains other stuff, so read paragraph again (recursive)
+						elseif GetFrameContentType(oPortionObj) = &quot;TextFrame&quot; then
+							oFrameEnum = oPortionObj.GetText().CreateEnumeration()
+							&apos;xray oPortionObj
+							&apos;sFrameTitle = oPortionObj.Title
+							&apos;if sFrametitle = &quot;&quot; then
+							&apos;	sFrameTitle = oPortionObj.Description
+							&apos;end if
+							
+							&apos;create a new paragraph record and declare this frame open
+							&apos;create a new paragraph record
+							iActParaID = ubound(gaDocParagraph()) + 1				
+							oParaRec = createObject(&quot;docParagraph&quot;)
+							with oParaRec
+								.ID = iActParaID
+								.ChapterID = iChapterID
+								.ParaType = PARA_TYPE_FRAMESTART
+								.FrameStylename = ReplaceString(oPortionObj.FrameStylename, &quot;_&quot;, &quot; &quot;)
+								&apos;.FrameTitle = sFrameTitle
+							end with	
+							&apos;append ParaRec to the array of paragraphs
+							redim preserve gaDocParagraph(iActParaID)
+							gaDocParagraph(iActParaID) = oParaRec	
+					
+							while oFrameEnum.HasMoreElements()
+								oFrameObj = oFrameEnum.NextElement() 
+								&apos;xray oFrameObj						
+								if isMissing(oTableRec) then
+									ReadParagraph(oFrameObj, oParaRec.PageArea, oParaRec.ChapterID)
+								else
+									ReadParagraph(oFrameObj, oParaRec.PageArea, oParaRec.ChapterID, oTableRec)
+								end if	
+							wend
+	
+							&apos;create a new paragraph record and declare this frame closed
+							iActParaID = ubound(gaDocParagraph()) + 1				
+							oParaRec = createObject(&quot;docParagraph&quot;)
+							with oParaRec
+								.ID = iActParaID
+								.ChapterID = iChapterID
+								.FrameStylename = ReplaceString(oPortionObj.FrameStylename, &quot;_&quot;, &quot; &quot;)
+								&apos;.FrameTitle = sFrameTitle
+								.ParaType = PARA_TYPE_FRAMESTOP
+							end with	
+							&apos;append ParaRec to the array of paragraphs
+							redim preserve gaDocParagraph(iActParaID)
+							gaDocParagraph(iActParaID) = oParaRec	
+							goDlgExport.Model.lblCountRead.Label = iActParaID		
+						end if
+					end if
+		      	wend		
+			
+			case &quot;SoftPageBreak&quot;
+			&apos;do nothing
+			 
+		  	case else
+			  	if (oTextPortionRec.ParaStyleName = gsMarginaleLeftStyle) or (oTextPortionRec.ParaStyleName = gsMarginaleRightStyle) then 
+			  		&apos;the string of the marginal number could be a list label
+			  		if oTextPortion.GetString = &quot;&quot; then 
+			  			oTextPortionRec.GetString = oTextPortion.ListLabelString
+			  		end if
+			  		&apos;Set the TextPortionType to Marginale
+			  		&apos;oTextPortionRec.TextPortionType = &quot;Marginale&quot;
+			  		&apos;Set the ParaType of the corresponding paragraph to PARA_TYPE_TEXT to avoid handling as a list
+			  		gaDocParagraph(oTextPortionRec.ParaID).ParaType = PARA_TYPE_TEXT
+			  	else	
+					oEmbeddedEnum = oTextPortion.createContentEnumeration(&quot;com.sun.star.text.TextEmbeddedObject&quot;)
+					&apos;xray oEmbeddedEnum
+					while oEmbeddedEnum.hasMoreElements()
+						oEmbeddedObj = oEmbeddedEnum.nextElement()
+						&apos;xray oEmbeddedObj
+						&apos;if oEmbeddedObj.FrameStyleName &lt;&gt; &quot;Formula&quot; then
+							AppendMediaRec(oEmbeddedObj, oParaRec, oTextPortionRec)
+						&apos;end if	
+					wend
+				end if	
+				
+			end select	
+		end if	
+	wend
+
+	&apos;STEP 2: look for content anchored to the paragraph or page 
+
+	oContentEnum = oPara.createContentEnumeration(&quot;com.sun.star.text.TextContent&quot;) 
+	While oContentEnum.hasMoreElements() 
+		oContentObj = oContentEnum.nextElement()
+		&apos;check if this is a graphic
+		If oContentObj.supportsService(&quot;com.sun.star.text.TextGraphicObject&quot;) then
+			AppendMediaRec(oContentObj, oParaRec, oTextPortionRec)
+	      
+		&apos;check if this is a shape
+		elseif oContentObj.supportsService(&quot;com.sun.star.drawing.GraphicObjectShape&quot;) then
+			AppendMediaRec(oContentObj, oParaRec, oTextPortionRec)
+	
+		&apos;check if this is a movie
+		elseif oContentObj.supportsService(&quot;com.sun.star.drawing.MediaShape&quot;) then
+			if GetExtMediaIDByName(oContentObj.MediaURL) = 0 then
+	    		AppendFileToExtMediaByName(MEDIA_TYPE_MEDIA, oContentObj.MediaURL, oContentObj.MediaURL)
+	    	end if	
+			AppendMediaRec(oContentObj, oParaRec, oTextPortionRec)
+	
+		&apos; read frames  
+		elseif oContentObj.supportsService(&quot;com.sun.star.text.TextFrame&quot;) then
+			&apos;oFrameEnum = oContentObj.GetText().CreateEnumeration()
+			&apos;while oFrameEnum.HasMoreElements()
+			&apos;	oFrameObj = oFrameEnum.NextElement() 
+			&apos;	ReadParagraph(oFrameObj, oParaRec.PageArea, oParaRec.ChapterID)
+			&apos;wend
+			
+			&apos;check if this is just a frame containing a graphic and a caption
+			if GetFrameContentType(oContentObj) = &quot;GraphicFrame&quot; then
+				oFrameEnum = oContentObj.GetText().CreateEnumeration()
+				while oFrameEnum.HasMoreElements()
+					oFrameObj = oFrameEnum.NextElement() 						
+					if isMissing(oTableRec) then
+						ReadTextPortions(iChapterID, oFrameObj, oParaRec)
+					else
+						ReadTextPortions(iChapterID, oFrameObj, oParaRec, oTableRec)
+					end if	
+				wend
+				
+			elseif oContentObj.supportsService(&quot;com.sun.star.document.LinkTarget&quot;) then
+				&apos;ReadTextPortions(iChapterID, oContentObj, oParaRec)
+			 							
+			else
+				&apos;xray oContentObj
+				oContentObj = oPortionObj.GetText().CreateEnumeration()
+				while oFrameEnum.HasMoreElements()
+					oFrameObj = oFrameEnum.NextElement() 						
+					if isMissing(oTableRec) then
+						ReadParagraph(oFrameObj, oParaRec.PageArea, oParaRec.ChapterID)
+					else
+						ReadParagraph(oFrameObj, oParaRec.PageArea, oParaRec.ChapterID, oTableRec)
+					end if	
+				wend
+			end if
+	      
+		&apos; read embedded object
+		elseif oContentObj.supportsService(&quot;com.sun.star.text.TextEmbeddedObject&quot;) then
+	    	&apos;it could be a formula
+	    	&apos;xray oContentObj
+	    	
+	    	
+	    	if not isnull(oContentObj.EmbeddedObject) then
+		    	oFormula = oContentObj.TextEmbeddedObject
+		    	if oFormula.supportsService(&quot;com.sun.star.formula.FormulaProperties&quot;) then
+				AppendMediaRec(oContentObj, oParaRec, oTextPortionRec)
+					On Error goto ErrorHandler2
+		    		oFormulaW2L = createUnoService(&quot;org.openoffice.da.writer2latex.W2LStarMathConverter&quot;)
+		    		oTextPortionRec.FrameStyleName = &quot;Formula&quot; 
+		    		oTextPortionRec.FormulaOOo = oFormula.Formula
+		    		oTextPortionRec.FormulaTeX = oFormulaW2L.convertFormula(oFormula.Formula)
+		    		ErrorHandler2:
+	    			if oTextPortionRec.FormulaTeX = &quot;&quot; then
+	    				gbMissedWriter2Latex = true
+	    				&apos;msgbox (&quot;You should install the extension writer2latex, in order to export formulas.&quot;+chr(13)+chr(13)+Error$,48,&quot;&quot;)
+						&apos;gsEnumErrors = gsEnumErrors &amp; Chr(13) &amp; Chr(13)
+						&apos;gsEnumErrors = gsEnumErrors &amp; &quot;The formula(s) of this document could not be exported because the extension writer2latex is not installed.&quot;
+					end if					    		
+				end if
+		    else
+		    	&apos; it could be a plugin that has no embedded object but is embedded via path
+		    	sURL = oContentObj.getExtendedControlOverEmbeddedObject.getComponent.PluginURL
+	    		AppendFileToExtMediaByName(MEDIA_TYPE_MEDIA, oContentObj.Name, sURL)
+				AppendMediaRec(oContentObj, oParaRec, oTextPortionRec)
+	    	end if
+	    	
+	    	
+		else	
+			&apos;oEmbeddedEnum = oTextPortion.createContentEnumeration(&quot;com.sun.star.text.TextEmbeddedObject&quot;)
+			&apos;xray oContentObj
+			  
+		end if	
+	wend  	
+end sub
+
+
+sub ReadTable(oTable as object, oParaRec as object) 
+&apos;oTable    : the table object to read
+&apos;oTableRec : the paragraph record containing the table ID and values
+dim oRows as integer
+dim oCols as integer
+dim iRow as integer
+dim iCol as integer
+dim oTableRec as object
+dim oCellObj as object
+dim oCellEnum as object
+dim oCellPara as object
+dim iColCount as integer
+	
+	on error goto ErrorHandler
+	oRows = oTable.getRows().getCount()
+	oCols = oTable.getColumns().getCount()
+	For iRow = 0 To (oRows - 1)
+		iColCount = UBound(oTable.getRows().getByIndex(iRow).TableColumnSeparators) + 1
+		For iCol = 0 To iColCount
+			oTableRec = createObject(&quot;docTable&quot;)
+			with oTableRec
+				.TableID = oParaRec.ID
+				.Row = iRow
+				.Col = iCol
+			end with
+			&apos;MsgBox &quot;(row, col) = (&quot; &amp; row &amp; &quot;, &quot; &amp; col &amp; &quot;)&quot;
+				oCellObj = oTable.getCellByPosition(iCol, iRow)
+				oCellEnum = oCellObj.getText().createEnumeration() 
+				do while oCellEnum.hasMoreElements()
+	 				oCellPara = oCellEnum.nextElement() 
+					ReadParagraph(oCellPara, oParaRec.PageArea, oParaRec.ChapterID, oTableRec)
+				loop	
+		next
+	next
+	exit sub	
+	
+	ErrorHandler:
+	gsEnumErrors = gsEnumErrors &amp; Chr(13) &amp; Chr(13)
+	gsEnumErrors = gsEnumErrors &amp; &quot;Table &quot; &amp; oTable.Name &amp; &quot; could not be exported.&quot; &amp; chr(13)
+	gsEnumErrors = gsEnumErrors &amp; &quot;Error &quot; &amp; Err &amp; &quot;: &quot; &amp; Error$ &amp; &quot; (line : &quot; &amp; Erl &amp; &quot;)&quot;
+End sub 
+
+
+&apos;just to show how to access the cells of complex tables by name
+Sub VisitTableCells
+  Dim oTable
+  Dim oNames
+  Dim oCell
+  Dim i As Integer
+  Dim s As String
+  oTable = ThisComponent.getTextTables().getByIndex(0)
+  oNames = oTable.getCellNames()
+  For i = LBound(oNames) To UBound(oNames())
+    oCell = oTable.getCellByName(oNames(i))
+    s = s &amp; oNames(i) &amp; &quot; = &quot; &amp; oCell.getString() &amp; CHR$(10)
+  Next
+  MsgBox s
+End Sub
+
+
+function IsHeading(poParagraph) as boolean
+dim vStyle as string
+  if poParagraph.supportsService(&quot;com.sun.star.text.Paragraph&quot;) Then
+    vStyle = Left(poParagraph.ParaStylename, 7)
+    IsHeading = (vStyle = &quot;Heading&quot;)
+  else
+    IsHeading = false
+  end if 
+end function
+
+
+function GetExtMediaIDByName(sName as string) as long
+dim i as long
+dim iID as long
+
+	iID = 0
+	for i = 0 to ubound(gaExtMedia())
+		if not isNull(gaExtMedia(i)) then
+			if gaExtMedia(i).ObjectName = sName then
+				iID = gaExtMedia(i).ID
+				exit for
+			end if	
+		end if
+	next i
+	GetExtMediaIDByName = iID
+end function
+
+function AppendFileToExtMedia(iMediaType as integer, oGraphic as object) as long
+dim iNewPos as long
+dim oMediaRec as extMedia
+
+	iNewPos = ubound(gaExtMedia()) + 1 
+	redim preserve gaExtMedia(iNewPos)
+	oMediaRec = createObject(&quot;extMedia&quot;)
+	with oMediaRec
+		.ID = iNewPos
+		.MediaType = iMediaType
+		.ObjectName = oGraphic.getName
+		.FileName = oGraphic.GraphicURL
+		.Width = oGraphic.Graphic.Size.Width
+		.Height = oGraphic.Graphic.Size.Height
+	end with
+	gaExtMedia(iNewPos) = oMediaRec
+	AppendFileToExtMedia = iNewPos
+end function
+
+
+function AppendFileToExtMediaByName(iMediaType as integer, sName as string, sFilename as string) as long
+dim iNewPos as long
+dim oMediaRec as extMedia
+dim sMediaTypeText
+
+	sMediaTypeText = GetMediaTypeByExtension(sFilename)
+	iNewPos = ubound(gaExtMedia()) + 1 
+	redim preserve gaExtMedia(iNewPos)
+	oMediaRec = createObject(&quot;extMedia&quot;)
+	with oMediaRec
+		.ID = iNewPos
+		.MediaType = iMediaType
+		.MediaTypeText = sMediaTypeText
+		.ObjectName = sName
+		.FileName = sFilename
+	end with
+	gaExtMedia(iNewPos) = oMediaRec
+	AppendFileToExtMediaByName = iNewPos
+end function
+
+
+sub	AppendMediaRec(oPortionObj as object, oParaRec as object, oTextPortionRec as object)
+dim oMediaRec as object
+dim sFilePath as string
+dim sGraphicFileName as string
+dim sMediaName as string
+dim iNewPos as long
+dim lHoriOrient as long
+dim lTextWrap as long
+dim sCaption as string
+dim iExtMediaID as long
+dim iPos as long
+dim iMediaType as integer
+
+	&apos;first check if the PortionObj has a frame in order to set the alignment and to get the graphic-caption
+	if oPortionObj.getAnchor.Text.supportsService(&quot;com.sun.star.text.TextFrame&quot;) and oPortionObj.getAnchor.ParaStyleName = &quot;Illustration&quot; then
+		&apos;there is a frame around the image
+		sCaption = oPortionObj.GetAnchor.TextFrame.GetString
+		lHoriOrient = oPortionObj.GetAnchor.TextFrame.HoriOrient
+		lTextWrap = oPortionObj.GetAnchor.TextFrame.TextWrap
+	else
+		sCaption = &quot;&quot;
+		lHoriOrient = oPortionObj.HoriOrient
+		lTextWrap = oPortionObj.TextWrap
+	end if
+
+	&apos;then get the ExtMediaID of the PortionObj
+	&apos;it could be a movie or a sound file that does not have an Name, so use the MediaURL as name
+	if oPortionObj.supportsService(&quot;com.sun.star.drawing.MediaShape&quot;) then
+		sMediaName = oPortionObj.MediaURL
+	else
+		sMediaName = ReplaceString(oPortionObj.Name, &quot;&quot;, &quot; &quot;)
+	end if	
+	iExtMediaID = GetExtMediaIDByName(sMediaName)
+	if iExtMediaID &gt; 0 then	
+		&apos;the PortionObj could be a graphic
+		if oPortionObj.supportsService(&quot;com.sun.star.text.TextGraphicObject&quot;) then				
+			&apos;step 2: build the Media Record
+			iNewPos = ubound(gaDocMedia()) + 1
+		    oMediaRec = createObject(&quot;docMedia&quot;)
+		    &apos;xray oPortionObj
+		    with oMediaRec
+		    	.ID = iNewPos
+			    .TextPortionID = oTextPortionRec.ID
+			    .ExtMediaID = iExtMediaID
+			    .MediaName = sMediaName
+			    .Title = oPortionObj.Title
+			    .Caption = sCaption
+			    .HoriOrient = lHoriOrient
+			    .ParaAdjust = oParaRec.ParaAdjust
+			    .AnchorType = oPortionObj.AnchorType
+			    .TextWrap = oPortionObj.TextWrap
+			    .Width = oPortionObj.Width
+			    .Height = oPortionObj.Height
+			    .IsInUse = true
+			    .IsScaled = abs(oPortionObj.Width - oPortionObj.Graphic.Size100thMM.Width) &gt; 10
+			end with			
+			&apos;append the Media Rec to the gaDocMedia Array
+			redim preserve gaDocMedia(iNewPos)
+			gaDocMedia(iNewPos) = oMediaRec	
+
+		&apos;the PortionObj could be a media shape
+		elseif oPortionObj.supportsService(&quot;com.sun.star.drawing.MediaShape&quot;) then
+			&apos;build the Media Record
+			iNewPos = ubound(gaDocMedia()) + 1
+		    oMediaRec = createObject(&quot;docMedia&quot;)
+		    with oMediaRec
+		    	.ID = iNewPos
+			    .TextPortionID = oTextPortionRec.ID
+			    .ExtMediaID = iExtMediaID
+			    .MediaName = oPortionObj.MediaURL  &apos;there&apos;s no unique object name
+			    .MediaURL = oPortionObj.MediaURL
+			    .Caption = sCaption
+			    .HoriOrient = lHoriOrient
+			    .ParaAdjust = oParaRec.ParaAdjust
+			    .AnchorType = oPortionObj.AnchorType
+			    .TextWrap = oPortionObj.TextWrap
+			    .Width = CStr(Int(oPortionObj.Size.Width / 25))  &apos;size in px
+			    .Height = CStr(Int(oPortionObj.Size.Height / 25))  &apos;size in px
+			    .IsInUse = true
+			end with
+			&apos;append the Media Rec to the gaDocMedia Array
+			redim preserve gaDocMedia(iNewPos)
+			gaDocMedia(iNewPos) = oMediaRec	
+
+		&apos;the PortionObj could be a sound or movie
+		elseif oPortionObj.supportsService(&quot;com.sun.star.text.TextEmbeddedObject&quot;) then  
+			iNewPos = ubound(gaDocMedia()) + 1
+		    oMediaRec = createObject(&quot;docMedia&quot;)
+		    &apos;xray oPortionObj
+			with oMediaRec
+		    	.ID = iNewPos
+				.TextPortionID = oTextPortionRec.ID
+			    .ExtMediaID = iExtMediaID
+			    .MediaName = oPortionObj.Name  &apos;there&apos;s no unique object name
+			    .MediaURL = oPortionObj.getExtendedControlOverEmbeddedObject.getComponent.PluginURL
+				.Caption = sCaption
+			    .HoriOrient = lHoriOrient
+			    .ParaAdjust = oParaRec.ParaAdjust
+				.AnchorType = oPortionObj.AnchorType
+			    .TextWrap = oPortionObj.TextWrap
+				.Width = oPortionObj.getExtendedControlOverEmbeddedObject.ClientSite.ClipRectangle.Width
+				.Height = oPortionObj.getExtendedControlOverEmbeddedObject.ClientSite.ClipRectangle.Height
+				.IsInUse = true
+			end with				
+			&apos;append the Media Rec to the gaDocMedia Array
+			redim preserve gaDocMedia(iNewPos)
+			gaDocMedia(iNewPos) = oMediaRec	
+		end if			
+	end if
+end sub
+
+
+function GetDocMediaPosByName(sName as string) as long
+dim i as long
+
+	GetDocMediaPosByName = 0
+	for i = 1 to ubound(gaDocMedia())
+		if gaDocMedia(i).MediaName = sName then
+			GetDocMediaPosByName = i
+			exit for
+		end if	
+	next i
+end function
+
+
+function GetMediaTypeByExtension(sFilename as string) as string
+dim sExtension as string
+
+	sExtension = GetFileNameExtension(sFilename)
+	select case sExtension
+		case &quot;bmp&quot;   :  GetMediaTypeByExtension = &quot;image/bmp&quot;
+		case &quot;cgm&quot;   :  GetMediaTypeByExtension = &quot;image/cgm&quot;
+		case &quot;gif&quot;   :  GetMediaTypeByExtension = &quot;image/gif&quot;
+		case &quot;ief&quot;   :  GetMediaTypeByExtension = &quot;image/ief&quot;
+		case &quot;jpeg&quot;  :  GetMediaTypeByExtension = &quot;image/jpeg&quot;
+		case &quot;jpg&quot;   :  GetMediaTypeByExtension = &quot;image/jpeg&quot;
+		case &quot;jpe&quot;   :  GetMediaTypeByExtension = &quot;image/jpeg&quot;
+		case &quot;png&quot;   :  GetMediaTypeByExtension = &quot;image/png&quot;
+		case &quot;svg&quot;   :  GetMediaTypeByExtension = &quot;image/svg+xml&quot;
+		case &quot;tiff&quot;  :  GetMediaTypeByExtension = &quot;image/tiff&quot;
+		case &quot;tif&quot;   :  GetMediaTypeByExtension = &quot;image/tiff&quot;
+		case &quot;djv&quot;   :  GetMediaTypeByExtension = &quot;image/vnd.djvu&quot;
+		case &quot;djvu&quot;  :  GetMediaTypeByExtension = &quot;image/vnd.djvu&quot;
+		case &quot;wbmp&quot;  :  GetMediaTypeByExtension = &quot;image/vnd.wap.wbmp&quot;
+		case &quot;ras&quot;   :  GetMediaTypeByExtension = &quot;image/x-cmu-raster&quot;
+		case &quot;ico&quot;   :  GetMediaTypeByExtension = &quot;image/x-icon&quot;
+		case &quot;pnm&quot;   :  GetMediaTypeByExtension = &quot;image/x-portable-anymap&quot;
+		case &quot;pbm&quot;   :  GetMediaTypeByExtension = &quot;image/x-portable-bitmap&quot;
+		case &quot;pgm&quot;   :  GetMediaTypeByExtension = &quot;image/x-portable-graymap&quot;
+		case &quot;ppm&quot;   :  GetMediaTypeByExtension = &quot;image/x-portable-pixmap&quot;
+		case &quot;rgb&quot;   :  GetMediaTypeByExtension = &quot;image/x-rgb&quot;
+		case &quot;xbm&quot;   :  GetMediaTypeByExtension = &quot;image/x-xbitmap&quot;
+		case &quot;xpm&quot;   :  GetMediaTypeByExtension = &quot;image/x-xpixmap&quot;
+		case &quot;xwd&quot;   :  GetMediaTypeByExtension = &quot;image/x-xwindowdump&quot;
+
+		case &quot;ics&quot;   :  GetMediaTypeByExtension = &quot;text/calendar&quot;
+		case &quot;ifb&quot;   :  GetMediaTypeByExtension = &quot;text/calendar&quot;
+		case &quot;css&quot;   :  GetMediaTypeByExtension = &quot;text/css&quot;
+		case &quot;shtml&quot; :  GetMediaTypeByExtension = &quot;text/html&quot;
+		case &quot;html&quot;  :  GetMediaTypeByExtension = &quot;text/html&quot;
+		case &quot;htm&quot;   :  GetMediaTypeByExtension = &quot;text/html&quot;
+		case &quot;asc&quot;   :  GetMediaTypeByExtension = &quot;text/plain&quot;
+		case &quot;txt&quot;   :  GetMediaTypeByExtension = &quot;text/plain&quot;
+		case &quot;rtx&quot;   :  GetMediaTypeByExtension = &quot;text/richtext&quot;
+		case &quot;rtf&quot;   :  GetMediaTypeByExtension = &quot;text/rtf&quot;
+		case &quot;sgm&quot;   :  GetMediaTypeByExtension = &quot;text/sgml&quot;
+		case &quot;sgm&quot;   :  GetMediaTypeByExtension = &quot;text/sgml&quot;
+		case &quot;tsv&quot;   :  GetMediaTypeByExtension = &quot;text/tab-separated-values&quot;
+		case &quot;wml&quot;   :  GetMediaTypeByExtension = &quot;text/vnd.wap.wml&quot;
+		case &quot;wmls&quot;  :  GetMediaTypeByExtension = &quot;text/vnd.wap.wmlscript&quot;
+		case &quot;etx&quot;   :  GetMediaTypeByExtension = &quot;text/x-setext&quot; 
+
+		case &quot;au&quot;    :  GetMediaTypeByExtension = &quot;audio/basic&quot;
+		case &quot;snd&quot;   :  GetMediaTypeByExtension = &quot;audio/basic&quot;
+		case &quot;mid&quot;   :  GetMediaTypeByExtension = &quot;audio/midi&quot;
+		case &quot;midi&quot;  :  GetMediaTypeByExtension = &quot;audio/midi&quot;
+		case &quot;kar&quot;   :  GetMediaTypeByExtension = &quot;audio/midi&quot;
+		case &quot;mpga&quot;  :  GetMediaTypeByExtension = &quot;audio/mpeg&quot;
+		case &quot;mp2&quot;   :  GetMediaTypeByExtension = &quot;audio/mpeg&quot;
+		case &quot;mp3&quot;   :  GetMediaTypeByExtension = &quot;audio/mpeg&quot;
+		case &quot;aif&quot;   :  GetMediaTypeByExtension = &quot;audio/x-aiff&quot;
+		case &quot;aiff&quot;  :  GetMediaTypeByExtension = &quot;audio/x-aiff&quot;
+		case &quot;aifc&quot;  :  GetMediaTypeByExtension = &quot;audio/x-aiff&quot;
+		case &quot;m3u&quot;   :  GetMediaTypeByExtension = &quot;audio/x-mpegurl&quot;
+		case &quot;ram&quot;   :  GetMediaTypeByExtension = &quot;audio/x-pn-realaudio&quot;
+		case &quot;rm&quot;    :  GetMediaTypeByExtension = &quot;audio/x-pn-realaudio&quot;
+		case &quot;rpm&quot;   :  GetMediaTypeByExtension = &quot;audio/x-pn-realaudio-plugin&quot;
+		case &quot;ra&quot;    :  GetMediaTypeByExtension = &quot;audio/x-realaudio&quot;
+		case &quot;wav&quot;   :  GetMediaTypeByExtension = &quot;audio/x-wav&quot;
+
+		case &quot;mpeg&quot;  :  GetMediaTypeByExtension = &quot;video/mpeg&quot;
+		case &quot;mpg&quot;   :  GetMediaTypeByExtension = &quot;video/mpeg&quot;
+		case &quot;mpe&quot;   :  GetMediaTypeByExtension = &quot;video/mpeg&quot;
+		case &quot;qt&quot;    :  GetMediaTypeByExtension = &quot;video/quicktime&quot;
+		case &quot;mov&quot;   :  GetMediaTypeByExtension = &quot;video/quicktime&quot;
+		case &quot;mxu&quot;   :  GetMediaTypeByExtension = &quot;video/vnd.mpegurl&quot;
+		case &quot;avi&quot;   :  GetMediaTypeByExtension = &quot;video/x-msvideo&quot;
+		case &quot;movie&quot; :  GetMediaTypeByExtension = &quot;video/x-sgi-movie&quot;
+		case &quot;ice&quot;   :  GetMediaTypeByExtension = &quot;x-conference/x-cooltalk&quot;
+		case &quot;doc&quot;   :  GetMediaTypeByExtension = &quot;application/msword&quot;
+		case &quot;ez&quot;    :  GetMediaTypeByExtension = &quot;application/andrew-inset&quot;
+		case &quot;hqx&quot;   :  GetMediaTypeByExtension = &quot;application/mac-binhex40&quot;
+		case &quot;cpt&quot;   :  GetMediaTypeByExtension = &quot;application/mac-compactpro&quot;
+		case &quot;mathml&quot;:  GetMediaTypeByExtension = &quot;application/mathml+xml&quot;
+		case &quot;bin&quot;   :  GetMediaTypeByExtension = &quot;application/octet-stream&quot;
+		case &quot;dms&quot;   :  GetMediaTypeByExtension = &quot;application/octet-stream&quot;
+		case &quot;lha&quot;   :  GetMediaTypeByExtension = &quot;application/octet-stream&quot;
+		case &quot;lzh&quot;   :  GetMediaTypeByExtension = &quot;application/octet-stream&quot;
+		case &quot;exe&quot;   :  GetMediaTypeByExtension = &quot;application/octet-stream&quot;
+		case &quot;class&quot; :  GetMediaTypeByExtension = &quot;application/octet-stream&quot;
+		case &quot;so&quot;    :  GetMediaTypeByExtension = &quot;application/octet-stream&quot;
+		case &quot;dll&quot;   :  GetMediaTypeByExtension = &quot;application/octet-stream&quot;
+		case &quot;oda&quot;   :  GetMediaTypeByExtension = &quot;application/oda&quot;
+		case &quot;ogg&quot;   :  GetMediaTypeByExtension = &quot;application/ogg&quot;
+		case &quot;pdf&quot;   :  GetMediaTypeByExtension = &quot;application/pdf&quot;
+		case &quot;ai&quot;    :  GetMediaTypeByExtension = &quot;application/postscript&quot;
+		case &quot;eps&quot;   :  GetMediaTypeByExtension = &quot;application/postscript&quot;
+		case &quot;ps&quot;    :  GetMediaTypeByExtension = &quot;application/postscript&quot;
+		case &quot;rdf&quot;   :  GetMediaTypeByExtension = &quot;application/rdf+xml&quot;
+		case &quot;smi&quot;   :  GetMediaTypeByExtension = &quot;application/smil&quot;
+		case &quot;smil&quot;  :  GetMediaTypeByExtension = &quot;application/smil&quot;
+		case &quot;gram&quot;  :  GetMediaTypeByExtension = &quot;application/srgs&quot;
+		case &quot;grxml&quot; :  GetMediaTypeByExtension = &quot;application/srgs+xml&quot;
+		case &quot;mif&quot;   :  GetMediaTypeByExtension = &quot;application/vnd.mif&quot;
+		case &quot;xul&quot;   :  GetMediaTypeByExtension = &quot;application/vnd.mozilla.xul+xml&quot;
+		case &quot;xls&quot;   :  GetMediaTypeByExtension = &quot;application/vnd.ms-excel&quot;
+		case &quot;ppt&quot;   :  GetMediaTypeByExtension = &quot;application/vnd.ms-powerpoint&quot;
+		case &quot;wbxml&quot; :  GetMediaTypeByExtension = &quot;application/vnd.wap.wbxml&quot;
+		case &quot;wmlc&quot;  :  GetMediaTypeByExtension = &quot;application/vnd.wap.wmlc&quot;
+		case &quot;wmlsc&quot; :  GetMediaTypeByExtension = &quot;application/vnd.wap.wmlscriptc&quot;
+		case &quot;vxml&quot;  :  GetMediaTypeByExtension = &quot;application/voicexml+xml&quot;
+		case &quot;bcpio&quot; :  GetMediaTypeByExtension = &quot;application/x-bcpio&quot;
+		case &quot;vcd&quot;   :  GetMediaTypeByExtension = &quot;application/x-cdlink&quot;
+		case &quot;pgn&quot;   :  GetMediaTypeByExtension = &quot;application/x-chess-pgn&quot;
+		case &quot;cpio&quot;  :  GetMediaTypeByExtension = &quot;application/x-cpio&quot;
+		case &quot;csh&quot;   :  GetMediaTypeByExtension = &quot;application/x-csh&quot;
+		case &quot;dcr&quot;   :  GetMediaTypeByExtension = &quot;application/x-director&quot;
+		case &quot;dir&quot;   :  GetMediaTypeByExtension = &quot;application/x-director&quot;
+		case &quot;dxr&quot;   :  GetMediaTypeByExtension = &quot;application/x-director&quot;
+		case &quot;dvi&quot;   :  GetMediaTypeByExtension = &quot;application/x-dvi&quot;
+		case &quot;spl&quot;   :  GetMediaTypeByExtension = &quot;application/x-futuresplash&quot;
+		case &quot;gtar&quot;  :  GetMediaTypeByExtension = &quot;application/x-gtar&quot;
+		case &quot;hdf&quot;   :  GetMediaTypeByExtension = &quot;application/x-hdf&quot;
+		case &quot;php&quot;   :  GetMediaTypeByExtension = &quot;application/x-httpd-php&quot;
+		case &quot;php4&quot;  :  GetMediaTypeByExtension = &quot;application/x-httpd-php&quot;
+		case &quot;php3&quot;  :  GetMediaTypeByExtension = &quot;application/x-httpd-php&quot;
+		case &quot;phtml&quot; :  GetMediaTypeByExtension = &quot;application/x-httpd-php&quot;
+		case &quot;phps&quot;  :  GetMediaTypeByExtension = &quot;application/x-httpd-php-source&quot;
+		case &quot;js&quot;    :  GetMediaTypeByExtension = &quot;application/x-javascript&quot;
+		case &quot;skp&quot;   :  GetMediaTypeByExtension = &quot;application/x-koan&quot;
+		case &quot;skd&quot;   :  GetMediaTypeByExtension = &quot;application/x-koan&quot;
+		case &quot;skt&quot;   :  GetMediaTypeByExtension = &quot;application/x-koan&quot;
+		case &quot;skm&quot;   :  GetMediaTypeByExtension = &quot;application/x-koan&quot;
+		case &quot;latex&quot; :  GetMediaTypeByExtension = &quot;application/x-latex&quot;
+		case &quot;nc&quot;    :  GetMediaTypeByExtension = &quot;application/x-netcdf&quot;
+		case &quot;cdf&quot;   :  GetMediaTypeByExtension = &quot;application/x-netcdf&quot;
+		case &quot;crl&quot;   :  GetMediaTypeByExtension = &quot;application/x-pkcs7-crl&quot;
+		case &quot;sh&quot;    :  GetMediaTypeByExtension = &quot;application/x-sh&quot;
+		case &quot;shar&quot;  :  GetMediaTypeByExtension = &quot;application/x-shar&quot;
+		case &quot;swf&quot;   :  GetMediaTypeByExtension = &quot;application/x-shockwave-flash&quot;
+		case &quot;sit&quot;   :  GetMediaTypeByExtension = &quot;application/x-stuffit&quot;
+		case &quot;sv4cpio&quot; :  GetMediaTypeByExtension = &quot;application/x-sv4cpio&quot;
+		case &quot;sv4crc&quot;:  GetMediaTypeByExtension = &quot;application/x-sv4crc&quot;
+		case &quot;tgz&quot;   :  GetMediaTypeByExtension = &quot;application/x-tar&quot;
+		case &quot;tar&quot;   :  GetMediaTypeByExtension = &quot;application/x-tar&quot;
+		case &quot;tcl&quot;   :  GetMediaTypeByExtension = &quot;application/x-tcl&quot;
+		case &quot;tex&quot;   :  GetMediaTypeByExtension = &quot;application/x-tex&quot;
+		case &quot;texinfo&quot; :  GetMediaTypeByExtension = &quot;application/x-texinfo&quot;
+		case &quot;texi&quot;  :  GetMediaTypeByExtension = &quot;application/x-texinfo&quot;
+		case &quot;t&quot;     :  GetMediaTypeByExtension = &quot;application/x-troff&quot;
+		case &quot;tr&quot;    :  GetMediaTypeByExtension = &quot;application/x-troff&quot;
+		case &quot;roff&quot;  :  GetMediaTypeByExtension = &quot;application/x-troff&quot;
+		case &quot;man&quot;   :  GetMediaTypeByExtension = &quot;application/x-troff-man&quot;
+		case &quot;me&quot;    :  GetMediaTypeByExtension = &quot;application/x-troff-me&quot;
+		case &quot;ms&quot;    :  GetMediaTypeByExtension = &quot;application/x-troff-ms&quot;
+		case &quot;ustar&quot; :  GetMediaTypeByExtension = &quot;application/x-ustar&quot;
+		case &quot;src&quot;   :  GetMediaTypeByExtension = &quot;application/x-wais-source&quot;
+		case &quot;crt&quot;   :  GetMediaTypeByExtension = &quot;application/x-x509-ca-cert&quot;
+		case &quot;xhtml&quot; :  GetMediaTypeByExtension = &quot;application/xhtml+xml&quot;
+		case &quot;xht&quot;   :  GetMediaTypeByExtension = &quot;application/xhtml+xml&quot;
+		case &quot;xml&quot;   :  GetMediaTypeByExtension = &quot;application/xml&quot;
+		case &quot;xsl&quot;   :  GetMediaTypeByExtension = &quot;application/xml&quot;
+		case &quot;dtd&quot;   :  GetMediaTypeByExtension = &quot;application/xml-dtd&quot;
+		case &quot;xslt&quot;  :  GetMediaTypeByExtension = &quot;application/xslt+xml&quot;
+		case &quot;zip&quot;   :  GetMediaTypeByExtension = &quot;application/zip&quot;
+		case &quot;pdb&quot;   :  GetMediaTypeByExtension = &quot;chemical/x-pdb&quot;
+		case &quot;xyz&quot;   :  GetMediaTypeByExtension = &quot;chemical/x-xyz&quot;
+		case &quot;igs&quot;   :  GetMediaTypeByExtension = &quot;model/iges&quot;
+		case &quot;iges&quot;  :  GetMediaTypeByExtension = &quot;model/iges&quot;
+		case &quot;msh&quot;   :  GetMediaTypeByExtension = &quot;model/mesh&quot;
+		case &quot;mesh&quot;  :  GetMediaTypeByExtension = &quot;model/mesh&quot;
+		case &quot;silo&quot;  :  GetMediaTypeByExtension = &quot;model/mesh&quot;
+		case &quot;wrl&quot;   :  GetMediaTypeByExtension = &quot;model/vrml&quot;
+		case &quot;vrml&quot;  :  GetMediaTypeByExtension = &quot;model/vrml&quot;
+		case else
+			GetFileNameExtension = &quot;&quot;
+	end select
+end function
+
+
+function GetNumberingType(APara as object)
+  Dim oRules as object
+  Dim oX As object
+  Dim iNumberingType As Integer
+  Dim i As integer
+  dim vString as string
+  dim vLen as integer
+
+  &apos;if APara.supportsService(&quot;com.sun.star.container.XIndexReplace&quot;) then
+  on error goto ErrorHandler
+    vString = APara.GetString
+    vLen = len(vString)
+    if len(vString) &lt;&gt; 0 then
+      oRules = APara.NumberingRules
+      oX = oRules.getByIndex(APara.NumberingLevel)
+      For i=LBound(oX) To UBound(oX)
+        if oX(i).Name=&quot;NumberingType&quot; then
+          iNumberingType = oX(i).Value
+        end if
+      next i
+      GetNumberingType = iNumberingType
+      exit function
+    else  
+      GetNumberingType = &quot;&quot;
+      exit function
+    end if  
+  ErrorHandler:  
+    GetNumberingType = &quot;&quot;
+  &apos;else
+  &apos;  GetNumberingType = &quot;Unordered&quot;
+  &apos;end if  
+end function
+
+
+function CreateChapterRec(oPara as object, ChapterType as integer) as object
+dim oChapterRec as object
+
+	oChapterRec = createObject(&quot;docChapter&quot;)
+	with oChapterRec
+		.ID = iNewPos
+		.ChapterType = ChapterType
+		.Level = CInt(Right(oPara.ParaStylename, 2))
+		.GetString = GetStringFromParagraph(oPara)
+	end with	
+	CreateChapterRec = oChapterRec
+end function
+
+
+function AppendChapterRec(oPara as object, iChapterType as integer) as long
+dim iNewPos as long
+dim oChapterRec as object
+dim oEnum as object
+dim oPortion as object
+dim sString as string
+dim iNumberingLevel as integer
+dim iOutlineLevel as integer
+
+	iNewPos = ubound(gaDocChapter()) + 1
+	oChapterRec = createObject(&quot;docChapter&quot;)
+	iOutlineLevel = oPara.OutlineLevel
+	iNumberingLevel = oPara.NumberingLevel
+	with oChapterRec
+		.ID = iNewPos
+		.ChapterType = iChapterType
+		.Level = oPara.OutlineLevel
+		.HasContent = false
+	end with	
+	
+	oEnum = oPara.createEnumeration()
+	sString = &quot;&quot;	
+	while oEnum.hasMoreElements()
+		oPortion = oEnum.nextElement()
+		if oPortion.TextPortionType = &quot;ReferenceMark&quot; then
+			oChapterRec.ReferenceMark = oPortion.ReferenceMark.Name
+		else
+			sString = sString &amp; oPortion.GetString()
+		end if	
+	wend
+	oChapterRec.GetString = sString
+	
+	redim preserve gaDocChapter(iNewPos)
+	gaDocChapter(iNewPos) = oChapterRec
+	AppendChapterRec = iNewPos
+end function
+
+
+&apos;***************************************************************************
+&apos;DEBUG
+
+sub PrintEnumArrays
+dim i as integer
+dim sStrg as string
+dim sCR as string
+dim iCount as long
+dim oFileAccessService as object
+dim oFile as object
+dim oOutputStream as object
+
+	sCR = chr(13)
+	oFileAccessService = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)
+	oFile = createUnoService(&quot;com.sun.star.io.TextOutputStream&quot;)
+	oOutputStream = oFileAccessService.openFileWrite(gsCurDir &amp; &quot;/DocChapter.txt&quot;)
+	oOutputStream.truncate()
+	oFile.setOutputStream(oOutputStream)
+	sStrg = &quot;ARRAY gaDocChapter:&quot; &amp; sCR &amp; sCR
+	for i = 1 to ubound(gaDocChapter())
+		sStrg = sStrg &amp; &quot;ID: &quot; &amp; gaDocChapter(i).ID &amp; sCR
+		sStrg = sStrg &amp; &quot;ChapterType: &quot; &amp; gaDocChapter(i).ChapterType &amp; sCR
+		sStrg = sStrg &amp; &quot;Level: &quot; &amp; gaDocChapter(i).Level &amp; sCR
+		sStrg = sStrg &amp; &quot;GetString: &quot; &amp; gaDocChapter(i).GetString &amp; sCR
+		sStrg = sStrg &amp; &quot;ReferenceMark: &quot; &amp; gaDocChapter(i).ReferenceMark &amp; sCR
+		sStrg = sStrg &amp; &quot;HasContent: &quot; &amp; gaDocChapter(i).HasContent &amp; sCR
+		oFile.writeString(sStrg &amp; sCR)
+		sStrg = &quot;&quot;
+	next i
+
+	oOutputStream = oFileAccessService.openFileWrite(gsCurDir &amp; &quot;/DocParagraph.txt&quot;)
+	oOutputStream.truncate()
+	oFile.setOutputStream(oOutputStream)
+	sStrg = &quot;ARRAY gaDocParagraph:&quot; &amp; sCR &amp; sCR
+	for i = 1 to ubound(gaDocParagraph())
+		sStrg = sStrg &amp; &quot;ID: &quot; &amp; gaDocParagraph(i).ID &amp; sCR
+		sStrg = sStrg &amp; &quot;ChapterID: &quot; &amp; gaDocParagraph(i).ChapterID &amp; sCR
+		sStrg = sStrg &amp; &quot;FrameStylename: &quot; &amp; gaDocParagraph(i).FrameStylename &amp; sCR
+		sStrg = sStrg &amp; &quot;FrameCaption: &quot; &amp; gaDocParagraph(i).FrameCaption &amp; sCR	
+		sStrg = sStrg &amp; &quot;GetString: &quot; &amp; gaDocParagraph(i).GetString &amp; sCR
+		sStrg = sStrg &amp; &quot;PageArea: &quot; &amp; gaDocParagraph(i).PageArea &amp; sCR
+		sStrg = sStrg &amp; &quot;ParaType: &quot; &amp; gaDocParagraph(i).ParaType &amp; sCR	
+		sStrg = sStrg &amp; &quot;ParaAdjust: &quot; &amp; gaDocParagraph(i).ParaAdjust &amp; sCR
+		sStrg = sStrg &amp; &quot;ParaFirstLineIndent: &quot; &amp; gaDocParagraph(i).ParaFirstLineIndent &amp; sCR
+		sStrg = sStrg &amp; &quot;ParaStyleName: &quot; &amp; gaDocParagraph(i).ParaStyleName &amp; sCR
+		sStrg = sStrg &amp; &quot;NumberingRestart: &quot; &amp; gaDocParagraph(i).NumberingRestart &amp; sCR
+		sStrg = sStrg &amp; &quot;NumberingStyleName: &quot; &amp; gaDocParagraph(i).NumberingStyleName &amp; sCR
+		sStrg = sStrg &amp; &quot;NumberingType: &quot; &amp; gaDocParagraph(i).NumberingType &amp; sCR
+		sStrg = sStrg &amp; &quot;NumberingLevel: &quot; &amp; gaDocParagraph(i).NumberingLevel &amp; sCR
+		sStrg = sStrg &amp; &quot;NumberingIsNumber: &quot; &amp; gaDocParagraph(i).NumberingIsNumber &amp; sCR
+		sStrg = sStrg &amp; &quot;BreakType: &quot; &amp; gaDocParagraph(i).BreakType &amp; sCR
+		sStrg = sStrg &amp; &quot;PageInnerWidth: &quot; &amp; gaDocParagraph(i).PageInnerWidth &amp; sCR
+		sStrg = sStrg &amp; &quot;TableName: &quot; &amp; gaDocParagraph(i).TableName &amp; sCR
+		sStrg = sStrg &amp; &quot;TableWidth: &quot; &amp; gaDocParagraph(i).TableWidth &amp; sCR		
+		sStrg = sStrg &amp; &quot;TableIsWidthRelative: &quot; &amp; gaDocParagraph(i).TableIsWidthRelative &amp; sCR
+		sStrg = sStrg &amp; &quot;TableRelativeWidth: &quot; &amp; gaDocParagraph(i).TableRelativeWidth &amp; sCR
+		sStrg = sStrg &amp; &quot;TableBorderWidth: &quot; &amp; gaDocParagraph(i).TableBorderWidth &amp; sCR
+		sStrg = sStrg &amp; &quot;TableCaption: &quot; &amp; gaDocParagraph(i).TableCaption &amp; sCR
+		sStrg = sStrg &amp; &quot;TableParentID: &quot; &amp; gaDocParagraph(i).TableParentID &amp; sCR
+		sStrg = sStrg &amp; &quot;TableRow: &quot; &amp; gaDocParagraph(i).TableRow &amp; sCR
+		sStrg = sStrg &amp; &quot;TableCol: &quot; &amp; gaDocParagraph(i).TableCol &amp; sCR
+		sStrg = sStrg &amp; &quot;State: &quot; &amp; gaDocParagraph(i).State &amp; sCR
+		oFile.writeString(sStrg &amp; sCR)
+		sStrg = &quot;&quot;
+	next i
+
+	oOutputStream = oFileAccessService.openFileWrite(gsCurDir &amp; &quot;/DocTextPortion.txt&quot;)
+	oOutputStream.truncate()
+	oFile.setOutputStream(oOutputStream)
+	sStrg = &quot;Array gaDocTextPortion:&quot; &amp; sCR &amp; sCR
+	iCount = ubound(gaDocTextPortion())
+	for i = 1 to ubound(gaDocTextPortion())
+		sStrg = sStrg &amp; &quot;ID: &quot; &amp; gaDocTextPortion(i).ID &amp; sCR
+		sStrg = sStrg &amp; &quot;ParaID: &quot; &amp; gaDocTextPortion(i).ParaID &amp; sCR
+		sStrg = sStrg &amp; &quot;TextPortionType: &quot; &amp; gaDocTextPortion(i).TextPortionType &amp; sCR
+		sStrg = sStrg &amp; &quot;ParaStyleName: &quot; &amp; gaDocTextPortion(i).ParaStyleName &amp; sCR
+		sStrg = sStrg &amp; &quot;FrameStyleName: &quot; &amp; gaDocTextPortion(i).NumberingStyleName &amp; sCR
+		sStrg = sStrg &amp; &quot;NumberingStyleName: &quot; &amp; gaDocTextPortion(i).NumberingStyleName &amp; sCR
+		sStrg = sStrg &amp; &quot;Bookmark: &quot; &amp; gaDocTextPortion(i).Bookmark &amp; sCR
+		sStrg = sStrg &amp; &quot;HyperLinkURL: &quot; &amp; gaDocTextPortion(i).HyperLinkURL &amp; sCR
+		sStrg = sStrg &amp; &quot;HyperLinkName: &quot; &amp; gaDocTextPortion(i).HyperLinkName &amp; sCR
+		sStrg = sStrg &amp; &quot;HyperLinkTarget: &quot; &amp; gaDocTextPortion(i).HyperLinkTarget &amp; sCR
+		sStrg = sStrg &amp; &quot;TextField: &quot; &amp; gaDocTextPortion(i).TextField &amp; sCR
+		sStrg = sStrg &amp; &quot;GetString: &quot; &amp; gaDocTextPortion(i).GetString &amp; sCR
+		sStrg = sStrg &amp; &quot;CharWeight: &quot; &amp; gaDocTextPortion(i).CharWeight &amp; sCR
+		sStrg = sStrg &amp; &quot;CharColor: &quot; &amp; gaDocTextPortion(i).CharColor &amp; sCR
+		sStrg = sStrg &amp; &quot;CharStyleName: &quot; &amp; gaDocTextPortion(i).CharStyleName &amp; sCR
+		sStrg = sStrg &amp; &quot;CharFontNameState: &quot; &amp; gaDocTextPortion(i).CharFontNameState &amp; sCR
+		sStrg = sStrg &amp; &quot;CharEscapement: &quot; &amp; gaDocTextPortion(i).CharEscapement &amp; sCR
+		sStrg = sStrg &amp; &quot;CharFontFamily: &quot; &amp; gaDocTextPortion(i).CharFontFamily &amp; sCR
+		sStrg = sStrg &amp; &quot;CharFontPitch: &quot; &amp; gaDocTextPortion(i).CharFontPitch &amp; sCR
+		sStrg = sStrg &amp; &quot;CharPosture: &quot; &amp; gaDocTextPortion(i).CharPosture &amp; sCR
+		sStrg = sStrg &amp; &quot;CharUnderline: &quot; &amp; gaDocTextPortion(i).CharUnderline &amp; sCR
+		oFile.writeString(sStrg &amp; sCR)
+		sStrg = &quot;&quot;
+	next i
+
+	oOutputStream = oFileAccessService.openFileWrite(gsCurDir &amp; &quot;/DocMedia.txt&quot;)
+	oOutputStream.truncate()
+	oFile.setOutputStream(oOutputStream)
+	sStrg = &quot;Array gaDocMedia:&quot; &amp; sCR &amp; sCR
+	for i = 1 to ubound(gaDocMedia())
+		sStrg = sStrg &amp; &quot;ID: &quot; &amp; gaDocMedia(i).ID &amp; sCR
+		sStrg = sStrg &amp; &quot;TextPortionID: &quot; &amp; gaDocMedia(i).TextPortionID &amp; sCR
+		sStrg = sStrg &amp; &quot;ExtMediaID: &quot; &amp; gaDocMedia(i).ExtMediaID &amp; sCR
+		sStrg = sStrg &amp; &quot;MediaName: &quot; &amp; gaDocMedia(i).MediaName &amp; sCR
+		sStrg = sStrg &amp; &quot;Title: &quot; &amp; gaDocMedia(i).Title &amp; sCR
+		sStrg = sStrg &amp; &quot;Caption: &quot; &amp; gaDocMedia(i).Caption &amp; sCR
+		sStrg = sStrg &amp; &quot;HoriOrient: &quot; &amp; gaDocMedia(i).HoriOrient &amp; sCR
+		sStrg = sStrg &amp; &quot;AnchorType: &quot; &amp; gaDocMedia(i).AnchorType &amp; sCR
+		sStrg = sStrg &amp; &quot;TextWrap: &quot; &amp; gaDocMedia(i).TextWrap &amp; sCR
+		sStrg = sStrg &amp; &quot;Width: &quot; &amp; gaDocMedia(i).Width &amp; sCR
+		sStrg = sStrg &amp; &quot;Height: &quot; &amp; gaDocMedia(i).Height &amp; sCR
+		sStrg = sStrg &amp; &quot;IsInUse: &quot; &amp; gaDocMedia(i).IsInUse &amp; sCR
+		sStrg = sStrg &amp; &quot;IsScaled: &quot; &amp; gaDocMedia(i).IsScaled &amp; sCR
+		oFile.writeString(sStrg &amp; sCR)
+		sStrg = &quot;&quot;
+	next i
+
+	oOutputStream = oFileAccessService.openFileWrite(gsCurDir &amp; &quot;/ExtMedia.txt&quot;)
+	oOutputStream.truncate()
+	oFile.setOutputStream(oOutputStream)
+	sStrg = &quot;Array gaExtMedia:&quot; &amp; sCR &amp; sCR
+	for i = 1 to ubound(gaExtMedia())
+		sStrg = sStrg &amp; &quot;ID: &quot; &amp; gaExtMedia(i).ID &amp; sCR
+		sStrg = sStrg &amp; &quot;MediaType: &quot; &amp; gaExtMedia(i).MediaType &amp; sCR 
+		sStrg = sStrg &amp; &quot;MediaTypeText: &quot; &amp; gaExtMedia(i).MediaTypeText &amp; sCR 
+		sStrg = sStrg &amp; &quot;ObjectName: &quot; &amp; gaExtMedia(i).ObjectName &amp; sCR 
+		sStrg = sStrg &amp; &quot;FileName: &quot; &amp; gaExtMedia(i).FileName &amp; sCR 
+		sStrg = sStrg &amp; &quot;Width: &quot; &amp; gaExtMedia(i).Width &amp; sCR
+		sStrg = sStrg &amp; &quot;Height: &quot; &amp; gaExtMedia(i).Height &amp; sCR
+		oFile.writeString(sStrg &amp; sCR)
+		sStrg = &quot;&quot;
+	next i
+	
+	oFile.closeOutput() 
+
+end sub
+
+
+function GetStringFromParagraph(oParagraph as object) as string
+dim oEnum as object
+dim oEnumObj as object
+dim vString as string
+
+  oEnum = oParagraph.createEnumeration()
+  vString = &quot;&quot;
+  while oEnum.hasMoreElements()
+    oEnumObj = oEnum.nextElement()
+    vString = vString + oEnumObj.GetString()
+  wend
+  GetStringFromParagraph = vString 
+end function
+
+
+function GetFrameContentType(oFrame as object) as string
+dim oFrameEnum as object
+dim oFrameObj as object
+
+	oFrameEnum = oFrame.GetText().CreateEnumeration()
+	&apos;.createContentEnumeration(&quot;com.sun.star.text.TextGraphicObject&quot;)
+	if oFrameEnum.hasMoreElements() then
+		oFrameObj = oFrameEnum.nextElement()
+		&apos;check if the non-text object is a standard graphic or formula	
+	    if oFrameObj.ParaStyleName = &quot;Illustration&quot; or oFrameObj.ParaStyleName = &quot;Formula&quot; _
+	    	or oFrameObj.ParaStyleName = &quot;OLE&quot; then 
+			GetFrameContentType = &quot;GraphicFrame&quot;
+		else
+			GetFrameContentType = &quot;TextFrame&quot;
+		end if	
+	else
+		GetFrameContentType = &quot;EmptyFrame&quot;
+	end if	
+end function
+
+
+function GetChapterNumberingLevel(sStylename as string) as integer
+dim aChapter(2)
+
+	aChapter = ArrayOutOfString(sStylename, &quot; &quot;)
+	GetChapterNumberingLevel = Int(aChapter(1))
+end function
+
+</script:module>

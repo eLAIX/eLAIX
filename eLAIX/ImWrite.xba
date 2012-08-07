@@ -1,0 +1,936 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">
+<script:module xmlns:script="http://openoffice.org/2000/script" script:name="ImWrite" script:language="StarBasic">&apos;****************************************************************************
+&apos; eLAIX   : Writing ILIAS learning modules offline with OpenOffice.org Writer
+&apos; Author  : Harry Boldt - h.boldt@boldt-media.de - http://elaix.org
+&apos; License : GPL
+&apos;****************************************************************************
+
+&apos; This module is part of eLAIX. You can redistribute it and/or
+&apos; modify it under the terms of the GNU Lesser General Public
+&apos; License as published by the Free Software Foundation, either
+&apos; version 3 of the License, or (at your option) any later version.
+&apos; 
+&apos; This program is distributed in the hope that it will be useful,
+&apos; but WITHOUT ANY WARRANTY; without even the implied warranty of
+&apos; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+&apos; Lesser General Public License for more details.
+&apos; 
+&apos; You should have received a copy of the GNU Lesser General Public
+&apos; License along with this program. If not, please visit the Free
+&apos; Software Foundation website at http://www.gnu.org/licenses/.
+
+Option Explicit
+
+private const ELEMENT_TABLE = 1
+private const ELEMENT_LIST = 2
+private const ELEMENT_PARAGRAPH = 3
+private const ELEMENT_TITLE = 4
+private const ELEMENT_GRAPHIC = 5
+private const ELEMENT_UNKNOWN = 6
+
+global goText As object
+&apos;global goViewCursor as object
+&apos;global goTextCursor as object
+global giPageStart as long
+global giPageEnd as long
+global giMediaStart as long
+global giPropertiesStart as long
+global giFootnoteIndex as integer
+global giTableIndex as integer
+
+private iLAstElement as integer
+
+Type MediaObject
+	OriginId as string
+	Align as string
+	Caption as string
+	Height as integer
+	Width as integer
+end type 
+
+Type TableProps
+	Language as string
+	Border as integer
+	Width as integer
+	Cellspacing as integer
+	Cellpadding as integer
+	RowCount as integer
+	ColCount as integer	
+end type
+
+
+sub impWriteDocument
+dim iPos as long
+dim iLevel as integer
+dim oTag as object
+dim sTitle as string
+dim aAttributes(0)
+dim oAttribute as object
+dim sIdentifier as string
+dim IsFirstHeading as boolean
+dim sValue as string
+dim oText as object
+dim oCursor as object
+	
+	&apos;Init Globals
+	&apos;goText = ThisComponent.Text 
+	&apos;oViewCursor = ThisComponent.CurrentController.getViewCursor() 
+	&apos;goTextCursor = goText.createTextCursorByRange(oViewCursor.getStart()) 
+	
+	&apos;set the index for footnotes and tables
+	giFootnoteIndex = 0
+	giTableIndex = 0
+
+	&apos;get the position of the first PageObject after the structure section
+	&apos;this is the position of the first PageObject on Level 2
+	oTag = GetTagByNameAndLevel (&quot;PageObject&quot;, 2, 1)
+	giPageStart = oTag.ID
+
+	&apos;get position of first MediaObject
+	oTag = GetTagByNameAndLevel (&quot;MediaObject&quot;, 2, giPageStart)
+	giMediaStart = oTag.ID
+	if giMediaStart &gt; 0 then
+		giPageEnd = giMediaStart
+	else
+		giPageEnd = uBound(gaTag())
+	end if
+
+	&apos;get position of the Properties
+	oTag = GetTagByNameAndLevel (&quot;Properties&quot;, 2, giMediaStart)
+	giPropertiesStart = oTag.ID
+
+	&apos;set general numbering of the document chapters
+	SetOutlineNumbering
+
+	&apos;locate the first structure element
+	oTag = GetTagByName(&quot;StructureObject&quot;, 1)
+	iPos = oTag.ID
+	iLevel = 0
+	sTitle = &quot;&quot;
+	IsFirstHeading = true
+	
+	&apos;enumerate the structure of the document and generate the page objects
+	do while iPos &lt; giPageStart
+		select case oTag.Label
+
+		case &quot;StructureObject&quot;
+			iLevel = oTag.Level
+
+		case &quot;Identifier&quot;
+			sIdentifier = oTag.Attributes.GetValueByName(&quot;Entry&quot;)
+
+		case &quot;Title&quot;
+			oText = ThisComponent.Text
+			oCursor = oText.createTextCursor()
+			oCursor.gotoEnd(false)
+			impInsertHeading(oTag, oText, oCursor, IsFirstHeading)
+			&apos;SetParagraphBreak(oText, oCursor)
+			IsFirstHeading = false
+			sTitle = oTag.Value
+
+		case &quot;PageAlias&quot;
+			sValue = oTag.Attributes.GetValueByName(&quot;OriginId&quot;)
+			impWritePage(sValue, sTitle, iLevel)
+		end select
+		iPos = iPos + 1
+		oTag = gaTag(iPos)
+	loop
+	if gsErrorString &lt;&gt; &quot;&quot; then
+		msgbox gsErrorString
+	end if
+
+end sub
+
+
+sub impWritePage(sOriginID as string, sTitle as string, iLevel as integer)
+&apos;sOriginID : the unique page id
+&apos;sTitle    : the last written Heading 
+dim aAttributes()
+dim oAttribute as object
+dim oTag as object
+dim iPos as long
+dim sPCID as string
+dim oMediaProps as object
+dim oTableProps as object
+dim oGraphic as object
+dim IsGraphicWaiting as boolean
+dim aValues()
+dim sValue as string
+dim iListLevel as integer
+dim iListItemLevel as integer
+dim sListType as string
+dim sParaStyle as string
+dim iRow as integer
+dim iCol as integer
+dim oCell as object
+dim oTable as object
+dim oCursor as object
+dim iCount as integer
+dim IsInTable as boolean
+
+	&apos;get the attribute of the page content with the same OriginID
+	oTag = GetTagByAttributeValue(&quot;Entry&quot;, sOriginID)
+	&apos;get the Tag from this attribute
+
+	&apos;iPos = oAttribute.TagID
+	iPos= oTag.ID
+	&apos;iCount = Ubound(gaTag())
+	
+	IsInTable = false
+	&apos;enumerate all content within that page (stopping at the next &quot;PageObject&quot;)
+	do while iPos &lt; giPageEnd  
+	
+		&apos;set the cursor in a table cell if a table is active
+		if IsInTable then
+			oCell = oTable.getCellByPosition(iCol - 1, iRow - 1)
+			oText = oCell.Text
+			oCursor = oCell.Text.createTextCursor
+		else
+			oText = ThisComponent.Text
+			oCursor = oText.createTextCursor
+		end if	
+		oCursor.gotoEnd(false)
+
+		oTag = gaTag(iPos)
+		&apos;if oTag.Id = 92 then
+		&apos;	sParaStyle = sParaStyle
+		&apos;end if
+
+		select case oTag.Label
+		case &quot;Title&quot;
+			&apos;write the heading only if it differs from the one that has just been written
+			sValue = oTag.Value
+			if oTag.Value &lt;&gt; sTitle then
+				impInsertHeading(oTag, oText, oCursor, true)
+				&apos;SetParagraphBreak(oText, oCursor)
+			end if
+			iLastElement = ELEMENT_TITLE
+
+		case &quot;PageContent&quot;	
+			sPCID = oTag.Attributes.GetValueByName(&quot;PCID&quot;)	
+
+		case &quot;br&quot;
+
+		case &quot;Paragraph&quot;
+			impInsertParagraph(oTag, oText, oCursor, sListType)		
+			if IsGraphicWaiting then
+				impInsertGraphic(oGraphic, oText, oCursor, oMediaProps)			
+				IsGraphicWaiting = false
+			end if
+			iLastElement = ELEMENT_PARAGRAPH
+
+		case &quot;List&quot;
+			iListLevel = oTag.Level
+			sListType = oTag.Attributes.GetValueByName(&quot;Type&quot;)
+			&apos;SetParagraphStyle(&quot;Text body&quot;)
+			&apos;impSetListType(sListType)	
+			iLastElement = ELEMENT_LIST
+		
+		&apos;case &quot;/List&quot;					
+		&apos;	iLastElement = ELEMENT_LIST
+			
+		case &quot;ListItem&quot;
+			iListItemLevel = oTag.Level
+			&apos;sListType = oTag.Attributes.GetValueByName(&quot;Type&quot;)
+			&apos;aAttributes() = GetAttributesByTagID(oTag.ID)					
+
+		case &quot;IntLink&quot;
+			impInsertIntLink(oTag, oText, oCursor)
+			oText.insertString(oCursor, oTag.Value &amp; oTag.Addition, FALSE) 
+
+		case &quot;ExtLink&quot;
+			impInsertExtLink(oTag, oText, oCursor)			
+
+		case &quot;MediaObject&quot;
+			&apos;get a MediaObject that holds the properties of that graphic 
+			oMediaProps = impGetMediaObject(oTag)
+			&apos;get the graphic object from the package
+			oGraphic = impGetGraphic(oMediaProps)
+			if not isnull(oGraphic) then
+				if (oMediaProps.Align = &quot;LeftFloat&quot;) or (oMediaProps.Align = &quot;RightFloat&quot;) then
+					&apos;wait until next paragraph is written, in order to ancher the graphic to it
+					IsGraphicWaiting = true
+				else
+					&apos;insert the graphic at the current position
+					impInsertGraphic(oGraphic, oText, oCursor, oMediaProps)			
+				end if
+			end if	
+			iLastElement = ELEMENT_GRAPHIC
+
+		case &quot;Table&quot;
+			&apos;first increment the table index to set the Name of the table later
+			giTableIndex = giTableIndex + 1			
+			iRow = 0
+			iCol = 0
+			&apos; then get Attributes and RowCount and Table		
+			oTableProps = impGetTableProperties(oTag)						
+			oTable = impInsertTable(oText, oCursor, oTableProps)
+		
+		case &quot;TableRow&quot;
+			&apos;count the current row position as long as there are rows
+			iRow = iRow + 1				
+
+		case &quot;TableData&quot;
+			if iCol &gt;= oTableProps.ColCount then iCol = 0			
+			iCol = iCol + 1
+			IsInTable = true
+		
+		case &quot;/Table&quot;	
+			IsInTable = false
+			iLastElement = ELEMENT_TABLE
+
+		case &quot;Emph&quot;
+			impInsertItalicText(oTag, oText, oCursor)		
+			oText.insertString(oCursor, oTag.Addition, FALSE) 
+
+		case &quot;Strong&quot;
+			&apos;if iCellCount &gt; 0 then
+			&apos;	oRange.setString(oTag.Value &amp; oTag.Addition)
+			&apos;else
+				impInsertStrongText(oTag, oText, oCursor)
+			&apos;end if	
+
+		case &quot;Footnote&quot;
+			impInsertFootnote(oTag, oText, oCursor)
+
+		case &quot;PageObject&quot;
+			&apos;this is the next page, so stop here
+			InsertParagraphBreakByDispatcher
+			exit do
+		end select
+		iPos = iPos + 1
+	loop	
+end sub
+
+
+sub impInsertHeading(oTag as object, oText as object, oCursor as object, IsFirstHeading as boolean)
+dim sTitle as string
+dim iLevel as integer
+&apos;dim sLastChar as string
+
+	sTitle = oTag.Value
+	iLevel = oTag.Level - 4
+	
+	if not IsFirstHeading then
+		SetParaBreakIfNotExists(oText, oCursor)
+	end if	
+	&apos;first reset paragraph
+	SetParagraphStyle( &quot;Text body&quot; )
+	&apos;then set the heading
+	oCursor.ParaStylename = &quot;Heading &quot; + CStr(iLevel)
+	oText.insertString(oCursor, sTitle, FALSE) 
+	&apos;xray oCursor
+end sub
+
+
+sub impInsertParagraph(oTag as object, oText as object, oCursor as object, sListType as string)
+dim sParaStyle as string
+
+	&apos;first insert a page break
+	if rtrim(ltrim(oTag.Value)) &lt;&gt; &quot;&quot; then 
+		SetParaBreakIfNotExists(oText, oCursor)
+	end if	
+	sParaStyle = oTag.Attributes.GetValueByName(&quot;Characteristic&quot;)
+	SetParagraphStyle( &quot;Text body&quot; )
+	select case sParaStyle
+	case &quot;&quot;
+	&apos;	SetParagraphStyle( &quot;Text body&quot; )
+		&apos;goTextCursor.ParaStylename = &quot;Text body&quot;
+	case &quot;Standard&quot;
+	&apos;	SetParagraphStyle( &quot;Text body&quot; )
+		&apos;goTextCursor.ParaStylename = &quot;Text body&quot;
+	case &quot;Textbody&quot;
+	&apos;	SetParagraphStyle( &quot;Text body&quot; )
+		&apos;goTextCursor.ParaStylename = &quot;Text body&quot;
+	case &quot;List&quot;
+	&apos;	SetParagraphStyle( &quot;Text body&quot; )
+		impSetListType(sListType)	
+	end select
+	oText.insertString(oCursor, oTag.Value, FALSE) 
+	oText.insertString(oCursor, oTag.Addition, FALSE) 
+end sub
+
+
+sub impInsertItalicText(oTag as object, oText as object, oCursor as object)
+
+	&apos;goTextCursor.ParaStylename = &quot;Text body&quot;
+	oCursor.CharPosture = com.sun.star.awt.FontSlant.ITALIC
+	oText.insertString(oCursor, oTag.Value, FALSE) 
+	oCursor.CharPosture = com.sun.star.awt.FontSlant.NONE
+end sub
+
+
+sub impInsertIntLink(oTag as object, oText as object, oCursor as object)
+dim aAttributes()
+dim oAttribute as object
+dim oMediaObject as object
+dim oGraphic as object
+dim sValue as string
+
+	&apos;get the attributes of this tag
+	&apos;aAttributes = GetAttributesByTagID(oTag.ID)
+	&apos;get the attribute that holds the Entry
+	&apos;oAttribute = GetAttributeFromList(aAttributes, &quot;Type&quot;)
+	&apos;if not isnull(oAttribute) then
+	sValue = oTag.Attributes.GetValueByName(&quot;Type&quot;)
+		&apos;select case oAttribute.Value
+		select case sValue
+		case &quot;MediaObject&quot;
+			&apos;oAttribute = GetAttributeFromList(aAttributes, &quot;Target&quot;)
+			&apos;if not isnull(oAttribute) then
+			sValue = oTag.Attributes.GetValueByName(&quot;Target&quot;)
+				oMediaObject = impGetIntLinkMediaObject(sValue)
+				oGraphic = impGetGraphic(oMediaObject)
+				if not isnull(oGraphic) then
+					SetGraphicAlignment(oGraphic, GRAPHIC_ALIGNINLINE)
+					oText.text.insertTextContent(oCursor, oGraphic, false)
+				end if		
+			&apos;end if	
+		end select
+	&apos;end if	
+end sub	
+
+
+sub impInsertExtLink(oTag as object, oText as object, oCursor as object)
+dim sValue as string
+dim sHref as string
+
+	sValue = oTag.Value
+	sHref = oTag.Attributes.GetValueByName(&quot;Href&quot;)	
+	oText.text.insertString(oCursor, sValue, false)
+	oCursor.goLeft(len(sValue), true)
+	oCursor.hyperlinkurl = sHref
+	oCursor.gotoEnd(false)
+	oCursor.String = &quot;&quot;
+	oText.insertString(oCursor, oTag.Addition, FALSE) 
+end sub	
+
+
+sub impInsertGraphic(oGraphic as object, oText as object, oCursor as object, oMediaObject as object)
+dim oTextCursor as object
+dim oFrame as object
+dim oAlignmentObj as object
+
+	&apos;insert a page break, if the graphic should be centered
+	if oMediaObject.Align = &quot;Center&quot; then
+		SetParaBreakIfNotExists(oText, oCursor)
+		oCursor.ParaAdjust =  com.sun.star.style.ParagraphAdjust.CENTER
+	end if	
+
+	&apos;if there is a Caption, a frame should be inserted first
+	if oMediaObject.Caption &lt;&gt; &quot;&quot; then
+		oFrame = impInsertFrame(oGraphic, oText, oCursor, oMediaObject)
+		oFrame.String = oMediaObject.Caption
+
+		oTextCursor = oFrame.createTextCursor
+		oTextCursor.ParaStylename = &quot;Caption&quot;
+		oFrame.insertTextContent(oTextCursor, oGraphic, false)
+		oAlignmentObj = oFrame
+	else
+		&apos; Insert the graphic at the current cursor location	
+		oText.text.insertTextContent(oCursor, oGraphic, false)	
+		oAlignmentObj = oGraphic
+	end if
+
+	select case oMediaObject.Align
+		case &quot;Left&quot;       : SetGraphicAlignment(oAlignmentObj, GRAPHIC_ALIGNLEFT)
+		case &quot;LeftFloat&quot;  : SetGraphicAlignment(oAlignmentObj, GRAPHIC_ALIGNLEFT)
+		case &quot;Center&quot;     : oText.insertControlCharacter(oCursor, com.sun.star.text.ControlCharacter.PARAGRAPH_BREAK, False)
+		case &quot;Right&quot;      : SetGraphicAlignment(oAlignmentObj, GRAPHIC_ALIGNRIGHT)
+		case &quot;RightFloat&quot; : SetGraphicAlignment(oAlignmentObj, GRAPHIC_ALIGNRIGHT)
+	case else
+		SetGraphicAlignment(oAlignmentObj, GRAPHIC_ALIGNLEFT)	
+	end select
+			
+end sub
+
+
+sub impInsertStrongText(oTag as object, oText as object, oCursor as object)
+	oCursor.CharWeight = com.sun.star.awt.FontWeight.BOLD
+	oText.insertString(oCursor, oTag.Value, FALSE)
+	oCursor.CharWeight = com.sun.star.awt.FontWeight.DONTKNOW
+	oText.insertString(oCursor, oTag.Addition, FALSE) 
+end sub	
+
+
+sub impInsertFootnote(oTag as object, oText as object, oCursor as object)
+dim oDoc as object
+dim oFootnote as object
+dim oFootnoteCursor as object
+
+	&apos;prepare footnote object
+	oDoc = ThisComponent()
+	oFootnote = oDoc.createInstance(&quot;com.sun.star.text.Footnote&quot;)
+
+	&apos;insert the footnote in Text
+	giFootnoteIndex = giFootnoteIndex + 1
+    oFootnote.setLabel(cstr(giFootnoteIndex))    
+	oText.insertTextContent(oCursor, oFootnote, FALSE)
+	
+	&apos;insert Footnote text (sLabel)
+	oFootnoteCursor = oFootnote.Text.createTextCursor()
+	oFootNote.setString(oTag.Value)
+	oText.insertString(oCursor, oTag.Addition, FALSE) 
+    
+end sub	
+
+
+function impInsertTable( oText as object, oCursor as object, oTableProps as object) as object
+dim oTable as object
+	
+	oTable = ThisComponent.createInstance(&quot;com.sun.star.text.TextTable&quot;) 
+	oTable.initialize(oTableProps.RowCount, oTableProps.ColCount) 
+	&apos;oTable.Name= &quot;NeueTabelle&quot; 
+	oText.insertTextContent(oCursor, oTable, False)
+	oTable.TopMargin = 300
+	oTable.BottomMargin = 500
+	&apos;xray oTable
+
+	impInsertTable = oTable
+end function
+
+
+sub SetParaBreakIfNotExists(oText as object, oCursor as object)
+dim sLastChar as string
+dim iPos as integer
+dim oTextCursor as object
+dim oTextObj as object
+
+	if iLastElement &lt;&gt; ELEMENT_TABLE then 
+		oTextCursor = oText.createTextCursorByRange(oCursor)
+		oTextCursor.GoLeft(1, true)
+		sLastChar = oTextCursor.String
+		if sLastChar &lt;&gt; com.sun.star.text.ControlCharacter.PARAGRAPH_BREAK then
+			&apos;oCursor.GotoEnd(false)
+			&apos;oTextObj = ThisComponent.Text
+			&apos;oTextObj.insertControlCharacter(oCursor, com.sun.star.text.ControlCharacter.PARAGRAPH_BREAK, False)
+			InsertParagraphBreakByDispatcher
+		end if
+		
+		&apos;if sLastChar &lt;&gt; &quot;&quot; then
+		&apos;	if sLastChar &lt;&gt; &quot; &quot; then
+		&apos;		oCursor.GoLeft(2, true)				
+		&apos;		sLastChar = oCursor.String
+		&apos;	end if	
+		&apos;	iPos = asc(sLastChar)
+		&apos;	oCursor.GotoEnd(false)
+		&apos;	if iPos &lt;&gt; 13 then
+		&apos;		oText.insertControlCharacter(oCursor, com.sun.star.text.ControlCharacter.PARAGRAPH_BREAK, False)
+		&apos;	end if
+		&apos;end if
+	end if	
+end sub
+
+
+sub SetParagraphBreak(oText as object, oCursor as object)
+	&apos;oText.insertControlCharacter(oCursor, com.sun.star.text.ControlCharacter.PARAGRAPH_BREAK, False)
+end sub
+
+
+sub impSetListType(sType as string)
+
+	select case sType
+		case &quot;Alphabetic&quot;: SetNumberingStyle(&quot;ILIAS List Alpha A&quot;, com.sun.star.style.NumberingType.CHARS_UPPER_LETTER)
+		case &quot;alphabetic&quot;: SetNumberingStyle(&quot;ILIAS List Alpha b&quot;, com.sun.star.style.NumberingType.CHARS_LOWER_LETTER)
+		case &quot;Roman&quot;     : SetNumberingStyle(&quot;ILIAS List Roman I&quot;, com.sun.star.style.NumberingType.ROMAN_UPPER)
+		case &quot;roman&quot;     : SetNumberingStyle(&quot;ILIAS List Roman ii&quot;, com.sun.star.style.NumberingType.ROMAN_LOWER)
+		case &quot;Number&quot;    : SetNumberingStyle(&quot;ILIAS List Number&quot;, com.sun.star.style.NumberingType.ARABIC)
+		case &quot;Unordered&quot; : SetNumberingStyle(&quot;ILIAS List Bullet&quot;, com.sun.star.style.NumberingType.CHAR_SPECIAL)
+	end select
+
+end sub
+
+function impInsertFrame(oGraphic as object, oText as object, oCursor as object, oMediaObject as object) as object
+dim oFrame as object
+
+	oFrame = ThisComponent.createInstance(&quot;com.sun.star.text.TextFrame&quot;)
+	&apos;set the size of the frame
+	Dim aSize As New com.sun.star.awt.Size
+	if (oMediaObject.Width &gt; 0) and (oMediaObject.Height &gt; 0) then
+		&apos;there&apos;s an invividual size for that graphic, set the frame width according to that value
+		aSize.width = oMediaObject.Width * 26.45
+		aSize.height = oMediaObject.Height * 26.45
+	else 
+		&apos;there&apos;s no individual size, so set the size of the graphic itself
+		aSize.width = oGraphic.Size.Width
+		aSize.height = oGraphic.Size.Height
+	end if 	
+	oFrame.Size = aSize
+	
+	dim oBorder as new com.sun.star.table.BorderLine
+	with oBorder
+		.Color          =  0   
+		.InnerLineWidth =  0   
+		.OuterLineWidth =  0   
+		.LineDistance   =  0   
+	end with
+	
+	with oFrame
+		.TopBorder = oBorder
+		.RightBorder = oBorder
+		.BottomBorder = oBorder
+		.LeftBorder = oBorder
+		.TopMargin = 500
+		.BottomMargin = 500
+		.LeftMargin = 0
+		.RightMargin = 0
+		.BorderDistance = 0
+		.HoriOrient = com.sun.star.text.HoriOrientation.NONE
+		&apos;.VertOrient = com.sun.star.text.VertOrientation.NONE
+		.VertOrient = com.sun.star.text.VertOrientation.LINE_TOP
+		.AnchorType = com.sun.star.text.TextContentAnchorType.AS_CHARACTER
+	end with	
+	&apos;xray oFrame
+	
+	oText.insertTextContent(oCursor, oFrame, FALSE)
+	&apos;oFrame.IsSyncWidthToHeight = true
+	&apos;oFrame.IsSyncHeightToWidth = true
+
+	impInsertFrame = oFrame
+end function
+
+
+&apos;*****************************************************
+&apos;Subroutines
+&apos;*****************************************************
+
+function impGetMediaObject(oTag as object) as object
+dim iTagPos as long
+dim sOrientation as string
+dim sFolder as string
+dim aAtt(0)
+dim aTag(0)
+dim oMediaObject as object
+
+	oMediaObject = createObject(&quot;MediaObject&quot;)
+	&apos;get the properties of the media object
+	iTagPos = oTag.ID
+	
+	&apos;first get a list of all tags belonging to that media object
+	aTag() = GetTagsByID(iTagPos)
+	
+	&apos;get the tag that contains the MediaAlias and read its attributes (it&apos;s just one in this case)
+	oTag = GetTagFromListByLabel(aTag(), &quot;MediaAlias&quot;)
+	&apos;aAtt() = GetAttributesByTagID(oTag.ID)
+	&apos;oMediaObject.OriginId = GetValueFromAttributeList(aAtt(), &quot;OriginId&quot;)
+	 oMediaObject.OriginId = oTag.Attributes.GetValueByName(&quot;OriginId&quot;)
+	
+	&apos;get the tag that contains the Layout and read its attributes
+	oTag = GetTagFromListByLabel(aTag(), &quot;Layout&quot;)
+	&apos;aAtt() = GetAttributesByTagID(oTag.ID)
+	&apos;if Ubound(aAtt()) &gt;= 0 then
+	&apos;	oMediaObject.Align = GetValueFromAttributeList(aAtt(), &quot;HorizontalAlign&quot;)
+	&apos;	oMediaObject.Width = GetValueFromAttributeList(aAtt(), &quot;Width&quot;)
+	&apos;	oMediaObject.Height = GetValueFromAttributeList(aAtt(), &quot;Height&quot;)
+	&apos;end if
+	with oMediaObject
+		.Align = oTag.Attributes.GetValueByName(&quot;HorizontalAlign&quot;)
+		.Width = oTag.Attributes.GetValueByName(&quot;Width&quot;)
+		.Height = oTag.Attributes.GetValueByName(&quot;Height&quot;)
+	end with
+	
+	&apos;get the tag that contains the Caption
+	oTag = GetTagFromListByLabel(aTag(), &quot;Caption&quot;)
+	if not isnull(oTag) then
+		oMediaObject.Caption = oTag.Value
+	end if
+	
+	impGetMediaObject = oMediaObject
+end function
+
+
+function impGetIntLinkMediaObject(sOrigin as string) as object
+dim oMediaObject as object
+
+	&apos;set the properties of the media object
+	oMediaObject = createObject(&quot;MediaObject&quot;)
+	with oMediaObject
+		.OriginId = sOrigin
+		.Align = &quot;&quot;
+		.Width = 0
+		.Height = 0
+	end with
+	impGetIntLinkMediaObject = oMediaObject
+end function
+
+
+function impGetTableProperties(oTag as object) as object
+dim oTableProps as object
+dim aTags()
+dim iCount as integer
+dim i as integer
+dim iRowCount as integer
+dim iColCount as integer
+
+	&apos;first set the properties of the media object
+	oTableProps = createObject(&quot;TableProps&quot;)
+	with oTableProps
+		.Language = oTag.Attributes.GetValueByName(&quot;Language&quot;)
+		.Border = oTag.Attributes.GetValueByName(&quot;Border&quot;)
+		.Width = oTag.Attributes.GetValueByName(&quot;Width&quot;)
+		.CellSpacing = oTag.Attributes.GetValueByName(&quot;CellSpacing&quot;)
+		.CellPadding = oTag.Attributes.GetValueByName(&quot;CellPadding&quot;)
+	end with
+	
+	&apos;then count rows and columns by first reading the whole table
+	aTags =  GetTagsByID(oTag.ID)
+	iRowCount = 0
+	iColCount = 0
+	i = 0
+	iCount = Ubound(aTags())
+	do while i &lt; iCount
+		select case aTags(i).Label
+		case &quot;TableRow&quot;
+			iRowCount = iRowCount + 1
+		case &quot;TableData&quot;
+			if iRowCount = 1 then iColCount = iColCount + 1
+		end select
+		i = i + 1
+	loop
+	&apos;save the values in the table object
+	oTableProps.RowCount = iRowCount
+	oTableProps.ColCount = iColCount
+	
+	impGetTableProperties = oTableProps
+end function
+
+
+function impGetGraphic(oMediaObject as object) as object
+Dim args(1)           As Variant  
+Dim objZipService     As Variant  
+Dim objPackageStream  As Variant  
+Dim arrayNames()      As Variant  
+Dim strNames          As String  
+Dim i                 As Integer  
+dim sProject as string
+dim sObjectFolder as string
+dim oRepair as new com.sun.star.beans.NamedValue 
+dim oGraphic as object
+dim oStream as object
+Dim oShape
+Dim oProvider  &apos;GraphicProvider service.
+dim oDoc as object
+
+
+	if oMediaObject.OriginId &lt;&gt; &quot;&quot; then	
+
+		&apos;to get graphic from package and create first a handle to the zip service,  
+		objZipService = createUnoService(&quot;com.sun.star.packages.Package&quot;)  
+		args(0) = ConvertToURL(gsZipFilename)  
+		oRepair.Name = &quot;RepairPackage&quot;
+		oRepair.Value = true
+		args(1) = oRepair
+		objZipService.initialize(args())  
+		sProject = GetFileNameWithoutExtension(gsZipFilename, &quot;/&quot;)
+		sObjectFolder = &quot;&quot;
+	        
+		&apos;check if folder is in subfolder of the same name
+		if objZipService.HasByHierarchicalName(&quot;objects&quot;) then
+			sObjectFolder = &quot;objects/&quot; &amp; oMediaObject.OriginId
+		elseif objZipService.HasByHierarchicalName(sProject &amp; &quot;/objects&quot;) then
+			sObjectFolder = sProject &amp; &quot;/objects/&quot; &amp; oMediaObject.OriginId	
+		end if
+		
+		&apos; Grab a package stream containing the passed folder.   
+		if sObjectFolder &lt;&gt; &quot;&quot; then
+			objPackageStream = objZipService.GetByHierarchicalName(sObjectFolder)  
+			      
+			&apos; Grab a listing of all files in the archive.  
+			arrayNames() = objPackageStream.getElementNames()  
+			&apos;get the first (and only) graphic
+			if UBound(arrayNames()) &gt;= 0 then
+				i = LBound(arrayNames)
+				strNames = arrayNames(i)  
+				oStream = objZipService.GetByHierarchicalName(sObjectFolder &amp; &quot;/&quot; &amp; arrayNames(i)).GetInputStream()
+			end if	
+		end if	
+
+		if not isnull(oStream) then
+			&apos;oGraphic = GetGraphicFromStream(oStream, oMediaObject)
+	
+			oDoc = thisComponent	
+			oShape = oDoc.createInstance(&quot;com.sun.star.drawing.GraphicObjectShape&quot;)
+			oGraphic = oDoc.createInstance(&quot;com.sun.star.text.GraphicObject&quot;)
+			oDoc.getDrawPage().add(oShape)
+			oProvider = createUnoService(&quot;com.sun.star.graphic.GraphicProvider&quot;)
+			Dim oProps(0) as new com.sun.star.beans.PropertyValue
+			oProps(0).Name  = &quot;InputStream&quot;
+			oProps(0).Value =  oStream
+			
+			&apos;On Error Goto ErrHandler
+			oShape.Graphic = oProvider.queryGraphic(oProps())
+			if not isnull(oShape.Graphic) then
+				oGraphic.GraphicUrl = oShape.GraphicUrl
+				
+				&apos;read the size in pixel from the shape object and store it in the graphic object
+				dim oSize As New com.sun.star.awt.Size 
+				oSize.Height = oShape.Graphic.Size.Height * 26.45
+				oSize.Width = oShape.Graphic.Size.Width * 26.45
+				oGraphic.Size = oSize	
+			else
+				&apos;xray oGraphic
+				&apos;oGraphic = oProvider.queryGraphic(oProps())
+			end if	
+				
+			&apos; We no longer require the shape object.
+			oDoc.getDrawPage().remove(oShape)
+
+			
+			&apos;if there is an individual width and height overwrite the original size
+			if (oMediaObject.Width &gt; 0) and (oMediaObject.Height &gt; 0) then
+				&apos;dim oSize As New com.sun.star.awt.Size 
+				oSize.Height = oMediaObject.Height * 26.45
+				oSize.Width = oMediaObject.Width * 26.45
+				oGraphic.Size = oSize
+			end if						
+			oStream.closeInput 
+		end if	
+	&apos;else
+	&apos;	msgbox &quot;A Graphic could not be found&quot;
+	end if 	
+	impGetGraphic = oGraphic
+end function
+
+
+function GetMediaFromPackage(sZipFilename As String, sFolder as string) as object        
+	Dim args(1)           As Variant  
+	Dim objZipService     As Variant  
+	Dim objPackageStream  As Variant  
+	Dim objOutputStream   As Variant  
+	Dim objInputStream    As Variant  
+	Dim arrayNames()      As Variant  
+	Dim strNames          As String  
+	Dim i                 As Integer  
+	dim sProject as string
+	dim sObjectFolder as string
+	dim oRepair as new com.sun.star.beans.NamedValue 
+	      
+	&apos;========================================================================================  
+	&apos; Unzip the an entire .zip archive to a destination directory.  
+	&apos;  
+	&apos; strZipArchivePath = full path (directory and filename) to the .zip archive file.  
+	&apos; strDestinationFilePath = folder (directory only) where the source files will be dumped.  
+	&apos;========================================================================================  
+	      
+
+	&apos; Create a handle to the zip service,  
+	objZipService = createUnoService(&quot;com.sun.star.packages.Package&quot;)  
+	args(0) = ConvertToURL(sZipFilename)  
+	oRepair.Name = &quot;RepairPackage&quot;
+	oRepair.Value = true
+	args(1) = oRepair
+	objZipService.initialize(args())  
+	sProject = GetFileNameWithoutExtension(sZipFilename, &quot;/&quot;)
+	sObjectFolder = &quot;&quot;
+        
+	&apos;check if folder is in subfolder of the same name
+	if objZipService.HasByHierarchicalName(&quot;objects&quot;) then
+		sObjectFolder = &quot;objects/&quot; &amp; sFolder
+	elseif objZipService.HasByHierarchicalName(sProject &amp; &quot;/objects&quot;) then
+		sObjectFolder = sProject &amp; &quot;/objects/&quot; &amp; sFolder	
+	end if
+	
+	&apos; Grab a package stream containing the passed folder.   
+	if sObjectFolder &lt;&gt; &quot;&quot; then
+		objPackageStream = objZipService.GetByHierarchicalName(sObjectFolder)  
+		      
+		&apos; Grab a listing of all files in the archive.  
+		arrayNames() = objPackageStream.getElementNames()  
+		&apos;get the first (and only) graphic
+		if UBound(arrayNames()) &gt;= 0 then
+			i = LBound(arrayNames)
+			strNames = arrayNames(i)  
+			objInputStream = objZipService.GetByHierarchicalName(sObjectFolder &amp; &quot;/&quot; &amp; arrayNames(i)).GetInputStream()
+			GetMediaFromPackage = objInputStream
+		end if	
+	end if	
+
+End function  
+
+
+function GetGraphicFromStream(oStream as object, oMediaObject as object) as object
+Dim oShape
+Dim oProvider  &apos;GraphicProvider service.
+dim oDoc as object
+dim oGraphic as object
+
+	oDoc = thisComponent
+
+	oShape = oDoc.createInstance(&quot;com.sun.star.drawing.GraphicObjectShape&quot;)
+	oGraphic = oDoc.createInstance(&quot;com.sun.star.text.GraphicObject&quot;)
+	oDoc.getDrawPage().add(oShape)
+	oProvider = createUnoService(&quot;com.sun.star.graphic.GraphicProvider&quot;)
+	Dim oProps(0) as new com.sun.star.beans.PropertyValue
+	oProps(0).Name  = &quot;InputStream&quot;
+	oProps(0).Value =  oStream
+	
+	On Error Goto ErrHandler
+	oShape.Graphic = oProvider.queryGraphic(oProps())
+	&apos;xray oShape.Graphic
+	oGraphic.GraphicUrl = oShape.GraphicUrl
+	
+	&apos;read the size in pixel from the shape object and store it in the graphic object
+	dim oSize As New com.sun.star.awt.Size 
+	oSize.Height = oShape.Graphic.Size.Height * 26.45
+	oSize.Width = oShape.Graphic.Size.Width * 26.45
+	oGraphic.Size = oSize	
+
+	&apos; We no longer require the shape object.
+	oDoc.getDrawPage().remove(oShape)
+	GetGraphicFromStream = oGraphic
+	exit function
+	
+ErrHandler:
+	oDoc.getDrawPage().remove(oShape)
+	gsErrorString = gsErrorString &amp; &quot;The graphic &quot; &amp; oMediaObject.OriginId &amp; &quot; could not be implemented.&quot; &amp; chr(13)
+	
+end function
+
+
+Sub InsertATableWithNoBorders
+  Dim oTable   &apos;Newly created table to insert
+  Dim oEnd
+
+  REM Let the document create the text table.  
+  oTable = ThisComponent.createInstance( &quot;com.sun.star.text.TextTable&quot; )
+  oTable.initialize(4, 1) &apos;Four rows, one column
+    
+  REM Now insert the text table at the end of the document.
+  Oend = ThisComponent.Text.getEnd()
+  ThisComponent.Text.insertTextContent(oEnd, oTable, False)
+ 
+  Dim x &apos;represents each BorderLine  
+  Dim v &apos;represents the TableBorder Object as a whole
+  v = oTable.TableBorder
+  x = v.TopLine        : x.OuterLineWidth = 0 : v.TopLine = x
+  x = v.LeftLine       : x.OuterLineWidth = 0 : v.LeftLine = x
+  x = v.RightLine      : x.OuterLineWidth = 0 : v.RightLine = x
+  x = v.TopLine        : x.OuterLineWidth = 0 : v.TopLine = x
+  x = v.VerticalLine   : x.OuterLineWidth = 0 : v.VerticalLine = x
+  x = v.HorizontalLine : x.OuterLineWidth = 0 : v.HorizontalLine = x
+  x = v.BottomLine     : x.OuterLineWidth = 0 : v.BottomLine = x
+
+  oTable.TableBorder = v
+  Dim a()
+  a() = Array(Array(&quot;Files&quot;), Array(&quot;One&quot;), Array(&quot;Two&quot;), Array(&quot;Three&quot;))
+  oTable.setDataArray(a())
+End Sub
+
+
+sub InsertParagraphBreakByDispatcher
+rem ----------------------------------------------------------------------
+rem define variables
+dim document   as object
+dim dispatcher as object
+rem ----------------------------------------------------------------------
+rem get access to the document
+document   = ThisComponent.CurrentController.Frame
+dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+
+rem ----------------------------------------------------------------------
+dispatcher.executeDispatch(document, &quot;.uno:InsertPara&quot;, &quot;&quot;, 0, Array())
+
+
+end sub
+</script:module>

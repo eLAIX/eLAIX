@@ -1,0 +1,827 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">
+<script:module xmlns:script="http://openoffice.org/2000/script" script:name="ImRead" script:language="StarBasic">&apos;****************************************************************************
+&apos; eLAIX   : Writing ILIAS learning modules offline with OpenOffice.org Writer
+&apos; Author  : Harry Boldt - h.boldt@boldt-media.de - http://elaix.org
+&apos; License : GPL
+&apos;****************************************************************************
+
+&apos; This module is part of eLAIX. You can redistribute it and/or
+&apos; modify it under the terms of the GNU Lesser General Public
+&apos; License as published by the Free Software Foundation, either
+&apos; version 3 of the License, or (at your option) any later version.
+&apos; 
+&apos; This program is distributed in the hope that it will be useful,
+&apos; but WITHOUT ANY WARRANTY; without even the implied warranty of
+&apos; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+&apos; Lesser General Public License for more details.
+&apos; 
+&apos; You should have received a copy of the GNU Lesser General Public
+&apos; License along with this program. If not, please visit the Free
+&apos; Software Foundation website at http://www.gnu.org/licenses/.
+
+
+
+Option Explicit
+
+Global const SAX_PARSE_CONTENT = 1
+Global const SAX_PARSE_STYLE   = 2
+
+
+global gsZipFilename as string
+global goLocator As Object
+global glLocatorSet As Boolean
+global gsChars as string
+global giTagID as long
+global giAttID as long
+global giLevel as integer
+global gaTag(0) as object
+global gaAttribute(0) as object
+global gaStructure(0) as object
+global gsErrorString as string
+global giCurrentParserDocument
+
+Type Metadata
+	docTitle as string
+	docDescription as string
+	docLanguage as string
+	docKeywords as string
+	docAuthors as string
+	docCopyright as string
+	propOutlineNumbering as string
+End Type
+
+Type xmlTag
+	ID as long
+	Label as string
+	Value as string
+	Addition as string
+	Level as integer
+	Attributes as object
+end type 
+
+Type xmlAttribute
+	ID as long
+	TagID as long
+	Label as string
+	Value as string
+end type
+
+Type xmlStructure
+	TagID as long
+	Value as string
+	Level as integer
+end type 
+
+Sub ImportFromILIAS
+dim sZipFileName as string
+dim oStream as object
+dim filterNames(0) As String
+
+	gsErrorString = &quot;&quot;
+
+	&apos;open zip file
+	filterNames(0) = &quot;*.zip;&quot;
+	gsZipFilename = GetOpenFileName(filterNames())
+	if gsZipFilename &lt;&gt; &quot;&quot; then
+  
+		&apos;reset the internal content database
+		InitGlobals
+		
+		&apos;create an InputStream from the xml file located in the ILIAS package (zip file)
+		oStream = GetXmlStreamFromPackage(gsZipFilename, SAX_PARSE_CONTENT)		
+		&apos;parse the xml file of the ILIAS package using sax parser
+		&apos;and create arrays of types above (xmlTag, xmlAttribute, xmlStructure)
+		if not Isnull(oStream) then
+			&apos;open a new document
+			CreateNewDocument			
+			&apos;read the internal xml file with sax parser
+			ReadXmlFromInputStream(oStream)			
+			&apos;set document metadata from internal database
+			SetDocMetaDataFromXML			
+			&apos;read content from internal database and write it into the document
+			impWriteDocument			
+			oStream.CloseInput()
+		end if
+
+		&apos;create an InputStream from the style.xml file located in the ILIAS package (zip file)
+		oStream = GetXmlStreamFromPackage(gsZipFilename, SAX_PARSE_STYLE)		
+		&apos;parse the xml file of the ILIAS package using sax parser
+		&apos;and create arrays of types above (xmlTag, xmlAttribute, xmlStructure)
+		if not Isnull(oStream) then
+			&apos;read the internal xml file with sax parser
+			ReadXmlFromInputStream(oStream)			
+			&apos;generate the paragraph styles
+			&apos;...
+			oStream.CloseInput()
+		end if
+	end if
+End Sub
+
+
+sub CreateNewDocument
+dim oNewDoc as object
+
+	&apos;msgbox &quot;Generating Writer Document&quot;
+	oNewDoc = StarDesktop.loadComponentFromURL(&quot;private:factory/swriter&quot;, &quot;_blank&quot;, 0, Array())
+end sub
+
+
+&apos;function GetOpenFileName() as string
+&apos;dim sFilename as string
+&apos;dim filterNames(0) As String
+&apos;
+&apos;	filterNames(0) = &quot;*.zip&quot;
+&apos;	sFilename = GetOpenFileName(filterNames())
+&apos;	if sFilename &lt;&gt; &quot;&quot; then
+&apos;		GetOpenFileName = ConvertFromURL(sFilename)
+&apos;	end if
+&apos;end function
+
+
+sub ReadStructureFromInternalDatabase
+dim oStructureObj as object
+dim oPageObj as object
+dim oTag as object
+dim xmlHasMoreObjects as boolean
+dim iCount as integer
+dim iPos as long
+
+	xmlHasMoreObjects = true
+	iPos = 1
+	iCount = 1
+	while xmlHasMoreObjects
+		oStructureObj = GetTagByName(&quot;StructureObject&quot;, iPos)
+		if oStructureObj.ID &gt; 0 then
+			oTag = createObject(&quot;xmlStructure&quot;)
+			oTag.TagID = oStructureObj.ID
+			oTag.TagValue = oStructureObj.TagValue
+			oTag.TagLevel = oStructureObj.TagLevel
+			redim preserve gaStructure(iCount)
+			gaStructure(iCount) = oTag
+			iPos = oStructureObj.ID + 1
+			iCount = iCount + 1
+		else 
+			xmlHasMoreObjects = false
+		end if	
+	wend
+end sub
+			
+
+sub SetDocMetaDataFromXML
+dim oMetadata as object
+dim oTag as object
+dim aTag(0) as object
+dim aAtt(0) as object
+dim oAttribute as object
+dim iCount as integer
+dim iPos as integer
+dim i as integer
+dim sName as string
+
+	&apos;create Metadata object
+	oMetadata = createObject(&quot;Metadata&quot;)
+
+	&apos;get the first tag named &quot;MetaData&quot;
+	oTag = GetTagByNameAndLevel(&quot;MetaData&quot;, 2, 1)
+	&apos;get all the tags in &quot;Metadata&quot;
+	aTag() = GetTagsByID(oTag.ID)
+	iCount = UBound(aTag())
+	while i &lt; iCount
+		sName = aTag(i).Label
+		select case sName
+		case &quot;Title&quot;
+			oMetadata.docTitle = aTag(i).Value
+		case &quot;Language&quot;	
+			iPos = aTag(i).ID
+			&apos;aAtt() = GetAttributesByTagID(iPos)
+			&apos;oMetadata.docLanguage = aAtt(0).Value
+			oTag = gaTag(iPos).Attributes
+			oMetadata.docLanguage = oTag.GetValueByName(&quot;Language&quot;)
+			
+		case &quot;Description&quot;	
+			oMetadata.docDescription = aTag(i).Value
+		case &quot;Keyword&quot;
+			if oMetadata.docKeywords &lt;&gt; &quot;&quot; then 
+				oMetadata.docKeywords = oMetadata.docKeywords &amp; &quot;,&quot;
+			end if
+			oMetadata.docKeywords = oMetadata.docKeywords &amp; aTag(i).Value
+		case &quot;Entity&quot;
+			if oMetadata.docAuthors &lt;&gt; &quot;&quot; then 
+				oMetadata.docAuthors = oMetadata.docAuthors &amp; &quot;,&quot;
+			end if
+			oMetadata.docAuthors = oMetadata.docAuthors &amp; aTag(i).Value
+		case &quot;Rights&quot;
+			while i &lt; iCount
+				i = i + 1
+				if aTag(i).Label = &quot;Description&quot; then 
+					oMetadata.docCopyright = aTag(i).Value
+					i = iCount
+				end if	
+			wend
+		end select
+		i = i + 1
+	wend
+	SetDocMetadata(oMetadata)
+end sub
+
+
+
+
+
+
+&apos; -----------------------------------------------------------------------
+&apos; functions
+&apos; -----------------------------------------------------------------------
+
+function GetXmlStreamFromPackage(sZipFilename as string, iType as integer) as object
+Dim args(1) as variant
+Dim objZipService as object 
+Dim objStyleZipService as object 
+dim oStream as object 
+Dim sProject  as string  
+Dim sXMLFile as string
+dim sStyleZipFile as string  
+dim sStyleXMLFile as string  
+dim sUrlFilename
+dim oRepair as new com.sun.star.beans.NamedValue 
+
+	&apos; Create a handle to the zip service,  
+	objZipService = createUnoService(&quot;com.sun.star.packages.Package&quot;)  
+	
+	sUrlFilename = ConvertToURL(sZipFilename)
+	oRepair.Name = &quot;RepairPackage&quot;
+	oRepair.Value = true
+	
+	args(0) = sUrlFilename
+	args(1) = oRepair
+	objZipService.initialize(args())  
+	&apos;xray objZipService
+
+	&apos;in a package &quot;sample.zip&quot; the xml file should be located in &quot;sample/sample.xml&quot;
+	&apos;check if the xml file is in subfolder of the same name
+	sProject = GetFileNameWithoutExtension(sZipFilename, &quot;/&quot;)
+
+	select case iType
+	case SAX_PARSE_CONTENT
+		sXMLFile = sProject &amp; &quot;/&quot; &amp; sProject &amp; &quot;.xml&quot;
+		if objZipService.HasByHierarchicalName(sXMLFile) then
+			&apos; Grab a package stream containing the passed folder.   
+			oStream  = objZipService.GetByHierarchicalName(sXMLFile).GetInputStream()
+		else 
+			msgbox &quot;This package seams not to be an ILIAS learning unit&quot;
+			exit function
+		end if
+
+	case SAX_PARSE_STYLE
+		sStyleZipFile = sProject &amp; &quot;/style.zip&quot;
+		if objZipService.HasByHierarchicalName(sStyleZipFile) then
+			objStyleZipService = createUnoService(&quot;com.sun.star.packages.Package&quot;)  
+			args(0) = sStyleZipFile
+			args(1) = oRepair
+			objStyleZipService.initialize(args())  
+			&apos;xray objStyleZipService
+			dim oFiles as object
+			dim mFiles()
+			sStyleXMLFile = &quot;style/style.xml&quot;
+			&apos;oFiles = objStyleZipService.getByHierarchicalName(&quot;images&quot;)
+			&apos;mFiles() = oFiles.getElementNames
+			
+			if objStyleZipService.HasByHierarchicalName(sStyleXMLFile) then
+			&apos; Grab a package stream containing the passed folder.   
+				oStream  = objStyleZipService.GetByHierarchicalName(sStyleXMLFile).GetInputStream()
+			else 
+				&apos;msgbox &quot;The styles of this document could not be read.&quot;
+				exit function
+			end if	
+		else 
+			&apos;msgbox &quot;The styles of this document could not be read.&quot;
+			exit function
+		end if
+		
+	end select		
+
+
+	&apos;oStream =  objZipService.GetByHierarchicalName(&quot;&quot;)
+	&apos;elseif objZipService.HasByHierarchicalName(sProject &amp; &quot;xml&quot;) then
+	&apos;	sXMLFile = sProject &amp; &quot;.xml&quot;
+		&apos; Grab a package stream containing the passed folder.   
+	&apos;	oStream  = objZipService.GetByHierarchicalName(sXMLFile).GetInputStream()
+	
+	GetXmlStreamFromPackage = oStream
+end function
+
+
+
+Sub ReadXmlFromInputStream(oInputStream)
+dim oSaxParser as object
+dim oDocEventsHandler as object
+dim oInputSource as object
+
+
+   &apos; Create a Sax Xml parser.
+   oSaxParser = createUnoService( &quot;com.sun.star.xml.sax.Parser&quot; )
+
+   &apos; Create a document event handler object. As methods of this object are called, Basic arranges
+   &apos;  for global routines (see below) to be called. 
+   oDocEventsHandler = CreateDocumentHandler()
+   
+   &apos; Plug our event handler into the parser. As the parser reads an Xml document, it calls methods
+   &apos;  of the object, and hence global subroutines below to notify them of what it is seeing within the Xml document.
+   oSaxParser.setDocumentHandler( oDocEventsHandler )
+   
+   &apos; Create an InputSource structure.
+   oInputSource = createUnoStruct( &quot;com.sun.star.xml.sax.InputSource&quot; )
+   With oInputSource
+      .aInputStream = oInputStream   &apos; plug in the input stream
+   End With
+   
+   &apos; Now parse the document. This reads in the entire document.
+   &apos; Methods of the oDocEventsHandler object are called as the document is scanned.
+   oSaxParser.parseStream( oInputSource )
+End Sub 
+
+
+&apos;==================================================
+&apos;   Xml Sax document handler.
+&apos;==================================================
+
+
+&apos; Global variables used by our document handler.
+&apos;
+&apos; Once the Sax parser has given us a document locator,
+&apos;  the glLocatorSet variable is set to True,
+&apos;  and the goLocator contains the locator object.
+&apos;
+&apos; The methods of the locator object has cool methods
+&apos;  which can tell you where within the current Xml document
+&apos;  being parsed that the current Sax event occured.
+&apos; The locator object implements com.sun.star.xml.sax.XLocator.
+&apos;
+
+&apos; This creates an object which implements the interface
+&apos;  com.sun.star.xml.sax.XDocumentHandler.
+&apos; The doucment handler is returned as the function result.
+
+Function CreateDocumentHandler()
+dim oDocHandler as object
+dim glLocatorSet as variant
+
+   &apos; Use the CreateUnoListener function of Basic.
+   &apos; Basic creates and returns an object that implements a particular interface.
+   &apos; When methods of that object are called,
+   &apos;  Basic will call global Basic functions whose names are the same
+   &apos;  as the methods, but prefixed with a certian prefix.
+   oDocHandler = CreateUnoListener( &quot;DocHandler_&quot;, &quot;com.sun.star.xml.sax.XDocumentHandler&quot; )
+   
+   glLocatorSet = False
+   
+   CreateDocumentHandler() = oDocHandler
+End Function
+
+
+
+&apos;======================================================================================
+&apos;   Methods of our document handler call these global functions.
+&apos;   These methods look strangely similar to a SAX event handler.  ;-)
+&apos;   These global routines are called by the Sax parser as it reads in an XML document.
+&apos;   These subroutines must be named with a prefix that is
+&apos;    followed by the event name of the com.sun.star.xml.sax.XDocumentHandler interface.
+&apos;======================================================================================
+
+Sub DocHandler_startDocument()
+&apos;	msgbox &quot;Start Document&quot;
+	giLevel = 1
+	giTagID = 0
+	giAttID = 0
+	redim gaTag(0)
+	redim gaAttribute(0)
+End Sub
+
+
+Sub DocHandler_startElement( cName As String, oAttributes As com.sun.star.xml.sax.XAttributeList )
+dim oTagRec as object 
+dim oAttClone as object
+
+	&apos;Clone the attributes in order to save them in the array gaTag()
+	oAttClone = oAttributes.CreateClone
+	
+	redim preserve gaTag(giTagID)
+	oTagRec = createObject(&quot;xmlTag&quot;)
+	with oTagRec
+		.ID = giTagID
+		.Label = cName
+		.Value = &quot;&quot;
+		.Level = giLevel
+		.Attributes = oAttClone
+	end with
+	gaTag(giTagID) = oTagRec
+	giLevel = giLevel + 1
+	giTagID = giTagID + 1
+	
+End Sub
+
+
+
+Sub DocHandler_endElement( cName As String )
+dim oTagRec as object 
+
+	if cName = &quot;Table&quot; then
+		oTagRec = createObject(&quot;xmlTag&quot;)
+		redim preserve gaTag(giTagID)
+		with oTagRec
+			.ID = giTagID
+			.Label = &quot;/&quot; &amp; cName
+			.Value = &quot;&quot;
+			.Level = giLevel
+		end with
+		gaTag(giTagID) = oTagRec
+		giTagID = giTagID + 1
+	end if	
+	giLevel = giLevel - 1
+End Sub
+
+
+Sub DocHandler_characters( cChars As String )
+dim i as integer
+dim j as integer
+dim oTag as object
+
+	if cChars &lt;&gt; chr(10) then
+		if gaTag(giTagID - 1).Value = &quot;&quot; then 
+			gaTag(giTagID - 1).Value = cChars
+		else
+			gaTag(giTagID - 1).Addition = cChars
+		end if
+		
+	end if
+End Sub
+
+
+Sub DocHandler_ignorableWhitespace( cWhitespace As String )
+dim sWhitespace as string
+
+	sWhitespace = cWhitespace
+End Sub
+
+
+Sub DocHandler_processingInstruction( cTarget As String, cData As String )
+dim sTarget as string
+dim sData as string
+
+	sTarget = cTarget
+	sData = cData
+End Sub
+
+
+Sub DocHandler_setDocumentLocator( oLocator As com.sun.star.xml.sax.XLocator )
+   &apos; Save the locator object in a global variable.
+   &apos; The locator object has valuable methods that we can call to determine
+   goLocator = oLocator
+   
+   glLocatorSet = True
+End Sub
+
+
+Sub DocHandler_endDocument()
+	&apos;PrintXmlArrays  &apos;&apos;&apos;For debugging purposes
+End Sub
+
+&apos;***************************************************************************
+&apos;table lookups
+
+&apos;***************************************************************************
+
+function GetTagByName(sName as string, byVal iPos as long) as object
+&apos;get next tag with Label = sName, starting with ID = iPos
+dim iMaxPos as long
+dim oTag as object
+
+	oTag = createObject(&quot;xmlTag&quot;)
+	iMaxPos = ubound(gaTag())
+	while (iPos &lt;= iMaxPos)
+		if gaTag(iPos).Label = sName then
+			oTag = gaTag(iPos)
+			iPos = iMaxPos
+		end if
+		iPos = iPos + 1
+	wend
+	GetTagByName = oTag
+end function
+
+
+function GetTagByNameAndLevel(sName as string, iLevel as integer, byVal iPos as long) as object
+&apos;get next tag with Label = sName, starting with ID = iPos
+dim iMaxPos as long
+dim oTag as object
+
+	oTag = createObject(&quot;xmlTag&quot;)
+	iMaxPos = ubound(gaTag())
+	do while (iPos &lt;= iMaxPos)
+		if (gaTag(iPos).Label = sName) and (gaTag(iPos).Level = iLevel) then
+			oTag = gaTag(iPos)
+			exit do
+		end if
+		iPos = iPos + 1
+	loop
+	GetTagByNameAndLevel = oTag
+end function
+
+
+function GetTagsByID(byVal iPos as long)
+&apos;get set of tags belonging to the tag on position iPos
+&apos;returns all tags, whos level is deeper then the level on position iPos
+dim iMaxPos as long
+dim i as integer
+dim iLevel as integer
+dim aTag(0)
+
+	iMaxPos = ubound(gaTag())
+	iLevel = gaTag(iPos).Level
+	iPos = iPos + 1 &apos;set pointer to next tag element
+	i = 0
+	do while (iPos &lt;= iMaxPos) 
+		if (gaTag(iPos).Level &gt; iLevel) then
+			redim preserve aTag(i)
+			aTag(i) = gaTag(iPos)
+			i = i + 1
+		else 
+			exit do	
+		end if	
+		iPos = iPos + 1
+	loop
+	GetTagsByID = aTag()
+end function
+
+
+function GetTagFromListByLabel(aTag(), sLabel as string) as object
+&apos;returns the object of a passed attribute label within an attribute list
+dim i as integer
+dim iCount as long
+dim oTag as object
+&apos;dim strLabel as string
+&apos;dim strValue as string
+
+	i = 0
+	iCount = UBound(aTag())
+	do while i &lt;= iCount
+		&apos;strLabel = aTag(i).Label
+		&apos;strValue = aTag(i).Value
+		if aTag(i).Label = sLabel then
+			GetTagFromListByLabel = aTag(i)
+			exit do
+		end if
+		i = i + 1
+	loop
+end function
+
+
+function GetTagValueFromListByLabel(aTag(), sLabel as string) as string
+&apos;returns the object of a passed attribute label within an attribute list
+dim i as integer
+dim iCount as long
+dim oTag as object
+dim sLabel as string
+dim sValue as string
+
+	i = 0
+	iCount = UBound(aTag())
+	do while i &lt;= iCount
+		if aTag(i).Label = sLabel then
+			GetTagValueFromListByLabel = aTag(i).Value
+			exit do
+		end if
+		i = i + 1
+	loop
+end function
+
+
+function GetTagByAttributeValue(sName as string, sValue as string) as object
+dim iMaxPos as long
+dim oTag as object
+dim iPos as long
+
+	iPos = 0
+	iMaxPos = ubound(gaTag())
+	do while (iPos &lt;= iMaxPos)
+		if not isNull(gaTag(iPos).Attributes) then
+			if gaTag(iPos).Attributes.GetValueByName(sName) = sValue then
+				oTag = gaTag(iPos)
+				exit do
+			end if	
+		end if
+		iPos = iPos + 1
+	loop
+	GetTagByAttributeValue = oTag
+end function
+
+
+function GetAttributesByTagID(iTagID as long)
+dim iPortionCount as long
+dim aAtt(0)
+dim iCount as integer
+dim i as long
+dim j as long
+
+	&apos;get position in gaAttribute
+	i = 0
+	j = 0
+	iCount = UBound(gaAttribute())
+	do while i &lt; iCount
+		if gaAttribute(i).TagID = iTagID then
+			do while gaAttribute(i).TagID = iTagID
+				redim preserve aAtt(j)
+				aAtt(j) = gaAttribute(i)
+				j = j + 1
+				i = i + 1
+			loop
+			exit do
+		end if
+		i = i + 1
+	loop
+	GetAttributesByTagID = aAtt()
+end function
+
+
+function GetAttributeFromList(aAttribute(), sLabel as string) as object
+&apos;returns the object of a passed attribute label within an attribute list
+dim i as integer
+dim iCount as long
+dim oAttribute as object
+
+	i = 0
+	iCount = UBound(aAttribute())
+	do while i &lt;= iCount
+		if not isempty(aAttribute(i)) then
+			oAttribute = aAttribute(i)
+			if oAttribute.Label = sLabel then
+				GetAttributeFromList = oAttribute
+				exit do
+			end if
+		end if	
+		i = i + 1
+	loop
+end function
+
+
+function GetValueFromAttributeList(aAttribute(), sLabel as string) as string
+&apos;returns the object of a passed attribute label within an attribute list
+dim i as integer
+dim iCount as long
+dim sLabel as string
+dim sValue as string
+
+	i = 0
+	iCount = UBound(aAttribute())
+	do while i &lt;= iCount
+		sLabel = aAttribute(i).Label
+		sValue = aAttribute(i).Value
+		if aAttribute(i).Label = sLabel then
+			GetValueFromAttributeList = aAttribute(i).Value
+			exit do
+		end if
+		i = i + 1
+	loop
+end function
+
+
+function GetAttributeByValue(sValue as string, iStartPos) as object
+&apos;returns the value of a passed attribute within an attribute list
+dim i as integer
+dim oAttribute as object
+
+	i = iStartPos
+	iCount =  UBound(gaAttribute())
+	do while i &lt;= iCount
+		if gaAttribute(i).Value = sValue then
+			oAttribute = gaAttribute(i)
+			GetAttributeByValue = oAttribute
+			exit do
+		end if
+		i = i + 1
+	loop
+end function
+
+
+function GetAttributeByNameAndValue(sName as string, sValue as string) as object
+&apos;returns the value of a passed attribute within an attribute list
+dim i as integer
+dim iCount as long
+
+	i = 0
+	iCount =  UBound(gaAttribute())
+	do while i &lt;= iCount
+		if (gaAttribute(i).Label = sName) and (gaAttribute(i).Value = sValue) then
+			GetAttributeByNameAndValue = gaAttribute(i)
+			exit do
+		end if
+		i = i + 1
+	loop
+end function
+
+
+function GetStructureLevelByPos() as integer
+dim iPos as integer
+
+end function
+
+
+&apos;***************************************************************************
+&apos;DEBUG
+
+&apos;***************************************************************************
+
+sub PrintXmlArrays
+dim i as integer
+dim j as integer
+dim sName as string
+dim sValue as string
+dim sStrg as string
+dim sCR as string
+dim oFileAccessService as object
+dim oFile as object
+dim sCurDir as string
+dim oOutputStream as object
+dim sSeparator as string 
+dim aAttributes()
+dim sAttName as string
+dim sAttValue as string
+dim oAttributes as object
+dim oAttribute as object
+dim iCount as long
+
+
+	sCR = chr(13)
+	sSeparator = sCR &amp; &quot;=================================================&quot; &amp; sCR &amp; sCR
+	
+	oFileAccessService = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)
+	oFile = createUnoService(&quot;com.sun.star.io.TextOutputStream&quot;)
+	sCurDir = DirectoryNameOutOfPath(gsZipFilename, gsPathSeparator)
+
+	oOutputStream = oFileAccessService.openFileWrite(sCurDir &amp; &quot;/Tags.txt&quot;)
+	oOutputStream.truncate()
+	oFile.setOutputStream(oOutputStream)
+	sStrg = &quot;ARRAY gaTag:&quot; &amp; sSeparator
+	iCount = ubound(gaTag())
+	for i = 1 to iCount
+		sStrg =         &quot;ID       &quot; &amp; gaTag(i).ID &amp; sCR
+		sStrg = sStrg &amp; &quot;Label    &quot; &amp; gaTag(i).Label &amp; sCR		
+		sStrg = sStrg &amp; &quot;Value    &quot; &amp; gaTag(i).Value &amp; sCR
+		sStrg = sStrg &amp; &quot;Addition &quot; &amp; gaTag(i).Addition &amp; sCR
+		sStrg = sStrg &amp; &quot;Level    &quot; &amp; gaTag(i).Level &amp; sCR	
+		
+		&apos;aAttributes() = gaTag(i).Attributes
+		&apos;iCount = UBound(aAttributes())
+		&apos;for j = 0 to iCount
+		&apos;	if aAttributes(j).name &lt;&gt; &quot;&quot; then
+		&apos;		sAttName = aAttributes(j).name
+		&apos;		sAttValue = aAttributes(j).value
+		&apos;		sStrg = sStrg &amp; sAttName &amp; &quot;: &quot; &amp; sAttValue &amp; sCR	
+		&apos;	end if	
+		&apos;next j
+		
+		oAttributes = gaTag(i).Attributes
+		&apos;xray oAttributes
+		if not isnull(oAttributes) then
+			for j = 0 to oAttributes.Length - 1
+				sName = oAttributes.GetNameByIndex(j)
+				sValue = oAttributes.GetValueByIndex(j)
+				sStrg = sStrg &amp; &quot;Attribute &quot; &amp; j &amp; &quot;: &quot; &amp; sName &amp; &quot; = &quot; &amp; sValue &amp; sCR
+			next j
+		end if	
+	
+		oFile.writeString(sStrg &amp; sCR)
+		&apos;sStrg = sStrg &amp; sCR	&amp; sCR
+	next i
+		
+	oOutputStream = oFileAccessService.openFileWrite(sCurDir &amp; &quot;/Attributes.txt&quot;)
+	oOutputStream.truncate()
+	oFile.setOutputStream(oOutputStream)
+	sStrg = &quot;ARRAY gaAttribute:&quot; &amp; sSeparator
+	for i = 1 to ubound(gaAttribute())
+		sStrg = sStrg &amp; &quot;ID: &quot; &amp; gaAttribute(i).ID &amp; sCR
+		sStrg = sStrg &amp; &quot;TagID: &quot; &amp; gaAttribute(i).TagID &amp; sCR
+		sStrg = sStrg &amp; &quot;Label: &quot; &amp; gaAttribute(i).Label &amp; sCR
+		sStrg = sStrg &amp; &quot;Value: &quot; &amp; gaAttribute(i).Value &amp; sCR	 &amp; sCR	
+	next i
+	oFile.writeString(sStrg &amp; sCR)
+	sStrg = &quot;&quot;
+
+&apos;	oOutputStream = oFileAccessService.openFileWrite(sCurDir &amp; &quot;/Structure.txt&quot;)
+&apos;	oOutputStream.truncate()
+&apos;	oFile.setOutputStream(oOutputStream)
+&apos;	sStrg = &quot;ARRAY gaStructure:&quot; &amp; sSeparator
+&apos;	iCount = ubound(gaStructure())
+&apos;	for i = 1 to iCount
+&apos;		sStrg = sStrg &amp; &quot;TagID: &quot; &amp; gaStructure(i).TagID &amp; sCR
+&apos;		sStrg = sStrg &amp; &quot;TagValue: &quot; &amp; gaStructure(i).TagValue &amp; sCR
+&apos;		sStrg = sStrg &amp; &quot;TagLevel: &quot; &amp; gaStructure(i).TagLevel &amp; sCR	 &amp; sCR	
+&apos;	next i
+&apos;	oFile.writeString(sStrg &amp; sCR)
+&apos;	sStrg = &quot;&quot;
+
+	oFile.closeOutput() 
+end sub
+
+
+</script:module>

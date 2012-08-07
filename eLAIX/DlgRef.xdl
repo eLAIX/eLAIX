@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE dlg:window PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "dialog.dtd">
+<dlg:window xmlns:dlg="http://openoffice.org/2000/dialog" xmlns:script="http://openoffice.org/2000/script" dlg:id="DlgRef" dlg:left="149" dlg:top="56" dlg:width="241" dlg:height="269" dlg:page="1" dlg:closeable="true" dlg:moveable="true" dlg:title="Insert link to chapter">
+ <dlg:styles>
+  <dlg:style dlg:style-id="0" dlg:font-weight="150"/>
+  <dlg:style dlg:style-id="1" dlg:font-name="Bitstream Vera Sans" dlg:font-height="8" dlg:font-stylename="Roman" dlg:font-family="swiss" dlg:font-weight="100"/>
+ </dlg:styles>
+ <dlg:bulletinboard>
+  <dlg:text dlg:id="LabelLevel" dlg:tab-index="2" dlg:left="6" dlg:top="11" dlg:width="85" dlg:height="12" dlg:page="1" dlg:value="Show headings up to Level:"/>
+  <dlg:menulist dlg:id="ListBoxLevel" dlg:tab-index="3" dlg:left="92" dlg:top="9" dlg:width="36" dlg:height="12" dlg:page="1" dlg:help-text="Show headings up to this level" dlg:spin="true" dlg:linecount="10">
+   <dlg:menupopup>
+    <dlg:menuitem dlg:value="1"/>
+    <dlg:menuitem dlg:value="2"/>
+    <dlg:menuitem dlg:value="3"/>
+    <dlg:menuitem dlg:value="4"/>
+    <dlg:menuitem dlg:value="5"/>
+    <dlg:menuitem dlg:value="6"/>
+    <dlg:menuitem dlg:value="7"/>
+    <dlg:menuitem dlg:value="8"/>
+    <dlg:menuitem dlg:value="9"/>
+    <dlg:menuitem dlg:value="10"/>
+   </dlg:menupopup>
+   <script:event script:event-name="on-performaction" script:location="document" script:macro-name="XrefHeadings.XRefHeadings.subEventListBoxLevels_Initiate" script:language="StarBasic"/>
+  </dlg:menulist>
+  <dlg:button dlg:style-id="0" dlg:id="CommandButtonInsert" dlg:tab-index="0" dlg:left="60" dlg:top="249" dlg:width="60" dlg:height="15" dlg:default="true" dlg:value="Insert">
+   <script:event script:event-name="on-performaction" script:macro-name="vnd.sun.star.script:eLAIX.Menu.DoInsertReference?language=Basic&amp;location=application" script:language="Script"/>
+  </dlg:button>
+  <dlg:button dlg:id="CommandButtonClose" dlg:tab-index="4" dlg:left="123" dlg:top="249" dlg:width="60" dlg:height="15" dlg:value="Close" dlg:button-type="cancel">
+   <script:event script:event-name="on-performaction" script:macro-name="vnd.sun.star.script:XrefHeadings.XRefHeadings.subSaveDialogSettings?language=Basic&amp;location=document" script:language="Script"/>
+  </dlg:button>
+  <dlg:menulist dlg:style-id="1" dlg:id="ListBoxHeadings" dlg:tab-index="1" dlg:left="5" dlg:top="26" dlg:width="233" dlg:height="217" dlg:page="1">
+   <script:event script:event-name="on-performaction" script:location="document" script:macro-name="XrefHeadings.XRefHeadings.subEventListBoxheadings_Initiate" script:language="StarBasic"/>
+  </dlg:menulist>
+  <dlg:text dlg:id="LabelMode" dlg:tab-index="5" dlg:left="142" dlg:top="11" dlg:width="22" dlg:height="12" dlg:page="1" dlg:value="Insert:"/>
+  <dlg:menulist dlg:id="ListBoxMode" dlg:tab-index="6" dlg:left="165" dlg:top="9" dlg:width="73" dlg:height="12" dlg:page="1" dlg:help-text="Show headings up to this level" dlg:spin="true" dlg:linecount="10">
+   <dlg:menupopup>
+    <dlg:menuitem dlg:value="Number only"/>
+    <dlg:menuitem dlg:value="Title only"/>
+    <dlg:menuitem dlg:value="Number and Title"/>
+   </dlg:menupopup>
+  </dlg:menulist>
+ </dlg:bulletinboard>
+</dlg:window>

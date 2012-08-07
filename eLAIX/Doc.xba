@@ -1,0 +1,1281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">
+<script:module xmlns:script="http://openoffice.org/2000/script" script:name="Doc" script:language="StarBasic">&apos;****************************************************************************
+&apos; eLAIX   : Writing ILIAS learning modules offline with OpenOffice.org Writer
+&apos; Author  : Harry Boldt - h.boldt@boldt-media.de - http://elaix.org
+&apos; License : GPL
+&apos;****************************************************************************
+
+&apos; This module is part of eLAIX. You can redistribute it and/or
+&apos; modify it under the terms of the GNU Lesser General Public
+&apos; License as published by the Free Software Foundation, either
+&apos; version 3 of the License, or (at your option) any later version.
+&apos; 
+&apos; This program is distributed in the hope that it will be useful,
+&apos; but WITHOUT ANY WARRANTY; without even the implied warranty of
+&apos; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+&apos; Lesser General Public License for more details.
+&apos; 
+&apos; You should have received a copy of the GNU Lesser General Public
+&apos; License along with this program. If not, please visit the Free
+&apos; Software Foundation website at http://www.gnu.org/licenses/.
+
+
+Option Explicit
+
+
+sub SaveToHTML(oDoc as object, sUrl as string)
+    Dim myProps(0) as New com.sun.star.beans.PropertyValue
+
+	myProps(0).Name = &quot;FilterName&quot;
+	myProps(0).Value = &quot;HTML (StarWriter)&quot;
+	oDoc.storeToUrl(sUrl,myProps())
+end sub
+
+
+sub SetGraphicAnchorsToParagraph
+&apos;sets the anchor of graphics to paragraph if the graphic is placed in a frame
+&apos;and both are anchored as character, to avoid graphic export including caption
+Dim oGraphics as object
+Dim oGraphic as object
+Dim oFrame as object
+dim iAsChar as integer
+dim iAtPara as integer
+dim i as integer
+
+	iAsChar = com.sun.star.text.TextContentAnchorType.AS_CHARACTER
+	iAtPara = com.sun.star.text.TextContentAnchorType.AT_PARAGRAPH
+	oGraphics = thisComponent.getGraphicObjects()
+	for i = 0 to oGraphics.Count - 1
+		oGraphic = oGraphics.GetByIndex(i)
+		oFrame = oGraphic.getAnchor.Text
+		if oFrame.supportsService(&quot;com.sun.star.text.TextFrame&quot;) then
+			if (oGraphic.AnchorType = iAsChar) and (oGraphic.AnchorType = iAsChar) then
+				&apos;ExportGraphic
+			end if
+		end if	
+	next i
+end sub
+
+
+sub SetObjectAnchorsToCharacter
+Dim oGraphics as object
+Dim oGraphic as object
+Dim i As Integer
+Dim oShapes as object
+Dim oShape as object
+Dim j As Integer
+
+  oGraphics = thisComponent.getGraphicObjects()
+  for i = 0 to oGraphics.Count - 1
+    oGraphic = oGraphics.GetByIndex(i)
+    If (oGraphic.AnchorType &lt;&gt; 1) and (oGraphic.AnchorType &lt;&gt; 4)  Then
+    	oGraphic.AnchorType = 4
+    Endif
+  next i
+
+  oShapes = thisComponent.getEmbeddedObjects()
+  for j = 0 to oShapes.Count - 1
+    oShape = oShapes.GetByIndex(j)
+    If (oShape.AnchorType &lt;&gt; 1) AND (oShape.AnchorType &lt;&gt; 4)  Then
+      oShape.AnchorType = 4
+    end if 	
+  next j
+end sub
+
+
+sub CheckFrameAnchors
+&apos;com.sun.star.text.TextContentAnchorType.AT_PARAGRAPH = The object is anchored at the top left position of the paragraph.
+&apos;com.sun.star.text.TextContentAnchorType.AS_CHARACTER 	The object is anchored instead of a character.
+&apos;com.sun.star.text.TextContentAnchorType.AT_PAGE 	The object is anchored to the page.
+&apos;com.sun.star.text.TextContentAnchorType.AT_FRAME 	The object is anchored to a text frame.
+&apos;com.sun.star.text.TextContentAnchorType.AT_CHARACTER 	The object is anchored to a character.
+
+Dim oFrames as object
+Dim oFrame as object
+Dim j As Integer
+&apos;dim vFrameName as string
+&apos;dim vFrameStyle as string
+dim vAsChar as integer
+dim vAtChar as integer
+
+  vAsChar = com.sun.star.text.TextContentAnchorType.AS_CHARACTER
+  vAtChar = com.sun.star.text.TextContentAnchorType.AT_CHARACTER
+  oFrames = thisComponent.GetTextFrames()
+  for j = 0 to oFrames.Count - 1
+    oFrame = oFrames.GetByIndex(j)
+    &apos;vFrameStyle = oFrame.FrameStyleName
+    &apos;vFrameName = oFrame.Name
+    if oFrame.AnchorType = vAsChar then
+      &apos;frame is anchored as character = would be exported as a grafic including subtitle
+      oFrame.AnchorType = vAtChar
+    end if 	
+  next j
+end sub
+
+
+Sub SetGraphicSizes
+dim oDoc as object
+dim oLinkTypes as object
+dim oGraphicLinks as object
+dim aGraphicsNames() as object
+dim cGraphicName as string
+dim oGraphic as object
+dim i as integer
+
+   oDoc = ThisComponent
+   oLinkTypes = oDoc.getLinks()
+   
+   &apos; Show the *types* of links in the document.
+   &apos;MsgBox Join( oLinkTypes.getElementNames(), Chr(13) )
+   
+   oGraphicLinks = oLinkTypes.getByName( &quot;Grafiken&quot; )
+   &apos; Show the names of the graphics in the document.
+   &apos;MsgBox Join( oGraphicLinks.getElementNames(), Chr(13) )   
+   
+   aGraphicsNames = oGraphicLinks.getElementNames()
+   For i = 0 To UBound(aGraphicsNames())
+      cGraphicName = aGraphicsNames( i )
+      oGraphic = oGraphicLinks.getByName( cGraphicName )
+      
+      &apos;Print oGraphic.LinkDisplayName, oGraphic.ActualSize.Width, oGraphic.ActualSize.Height
+   Next
+End Sub 
+
+Sub DisplayAllStyles
+  Dim mFamilyNames As Variant, mStyleNames As Variant
+  Dim sMsg As String, n%, i%
+  Dim oFamilies As Object, oStyle As Object, oStyles As Object
+ 
+  oFamilies = ThisComponent.StyleFamilies
+  mFamilyNames = oFamilies.getElementNames()
+  For n = LBound(mFamilyNames) To UBound(mFamilyNames)
+    sMsg = &quot;&quot;
+    oStyles = oFamilies.getByName(mFamilyNames(n))
+    mStyleNames = oStyles.getElementNames()
+    For i = LBound(mStyleNames) To UBound (mStyleNames)
+      sMsg=sMsg + i + &quot; : &quot; + mStyleNames(i) + Chr(13)
+      If ((i + 1) Mod 20 = 0) Then
+        MsgBox sMsg,0,mFamilyNames(n)
+        sMsg = &quot;&quot;
+      End If
+    Next i
+    MsgBox sMsg,0,mFamilyNames(n)
+  Next n
+End Sub
+
+
+sub ShowChapterNumbers
+  Dim oStyles     As Object
+  Dim oStyle()   As Object
+  Dim I     As Integer
+  Dim j     As Integer
+  Dim sProp     As String
+
+  oStyles = ThisComponent.getChapterNumberingRules
+  &apos; The properties of the style are stored in a Name-Value-Array()
+    oStyle  = oStyles.getbyindex(j)
+    sProp = &quot;&quot;
+    For I = 0 to UBound(oStyle)
+      sProp = sProp &amp; oStyle(I).Name &amp; &quot; = &quot; &amp; oStyle(I).Value &amp; Chr$(13)
+    Next i
+  MsgBox sProp 
+end sub
+
+
+sub GetAllTables
+&apos;This example prints the names of all tables:
+dim xEnum as object
+dim vString as string
+
+ vString = &quot;&quot;
+ xEnum = thisComponent.createContentEnumeration( &quot;com::sun::star::text::TextTables&quot; )
+ while xEnum.hasMoreElements()
+   vString = vString &amp; xEnum.nextElement().Name &amp; chr(13)
+ wend
+ msgbox vString
+end sub
+
+
+sub GetChapterTitles
+dim oText as object
+dim oCursor as object
+dim vStyle as string
+dim vCursorMoved as boolean
+
+   oText = thisComponent.getText()
+   &apos; Get a cursor that can move over or to any part of the text.
+   oCursor = oText.createTextCursor() 
+   oCursor.gotoStart(False)
+   vCursorMoved = true
+   while vCursorMoved
+     vCursorMoved = oCursor.gotoNextParagraph( False )  
+     if vCursorMoved then
+       vStyle = Left(oCursor.ParaStylename, 7)
+       if vStyle = &quot;Heading&quot; then
+         vCursorMoved = oCursor.gotoEndOfParagraph(true)
+       end if  
+     end if  
+   wend
+end sub
+
+
+function GetStandardDocHeader() as object
+  Dim oDoc as object
+  Dim oPageStyles As Object
+  Dim oStyleFamilies As Object
+  Dim oStandardPage As Object
+  
+  oDoc = ThisComponent()
+  oStyleFamilies = oDoc.StyleFamilies
+  oPageStyles = oStyleFamilies.getByName(&quot;PageStyles&quot;)
+  oStandardPage = oPageStyles.getByName(&quot;Standard&quot;)
+  GetStandardDocHeader = oStandardPage.HeaderText
+end function
+
+
+function GetStandardDocFooter() as object
+  Dim oDoc as object
+  Dim oPageStyles As Object
+  Dim oStyleFamilies As Object
+  Dim oStandardPage As Object
+  
+  oDoc = ThisComponent()
+  oStyleFamilies = oDoc.StyleFamilies
+  oPageStyles = oStyleFamilies.getByName(&quot;PageStyles&quot;)
+  oStandardPage = oPageStyles.getByName(&quot;Standard&quot;)
+  GetStandardDocFooter = oStandardPage.FooterText
+end function
+
+
+Sub ExtractWriterGraphics(sDestFolder as string)
+
+	On Local Error Goto ErrorHandler
+
+	dim sIntFolder as string
+	Dim oDocument as Object
+	Dim oGraphics as Object
+
+	Dim oZipArchive as object &apos;New com.sun.star.packages.Package
+	Dim oPictures as Object
+	Dim mZipFile(0) as Variant
+	Dim mFiles() as String
+
+	Dim oFileAccess as object &apos;New com.sun.star.ucb.SimpleFileAccess
+	Dim oFile as Object
+	Dim oInputStream as Object
+	Dim oOutputStream as Object
+	Dim mData() as Variant
+	Dim sDestFile as String
+	Dim sGraphicName as String
+	Dim sGraphicURL as String
+	Dim sTmp as String
+
+	Dim oUrl as New com.sun.star.util.URL 
+	Dim oTransformer as Object
+
+	Dim n as Long
+	Dim i as Integer
+	Dim j as Integer
+	Dim k as Integer
+	
+	dim oGraphic as object
+	dim iGraphicCount as integer
+	dim bIsGraphic as boolean
+	dim bTryAgain as boolean
+	
+	bTryAgain = true
+	sIntFolder = &quot;Pictures&quot;
+	oDocument = ThisComponent()
+	&apos;To avoid problems on Mac store the document
+	&apos;oDocument.store
+
+
+	
+	&apos; open zip file and get content of &quot;Pictures&quot; folder ...
+ 	oZipArchive = createUnoService(&quot;com.sun.star.packages.Package&quot;)
+	mZipFile(0) = oDocument.URL
+	oZipArchive.initialize(mZipFile())
+
+	oPictures = oZipArchive.getByHierarchicalName(sIntFolder)
+	mFiles() = oPictures.getElementNames
+
+	oGraphics = oDocument.getGraphicObjects
+	&apos; for all pictures in document ...
+	iGraphicCount = oGraphics.getCount - 1
+	i = 0
+	do while i &lt;= iGraphicCount
+		oGraphic = oGraphics.getByIndex(i)
+		sGraphicURL = oGraphics.getByIndex(i).GraphicURL
+		sTmp = sGraphicURL
+		&apos; internal picture names start with &quot;vnd.sun...&quot;
+		If InStr(1, sGraphicURL, &quot;vnd.sun.star.GraphicObject:&quot;, 0) = 1 Then
+			&apos; get the picture name (comes without the extension)
+			sGraphicURL = Mid(sGraphicURL, 28, Len(sGraphicURL))
+			&apos; so search all files in pictures folder for the current picture ...
+			bIsGraphic = false
+			For j = 0 to uBound(mFiles())
+				If InStr(1, mFiles(j), sGraphicURL, 0) Then
+					&apos; create new name with extension ...
+					sGraphicName = oGraphics.getByIndex(i).getName() &amp; Mid(mFiles(j), Len(sGraphicURL)+1, Len(mFiles(j))
+					bIsGraphic = true
+					Exit For
+				EndIf
+			Next j
+
+			if bIsGraphic then 
+				&apos; copy file to external folder relative to stored document...
+				oFileAccess = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)
+				sDestFile = sDestFolder &amp; ReplaceString(sGraphicName, &quot;&quot;, &quot; &quot;)
+				oFile = oFileAccess.openFileWrite(sDestFile)
+				oOutputStream = createUnoService(&quot;com.sun.star.io.DataOutputStream&quot;)
+				oOutputStream.setOutputStream(oFile)
+	
+				oInputStream = oPictures.getByName(mFiles(j)).getInputStream()
+	
+				n = -1
+				While n &lt;&gt; 0
+					n =	oInputStream.readBytes(mData(), 16384)
+					oOutputStream.writeBytes(mData())
+				Wend
+				oOutputStream.flush()
+				oOutputStream.closeOutput()
+				oInputStream.closeInput()
+				ReDim mData() as Variant
+			
+			else &apos; the graphic could not be found, 
+				&apos; it could be a different operating system since last save (different internal graphicnames)
+				&apos; so store the document
+				oDocument.store
+				if bTryAgain then
+					i = i - 1
+					bTryAgain = false
+				end if
+			end if	
+		endIf
+		i = i + 1
+		goDlgExport.Model.lblCountGraphic.Label = i
+	loop
+
+	&apos; this automatically removes the unused internal pictures too  :-) 
+	&apos;oDocument.store()
+
+	Exit Sub
+ErrorHandler:
+	&apos;MsgBox &quot;Error: &quot; &amp; Err() &amp; &quot; &quot; &amp; Error() &amp; &quot; &quot; &amp; Erl()
+End Sub
+
+
+
+
+function ExportGraphic(poGraphic, pDestFolder) as string
+&apos;	On Local Error Goto ErrorHandler
+	Dim oDocument as Object
+	Dim oZipArchive as object
+	Dim oPictures as Object
+	Dim mZipFile(0) as Variant
+	Dim mFiles() as String
+	Dim oFileAccess as object
+	Dim oFile as Object
+	Dim oInputStream as Object
+	Dim oOutputStream as Object
+	Dim mData() as Variant
+	Dim sGraphicName as String
+	Dim sGraphicURL as String
+	Dim sTmp as String
+	Dim oUrl as New com.sun.star.util.URL 
+	Dim oTransformer as Object
+	Dim n as Long
+	Dim i as Integer
+	dim sFile as string
+	dim sName as string
+	
+	ExportGraphic = &quot;&quot;
+	oDocument = ThisComponent()
+
+	&apos; create destination folder relative to document ...
+	oTransformer = createUnoService(&quot;com.sun.star.util.URLTransformer&quot;)
+	oUrl.Complete = oDocument.URL
+	oTransformer.parsestrict(oUrl) 
+	&apos;pDestfolder = &quot;file://&quot; &amp; oURL.Path &amp; &quot;Pictures/&quot;
+
+	&apos; open zip file and get content of &quot;Pictures&quot; folder ...
+ 	oZipArchive = createUnoService(&quot;com.sun.star.packages.Package&quot;)
+	mZipFile(0) = oDocument.URL
+	oZipArchive.initialize(mZipFile())
+
+	oPictures = oZipArchive.getByHierarchicalName(&quot;Pictures&quot;)
+
+	mFiles() = oPictures.getElementNames
+	sGraphicURL = poGraphic.GraphicURL
+	sTmp = sGraphicURL
+	&apos; internal picture names start with &quot;vnd.sun...&quot;
+	If InStr(1, sGraphicURL, &quot;vnd.sun.star.GraphicObject:&quot;, 0) = 1 Then
+		&apos; get the picture name (comes without the extension)
+		sGraphicURL = Mid(sGraphicURL, 28, Len(sGraphicURL))
+		&apos; so search all files in pictures folder for the current picture ...
+		For i = 0 to uBound(mFiles())
+		  sFile = mFiles(i)
+		  sName = poGraphic.getName()
+		  If InStr(1, mFiles(i), sGraphicURL, 0) Then
+			&apos; create new name with extension ...
+			sGraphicName = poGraphic.getName() &amp; Mid(mFiles(i), Len(sGraphicURL)+1, Len(mFiles(i))
+			Exit For
+		  EndIf
+		Next i
+
+		&apos; copy file to external folder relative to stored document...
+		oFileAccess = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)
+		oFile = oFileAccess.openFileWrite(pDestFolder &amp; sGraphicName)
+		oOutputStream = createUnoService(&quot;com.sun.star.io.DataOutputStream&quot;)
+		oOutputStream.setOutputStream(oFile)
+
+		oInputStream = oPictures.getByName(mFiles(i)).getInputStream()
+
+		n = -1
+		While n &lt;&gt; 0
+			n =	oInputStream.readBytes(mData(), 16384)
+			oOutputStream.writeBytes(mData())
+		Wend
+		oOutputStream.flush()
+		oOutputStream.closeOutput()
+		oInputStream.closeInput()
+		ReDim mData() as Variant
+        ExportGraphic = sGraphicName
+	EndIf
+&apos;	Exit function
+&apos;ErrorHandler:
+&apos;	MsgBox (&quot;Error in ExportGraphic: &quot; &amp; Err() &amp; &quot; &quot; &amp; Error() &amp; &quot; &quot; &amp; Erl(), 16)
+End function
+
+
+function ExportGraphicByURL(sGraphicURL, pDestFolder) as string
+&apos;	On Local Error Goto ErrorHandler
+	Dim oDocument as Object
+	Dim oZipArchive as object
+	Dim oPictures as Object
+	Dim mZipFile(0) as Variant
+	Dim mFiles() as String
+	Dim oFileAccess as object
+	Dim oFile as Object
+	Dim oInputStream as Object
+	Dim oOutputStream as Object
+	Dim mData() as Variant
+	Dim sGraphicName as String
+	Dim sTmp as String
+	Dim oUrl as New com.sun.star.util.URL 
+	Dim oTransformer as Object
+	Dim n as Long
+	Dim i as Integer
+	dim sFile as string
+	dim sName as string
+	dim sMsg as string
+	dim iAnswer as integer
+	
+	
+	ExportGraphicByURL = &quot;&quot;
+	oDocument = ThisComponent()
+
+	&apos; create destination folder relative to document ...
+	oTransformer = createUnoService(&quot;com.sun.star.util.URLTransformer&quot;)
+	oUrl.Complete = oDocument.URL
+	oTransformer.parsestrict(oUrl) 
+	&apos;pDestfolder = &quot;file://&quot; &amp; oURL.Path &amp; &quot;Pictures/&quot;
+
+	&apos; open zip file and get content of &quot;Pictures&quot; folder ...
+ 	oZipArchive = createUnoService(&quot;com.sun.star.packages.Package&quot;)
+	mZipFile(0) = oDocument.URL
+	oZipArchive.initialize(mZipFile())
+
+	oPictures = oZipArchive.getByHierarchicalName(&quot;Pictures&quot;)
+
+	mFiles() = oPictures.getElementNames
+	&apos;sGraphicURL = poGraphic.GraphicURL
+	sTmp = sGraphicURL
+	&apos; internal picture names start with &quot;vnd.sun...&quot;
+	If InStr(1, sGraphicURL, &quot;vnd.sun.star.GraphicObject:&quot;, 0) = 1 Then
+		&apos; get the picture name (comes without the extension)
+		sGraphicURL = Mid(sGraphicURL, 28, Len(sGraphicURL))
+		&apos; so search all files in pictures folder for the current picture ...
+		For i = 0 to uBound(mFiles())
+		  sFile = mFiles(i)
+		  If InStr(1, mFiles(i), sGraphicURL, 0) Then
+			sGraphicName = mFiles( i)
+			Exit For
+		  EndIf
+		Next i
+
+		if sGraphicname &lt;&gt; &quot;&quot; then
+	
+			&apos; copy file to external folder relative to stored document...
+			oFileAccess = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)
+			oFile = oFileAccess.openFileWrite(pDestFolder &amp; gsPathSeparator &amp; sGraphicName)
+			oOutputStream = createUnoService(&quot;com.sun.star.io.DataOutputStream&quot;)
+			oOutputStream.setOutputStream(oFile)
+	
+			oInputStream = oPictures.getByName(mFiles(i)).getInputStream()
+	
+			n = -1
+			While n &lt;&gt; 0
+				n =	oInputStream.readBytes(mData(), 16384)
+				oOutputStream.writeBytes(mData())
+			Wend
+			oOutputStream.flush()
+			oOutputStream.closeOutput()
+			oInputStream.closeInput()
+		else
+			sMsg = &quot;It seams as if this document has been saved under another system before.&quot; &amp; Chr(13) &amp;_
+			 &quot;It has to be saved again before continuing.&quot; &amp; Chr(13) &amp; &quot;Should the document be saved now?&quot;
+			iAnswer =  msgbox(sMsg, 164, &quot;Document Export&quot;)
+			if iAnswer = 6 then
+				sGraphicName = &quot;save_again&quot;	
+			end if
+		end if
+			
+		ReDim mData() as Variant
+        ExportGraphicByURL = sGraphicName
+	EndIf
+&apos;	Exit function
+&apos;ErrorHandler:
+&apos;	MsgBox (&quot;Error in ExportGraphic: &quot; &amp; Err() &amp; &quot; &quot; &amp; Error() &amp; &quot; &quot; &amp; Erl(), 16)
+End function
+
+
+Sub EmbedLinkedGraphic(oGraph)
+  REM Author: Andrew Pitonyak
+  Dim sGraphURL As String
+  Dim oGraph_2
+  Dim oCurs
+  Dim oText
+  Dim oAnchor
+  Dim s$
+  If InStr(oGraph.GraphicURL, &quot;vnd.sun&quot;) &lt;&gt; 0 Then
+    REM Ignore an image that is already embedded
+    Exit Sub
+  End If
+  s = &quot;com.sun.star.drawing.GraphicObjectShape&quot;
+  If oGraph.supportsService(s) Then
+    REM I only know how to convert a GraphicObjectShape.
+    REM I do not know how to convert a TextGraphicObject,
+    REM but it is probably related to the ImageMap attribute.
+    oAnchor = oGraph.getAnchor()
+    oText = oAnchor.getText()
+    oGraph_2 = ThisComponent.createInstance(s)
+    oGraph_2.GraphicObjectFillBitmap = oGraph.GraphicObjectFillBitmap
+    oGraph_2.Size = oGraph.Size
+    oGraph_2.Position = oGraph.Position
+    oText.insertTextContent(oAnchor, oGraph_2, False)
+    oText.removeTextContent(oGraph)
+  End If
+End Sub
+
+
+function GetGraphicByURL(sURL) as object
+Dim oDocument as object
+Dim oGraphics as object
+Dim oGraphic as object
+dim sImgNames()
+dim oDocStorage as object
+dim oStorage as object
+dim i as integer
+
+	oDocument = ThisComponent()
+	oDocStorage = oDocument.getDocumentStorage()
+	if oDocStorage.hasByName(&quot;Pictures&quot;) then
+		oStorage = oDocStorage.getByName(&quot;Pictures&quot;)
+
+		sImgNames = oStorage.getElementNames()
+		For i = 0 To UBound(sImgNames) Step 1
+			If InStr(sImgNames(i), sURL) = 1 Then
+				oGraphic = oStorage.GetByIndex(i)
+			End If
+		Next
+	End If
+
+	&apos;oDocument = ThisComponent()
+	&apos;oGraphics = oDocument.getGraphicObjects
+	&apos;xray oGraphics
+	&apos;oGraphic = oGraphics.GetByName(sURL)
+	
+	GetGraphicByURL = oGraphic
+end function
+
+
+function RemoveEmptyParsWorker(oLCursor As Object, oRCursor As Object, oText As Object) as integer
+Dim sParText As String, i As Integer
+dim iCount as integer
+  
+  iCount = 0
+  If IsNull(oLCursor) Or IsNull(oRCursor) Or IsNull(oText) Then Exit function
+  If oText.compareRegionEnds(oLCursor, oRCursor) &lt;= 0 Then Exit function
+  oLCursor.goRight(0, False)
+  Do While oLCursor.gotoNextParagraph(TRUE) AND oText.compareRegionEnds(oLCursor, oRCursor) &gt; 0
+    &apos;Yes, I know, limited to 64K here
+    &apos;If we have one  paragraph that is over 64K
+    &apos;Then I am in trouble!
+    sParText = oLCursor.getString()
+    i = Len(sParText)
+    &apos;We do not have short circuit logical. Drat!
+    Do While i &gt; 0
+      If (Mid(sParText,i,1) = Chr(10)) OR (Mid(sParText,i,1) = Chr(13)) Then
+        i = i - 1
+      Else
+        i = -1      
+      End If
+    Loop
+    If i = 0 Then
+      oLCursor.setString(&quot;&quot;)
+      iCount = iCount + 1
+    Else
+      oLCursor.goLeft(0,FALSE)
+    End If
+  loop
+  RemoveEmptyParsWorker = iCount
+End function
+
+
+
+&apos; **************************************************************************
+&apos; Document user variables
+
+&apos;===========================================================================
+&apos; CountDocVars - routine used to count the number of document variables available for the 
+&apos;                                current document 
+&apos; In -  DocVars:     array of current document variables (name) present in the ad 
+&apos;           DocVarValue: array of current document variables (value) present in the ad 
+&apos; Out - integer with the total number of doc variables found 
+&apos;===========================================================================
+Function CountDocVars(DocVars , DocVarValue) As Integer 
+  Dim VarCount As Integer 
+  Dim Names as Variant 
+
+  VarCount = 0 
+  Names = thisComponent.getTextFieldMasters().getElementNames() 
+  For i%=LBound(Names) To UBound(Names) 
+    if (Left$(Names(i%),34) = &quot;com.sun.star.text.FieldMaster.User&quot;) Then 
+      xMaster = ThisComponent.getTextFieldMasters.getByName(Names(i%)) 
+      DocVars(VarCount) = xMaster.Name 
+      DocVarValue(VarCount) = xMaster.Value 
+      VarCount = VarCount + 1   &apos; it&apos;s a document variable created by the user 
+    End if 
+  Next i%    
+    
+  CountDocVars = VarCount 
+End Function 
+&apos; 
+&apos;===========================================================================
+&apos; SetDocumentVariable - routine used to create/set value of a document variable into 
+&apos; the document  user&apos;s textfield list, without physically inserting its contents in
+&apos; the text of the ad.
+&apos; In  - strVarName: string with the name of the variable to be set/created 
+&apos;       aValue:     string with the value of the doc variable 
+&apos; Out - boolean flag with the operation status: TRUE=OK, FALSE=variable could not be
+&apos;               set/created 
+&apos;=========================================================================== 
+function SetInternalDocString(ByVal aVarName As String, ByVal aValue As string ) As Boolean 
+dim sVarName as string
+dim oTextmaster as object
+dim xMaster as variant
+
+	On Error GoTo ErrorHandler 
+	oTextmaster = ThisComponent.getTextFieldMasters() 
+	sVarName = &quot;com.sun.star.text.FieldMaster.User.&quot; + aVarName 
+	if oTextmaster.hasByName(sVarName) then  &apos; check if variable exists 
+		xMaster =oTextmaster.getByName(sVarName) 
+	else   
+	 	xMaster = ThisComponent.createInstance(&quot;com.sun.star.text.FieldMaster.User&quot;)    
+	end if
+	xMaster.Name = aVarName 
+	xMaster.Content = aValue        
+	SetInternalDocString = True      &apos;Success 
+	Exit Function 
+	
+	ErrorHandler: 
+	  SetInternalDocString = False 
+End Function 
+
+
+function GetInternalDocString(aVarName as string) as string
+dim oTextmaster as object
+dim sVarName as string
+dim vField as variant
+
+	On Error GoTo ErrorHandler 
+	oTextmaster = ThisComponent.getTextFieldMasters() 
+	sVarName = &quot;com.sun.star.text.FieldMaster.User.&quot; &amp; aVarName
+	If oTextmaster.hasByName(sVarName) Then
+	  vField = oTextmaster.getByName(sVarName) 
+	  GetInternalDocString = vField.Content
+	else  
+      GetInternalDocString = &quot;&quot;
+    end if  
+    exit function
+    
+	ErrorHandler: 
+	  &apos;msgbox &quot;Metadata &quot; &amp; aVarName &amp; &quot; could not be read.&quot;
+end function
+ 
+
+&apos;===========================================================================
+&apos; DeleteDocumentVariable - routine used to eliminate a document variable from the document 
+&apos; user&apos;s textfield list 
+&apos; In  - strVarName: string with the name of the variable to be deleted 
+&apos; Out - none 
+&apos;===========================================================================
+  
+Sub DeleteDocumentVariable(strVarName As String) 
+
+  oActiveDocument = thisComponent 
+  objField = oActiveDocument.createInstance(&quot;com.sun.star.text.TextField.User&quot;) 
+  sName = &quot;com.sun.star.text.FieldMaster.User.&quot; + strVarName 
+  bFound = oActiveDocument.getTextFieldMasters.hasbyname(sName)  &apos; check if variable exists 
+  if bFound Then 
+    objFieldMaster =  oActiveDocument.getTextFieldMasters.getByName(sName) 
+    objFieldMaster.Content = &quot;&quot;    
+    objFieldMaster.dispose() 
+  End If         
+End Sub 
+
+
+Sub RemoveEmptyParagraphs(oLCurs As Object, oRCurs As Object)
+  Dim sParText As String, i As Integer
+  Dim oText
+
+  oText = oLCurs
+  If IsNull(oLCurs) Or IsNull(oRCurs) Or IsNull(oText) Then Exit Sub
+  If oText.compareRegionEnds(oLCurs, oRCurs) &lt;= 0 Then Exit Sub
+  oLCurs.goRight(0, False)
+  Do While oLCurs.gotoNextParagraph(TRUE) AND oText.compareRegionEnds(oLCurs, oRCurs) &gt; 0
+    &apos;Yes, I know, limited to 64K here
+    &apos;If we have one  paragraph that is over 64K
+    &apos;Then I am in trouble!
+    sParText = oLCurs.getString()
+    i = Len(sParText)
+    &apos;We do not have short circuit logical. Drat!
+    Do While i &gt; 0
+      If (Mid(sParText,i,1) = Chr(10)) OR (Mid(sParText,i,1) = Chr(13)) Then
+        i = i - 1
+      Else
+        i = -1
+      End If
+    Loop
+    If i = 0 Then
+      oLCurs.setString(&quot;&quot;)
+    Else
+      oLCurs.goLeft(0,FALSE)
+    End If
+  loop
+End Sub
+
+
+Sub InsertPageBreak_old
+  Dim oSelections As Object, oSel As Object, oText As Object
+  Dim lSelCount As Long, lWhichSelection As Long
+  Dim oLCurs As Object, oRCurs As Object
+  
+  oText = ThisComponent.Text
+  oSelections = ThisComponent.getCurrentSelection()
+  lSelCount = oSelections.getCount()
+  For lWhichSelection = 0 To lSelCount - 1
+    oSel = oSelections.getByIndex(lWhichSelection)
+    oLCurs = oText.CreateTextCursorByRange(oSel)
+    oLCurs.gotoStartOfParagraph(false)
+    oLCurs.gotoEndOfParagraph(true)
+    REM Preserve the existing page style!
+    oLCurs.PageDescName = oLCurs.PageStyleName
+    oLCurs.PageNumberOffset = 7
+  Next
+End Sub
+
+
+Sub RemovePageBreaksInParagraph
+  REM Author: Andrew Pitonyak
+  Dim iCnt As Long
+  Dim oCursor as Variant
+  Dim oText As Variant
+  Dim s As String
+
+  oText = ThisComponent.Text
+  oCursor = oText.CreateTextCursor()
+  oCursor.GoToStart(False)
+  Do
+    If NOT oCursor.gotoEndOfParagraph(True) Then Exit Do
+    iCnt = iCnt + 1
+    If NOT IsEmpty(oCursor.PageDescName) Then
+      s = s &amp; &quot;Paragraph &quot; &amp; iCnt &amp; &quot; has a new page to style &quot; &amp; oCursor.PageDescName &amp; CHR$(10)
+      oCursor.PageDescName = &quot;&quot;
+    End If
+    If oCursor.BreakType &lt;&gt; com.sun.star.style.BreakType.NONE Then
+      s = s &amp; &quot;Paragraph &quot; &amp; iCnt &amp; &quot; has a page break&quot; &amp; CHR$(10)
+      oCursor.BreakType = com.sun.star.style.BreakType.NONE
+    End If
+  Loop Until NOT oCursor.gotoNextParagraph(False)
+  &apos;MsgBox s  
+End Sub
+
+
+Sub removeCurrentPage()
+  REM Author: Andrew Pitonyak
+  Dim oVCurs
+  Dim oCurs
+  
+  oVCurs = ThisComponent.getCurrentController().getViewCursor()
+  If oVCurs.jumpToStartOfPage() Then
+    oCurs = ThisComponent.getText().CreateTextCursorByRange(oVCurs)
+    If (oVCurs.jumpToEndOfPage()) Then
+      oCurs.gotoRange(oVCurs, True)
+      oCurs.setString(&quot;&quot;)
+    Else
+      Print &quot;Unable to jump to the end of the page&quot;
+    End If
+  Else
+    Print &quot;Unable to jump to the start of the page&quot;
+  End If
+End Sub
+
+function IsOldElaixDocType as boolean
+dim oDoc
+dim oTables 
+
+	oDoc = thisComponent()
+	oTables = oDoc.getTextTables()
+	IsOldElaixDocType = oTables.HasByName(&quot;DatenderLerneinheit&quot;)
+end function
+
+function UpgradeOldElaixDocType as boolean
+dim vMsg as string
+dim vTitle as string
+dim oText as object
+dim oDrawPage as object
+dim oTables as object
+dim oTable as object
+dim oRows as object
+dim vLabel1 as string
+dim vLabel2 as string
+dim i as integer
+
+	vMsg = &quot;This document was created with an old eLAIX (iLEX) version. Should it be converted into a new one? (This will remove the metadata formular and all macros within the current documents)&quot;
+	vTitle = &quot;eLAIX document conversion&quot;
+	if msgbox (vMsg, 36, vTitle) = 6 then
+
+		&apos;loop though document tables
+		oTables = ThisComponent.getTextTables
+		if oTables.hasElements() Then
+			&apos;find first metadata table (name is &quot;DatenderLerneinheit&quot;)
+			for i = 0 to oTables.Count
+				oTable = oTables.GetByIndex(i)
+				if oTable.Name = &quot;DatenderLerneinheit&quot; then
+					&apos;delete this table
+					oRows = oTable.GetRows()
+					oRows.removeByIndex(0, oRows.Count)
+					&apos;reload tables, Author table now has the same index
+					oTables = ThisComponent.getTextTables()
+					oTable = oTables.GetByIndex(i)
+					oRows = oTable.GetRows()
+					oRows.removeByIndex(0, oRows.Count)
+					DeleteFirstEmptyPage
+					exit for
+				end if
+			next i
+		end if	
+		&apos;vMsg = &quot;This old eLAIX version contains macros that are now obsolete. Should the macro module be removed?&quot;
+		&apos;vTitle = &quot;eLAIX document conversion&quot;
+		&apos;if msgbox (vMsg, 36, vTitle) = 6 then 
+		DeleteDocModule( &quot;Standard&quot;, &quot;Main&quot; )
+		&apos;end if	
+		UpgradeOldElaixDocType = true	
+	else
+		UpgradeOldElaixDocType = false
+	end if
+end function
+
+sub DeleteFirstEmptyPage
+dim document   as object
+dim dispatcher as object
+	&apos;get access to the document
+	document   = ThisComponent.CurrentController.Frame
+	dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+	
+	dispatcher.executeDispatch(document, &quot;.uno:GoToStartOfDoc&quot;, &quot;&quot;, 0, Array())
+	dispatcher.executeDispatch(document, &quot;.uno:Delete&quot;, &quot;&quot;, 0, Array())
+end sub
+
+
+function DeleteEmptyPages() as integer
+dim oDoc as object
+dim oView as object
+dim oCursor as object
+dim iCount as integer
+
+ &apos;deletes all empty pages in a writer document recursively, meaning we start from the last page,
+ &apos;working our way up to the first page.
+
+ iCount = 0
+ oDoc = thisComponent
+ &apos;if you have problems with thisComponent for the new OOo 2.0 builds,
+ &apos;use Stardesktop.getCurrentComponent() instead
+
+ oView = oDoc.getCurrentController()
+ oCursor = oView.getViewCursor()
+ oCursor.setVisible(False)
+ 
+ oCursor.jumpToLastPage()
+ iCount = DealWithPage(oCursor, iCount)
+  DeleteEmptyPages = iCount
+End function
+
+
+Function DealWithPage(cur, iCount) as integer
+ &apos;recursive function, watch out for the recursion limit which used to be around 500, but
+ &apos;should have been increased by the time.
+ 
+ Dim charcount as Integer, currentpage as Integer
+ Dim bEmptyPage as Boolean
+ dim s as string
+
+ charcount = 0
+ bEmptyPage = True
+ currentpage = cur.getPage()
+ 
+ cur.jumpToEndOfPage()
+ 
+ Do While cur.getPage() = currentpage
+    If cur.goLeft(1, True) Then
+       charcount = charcount + 1
+        s = cur.getString()
+        If Not IsWhitespace(s) Then
+           bEmptyPage = False
+           Exit Do
+        End If
+     Else
+        &apos;first page must be empty! Exit loop and handle later.
+        charcount = charcount + 1
+        Exit Do
+     End If            
+ Loop
+ 
+ If bEmptyPage Then
+    DeletePage(cur, charcount, (currentpage = 1))
+    iCount = iCount + 1
+ Else
+    cur.jumpToPreviousPage()   
+ End If   
+ 
+ If currentpage &gt; 1 Then &apos;careful, only exit condition!
+ 	DealWithPage(cur, iCount)
+ end if	
+ DealWithPage = iCount
+End Function
+
+
+Function IsWhitespace(s) as Boolean
+ s = Left(s, 1)
+ If len(s) = 0 Then
+    IsWhitespace = True
+   Exit Function
+ Else   
+    If Asc(s) &lt;= 32 Then    
+      IsWhitespace = True
+      Exit Function
+   End If   
+ End If
+
+&apos;if it fell through, it is not whitespace!
+IsWhiteSpace = False      
+End Function
+
+Function DeletePage(cur, i as Integer, bFirstPage as Boolean)
+ &apos;msgbox &quot;charcount = &quot; &amp; i &amp; &quot; for page = &quot; &amp; cur.getPage()-1
+ If bFirstPage Then
+    cur.jumpToStartOfPage()
+ Else
+    cur.jumpToEndOfPage()
+ End If
+ 
+ cur.goRight(i, True)
+ cur.setString(&quot;&quot;)
+    
+End Function 
+
+function DeleteDoubleSpaces as integer
+dim oDoc as object
+dim oTextCursor as object
+dim oReplaceDescriptor
+dim iCount as integer
+
+	iCount = 0
+	oDoc = thisComponent
+	oTextCursor = oDoc.Text.createTextCursor
+	While oTextCursor.isEndOfParagraph
+	 oTextCursor.goRight(1, true)
+	 oTextCursor.String = &quot;&quot;
+	Wend
+	oReplaceDescriptor = oDoc.CreateReplaceDescriptor
+	oReplaceDescriptor.SearchRegularExpression = true
+	oReplaceDescriptor.setSearchString(&quot;  &quot;)
+	oReplaceDescriptor.setReplaceString(&quot; &quot;)
+	iCount = oDoc.ReplaceAll(oReplaceDescriptor)
+	
+	&apos;do it with all occurrences of double spaces
+	oReplaceDescriptor.setSearchString(&quot; *&quot;)
+	oReplaceDescriptor.setReplaceString(&quot; &quot;)
+	oDoc.ReplaceAll(oReplaceDescriptor)
+	
+	DeleteDoubleSpaces = iCount
+end function
+
+function ReplaceTabToSpaces(iSpaceCount as integer) as integer
+dim oDoc as object
+dim oTextCursor as object
+dim oReplaceDescriptor
+dim iCount as integer
+dim sReplStr as string
+dim i as integer
+
+	oDoc = thisComponent
+	oTextCursor = oDoc.Text.createTextCursor
+	While oTextCursor.isEndOfParagraph
+	 oTextCursor.goRight(1,true)
+	 oTextCursor.String = &quot;&quot;
+	Wend
+	sReplStr = &quot;&quot;
+	for i = 1 to iSpaceCount
+		sReplStr = sReplStr &amp; &quot; &quot;
+	next i
+	oReplaceDescriptor = oDoc.CreateReplaceDescriptor
+	oReplaceDescriptor.SearchRegularExpression = true
+	oReplaceDescriptor.setSearchString(chr(9))
+	oReplaceDescriptor.setReplaceString(sReplStr)
+	iCount = oDoc.ReplaceAll(oReplaceDescriptor)
+	ReplaceTabToSpaces = iCount
+end function
+
+sub DeleteDocModule (sLibrary as string, sModule as string)
+Dim oLibs as object
+
+	oLibs = ThisComponent.getLibraryContainer()
+	if oLibs.HasByName(&quot;Standard&quot;) then
+		ThisComponent.BasicLibraries.removeLibrary(&quot;Standard&quot;)
+		&apos;ThisComponent.BasicLibraries.createLibrary(&quot;Standard&quot;)
+		ThisComponent.setModified(true) 
+	end if
+end sub
+
+
+
+Sub InsertLineBreak
+  dim oText
+  dim oViewCursor as object
+
+  oText = ThisComponent.getText()
+  &apos;oCursor = ThisComponent.Text.createTextCursor()
+  oViewCursor = ThisComponent.CurrentController.getViewCursor()
+  oViewCursor.ParaAdjust = com.sun.star.style.ParagraphAdjust.CENTER
+  &apos;oCursor.PageDescName = strNew
+  oText.insertControlCharacter(oViewCursor, com.sun.star.text.ControlCharacter.LINE_BREAK, False)
+end sub
+
+
+Sub InsertParagraphBreak
+  dim oText
+  dim oViewCursor as object
+
+  oText = ThisComponent.getText()
+  &apos;oCursor = ThisComponent.Text.createTextCursor()
+  oViewCursor = ThisComponent.CurrentController.getViewCursor()
+  oViewCursor.ParaAdjust = com.sun.star.style.ParagraphAdjust.CENTER
+  &apos;oCursor.PageDescName = strNew
+  oText.insertControlCharacter(oViewCursor, com.sun.star.text.ControlCharacter.PARAGRAPH_BREAK, False)
+end sub
+
+
+Sub InsertSimpleText(sText as string)
+  Dim oDocument As Object
+  Dim oText As Object
+  Dim oViewCursor As Object
+  Dim oTextCursor As Object
+          
+  oDocument = ThisComponent
+  oText = oDocument.Text
+  oViewCursor = oDocument.CurrentController.getViewCursor()
+  oTextCursor = oText.createTextCursorByRange(oViewCursor.getStart())
+  &apos; Place the text to insert here
+  oText.insertString(oTextCursor, sText, FALSE)
+End Sub
+
+
+function GetInnerPageWidth (oPara) as integer
+dim oCursor as object
+dim sPageStyleName as string
+dim oStyleFamilies as object
+dim oPageStyles as object
+dim oStyle as object
+
+	oCursor = oPara.getAnchor.getText.createTextCursor 
+	sPageStyleName = oCursor.PageStyleName
+	oStyleFamilies = thisComponent.StyleFamilies
+	oPageStyles = oStyleFamilies.getByName(&quot;PageStyles&quot;)
+	oStyle = oPageStyles.getByName(sPageStylename) 	
+	GetInnerPageWidth = oStyle.Width  - oStyle.LeftMargin - oStyle.RightMargin	
+end function
+
+
+Sub GetTextTablesDirectly
+  Dim s As String
+  Dim i As Long
+  Dim oTables
+  Dim oTable
+  oTables = ThisComponent.getTextTables()
+  &apos;Print &quot;This document contains &quot; &amp; oTables.getCount() &amp; &quot; tables&quot;
+  &apos; I could also check getCount() = 0.
+  If NOT oTables.hasElements() Then Exit Sub
+  For i = 0 To oTables.getCount() - 1
+    oTable = oTables.getByIndex(i)
+    s = s &amp; oTable.getName() &amp; CHR$(10)
+  Next
+  MsgBox s, 0, &quot;Using Enumeration&quot;
+  REM Even faster
+  s = Join(oTables.getElementNames(), CHR$(10))
+  MsgBox s, 0, &quot;Using getElementNames()&quot;
+  REM Get the name of the first table.
+  s = oTables.getByIndex(0).getName()
+  REM You can test to see if a table with a specific name exists
+  REM and then get the table based on its name.
+  If oTables.hasByName(s) Then
+    oTable = oTables.getByName(s)
+  End If
+End Sub
+
+
+
+&apos;*******************************************************************************************
+&apos;old routines
+
+function RemoveEmptyParagraphs_old() as string
+dim oDoc as object
+Dim oEnum as object
+Dim isAbsatz as boolean
+Dim oParagraph as object
+Dim i as Integer   
+
+	oDoc = thisComponent
+	i=0
+	oEnum = oDoc.Text.createEnumeration
+	While oEnum.hasMoreElements
+		oParagraph = oEnum.nextElement
+		if hasUnoInterfaces(oParagraph, &quot;com.sun.star.text.XTextRange&quot;) then
+			if oParagraph.string = &quot;&quot; then
+				i=i+1
+			end if     
+		end if
+	Wend
+end function
+
+
+
+
+&apos;*******************************************************************************************
+&apos;debugging routines
+
+sub CheckDocFormats()
+  Dim oEnum As Object
+  Dim oPara As Object
+  Dim sStyle as string
+  dim vNumberingStyle as string
+  
+  oEnum = ThisComponent.Text.createEnumeration
+  while oEnum.hasMoreElements()
+    oPara = oEnum.nextElement()
+    if oPara.supportsService(&quot;com.sun.star.text.Paragraph&quot;) Then
+      sStyle = oPara.ParaStylename  
+      if left(sStyle, 10) = &quot;ILIAS Code&quot; then &apos;reset list in code view to standard paragraph
+        vNumberingStyle = oPara.NumberingStyleName &apos;property can NOT be read directly!!!
+        if vNumberingStyle &lt;&gt; &quot;&quot; then
+          oPara.NumberingStyleName = &quot;&quot;
+          giListInCode = giListInCode + 1
+        end if  
+      end if
+    end if    
+  wend
+end sub
+
+
+function GetAppliedStylesList(sStyleFamily as string, bSorted as boolean)
+dim oStyleFamilies as object
+dim oParaStyles as object
+dim oStyle as object
+dim sStylename as string
+dim iCount as integer
+dim i as integer
+dim j as integer
+dim aStyles() as string
+
+	&apos;get all applied paragraph
+	oStyleFamilies = ThisComponent.StyleFamilies
+	oParaStyles = oStyleFamilies.getByName( sStyleFamily )
+	
+	i = 0
+	j = 0
+	iCount = oParaStyles.GetCount - 1
+	redim aStyles(iCount)
+	for i = 0 to iCount
+		oStyle = oParaStyles.GetByIndex(i)
+		&apos;xray oStyle
+		&apos;sStylename = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+		&apos;the style is used by the document
+		if oStyle.isInUse and (oStyle.Name &lt;&gt; &quot;&quot;) then
+			sStylename = oStyle.DisplayName
+			aStyles(j) = oStyle.DisplayName
+			j = j + 1
+		end if
+	next i
+	if j = 0 then 
+		redim preserve aStyles(0)
+	else
+		redim preserve aStyles(j - 1)	
+	end if
+	if bSorted then BubbleSortArray(aStyles())
+		
+	GetAppliedStylesList = aStyles()
+end function
+
+
+function GetAllStylesList(sStyleFamily as string, bSorted as boolean)
+dim oStyleFamilies as object
+dim oParaStyles as object
+dim oStyle as object
+dim sStylename as string
+dim iCount as integer
+dim i as integer
+dim j as integer
+dim aStyles() as string
+
+	&apos;get all applied paragraph
+	oStyleFamilies = ThisComponent.StyleFamilies
+	oParaStyles = oStyleFamilies.getByName( sStyleFamily )
+	
+	i = 0
+	j = 0
+	iCount = oParaStyles.GetCount
+	redim aStyles(iCount)
+	for i = 0 to iCount - 1
+		oStyle = oParaStyles.GetByIndex(i)
+		if oStyle.Name &lt;&gt; &quot;&quot; then
+			aStyles(j) = oStyle.DisplayName
+			j = j + 1
+		end if
+	next i
+	if j = 0 then 
+		redim preserve aStyles(0)
+	else
+		redim preserve aStyles(j - 1)	
+	end if
+	if bSorted then BubbleSortArray(aStyles())
+		
+	GetAllStylesList = aStyles()
+end function
+
+
+
+
+</script:module>

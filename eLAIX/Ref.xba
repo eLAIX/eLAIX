@@ -1,0 +1,484 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">
+<script:module xmlns:script="http://openoffice.org/2000/script" script:name="Ref" script:language="StarBasic">Option Explicit
+
+&apos; Revised: 2004-11-01
+
+&apos;To present a custom dialog for the creation of cross references to outline headings
+
+&apos;This is the main module sheet.
+&apos;Subroutines that I have written, the name starts with sub, and for functions fn
+&apos;If they are called by an event then the routine name starts with subEvent
+
+&apos;Other modules:
+
+&apos;_ModTools: my general helper routines. Routine names start with t_ 
+&apos;_ModProperties: routines copied from a posting on the oo forum by Danny Brewer
+
+
+&apos;************************************************************
+&apos;	Copyright (c) 2004 Ian Laurenson
+&apos;	Anyone may run this code.
+&apos;	If you wish to modify or distribute this code, then
+&apos;	 you are granted a license to do so under the terms
+&apos;	 of the Gnu Lesser General Public License.
+&apos;	See:  http://www.gnu.org/licenses/GPL.html
+&apos;************************************************************
+&apos;
+&apos;   Modified by Harry Boldt, August 2006
+&apos;
+&apos;************************************************************
+
+&apos;-----------------------------------------------------------------
+&apos; Variables common to functions in this library (library variables)
+&apos;-----------------------------------------------------------------
+
+private oDialog as object		&apos;Points to the dialog dlgCrossRef
+private oDoc as object			&apos;Points to the current document
+private oText as object			&apos;Points to the text of the current document
+private oCurSelection as object	&apos;Points to the current selection
+private mOutlines()				&apos;Holds the text of the headings, the level, and name of reference
+private mLinks()				&apos;For each item in listbox mLinks holds the index of the corresponding
+								&apos;entry in mOutlines
+private nHeadCount as long		&apos;The number of heading paragraphs in the document
+private mDocs()
+global mXRefDialogSettings(12)	&apos;Holds the current settings of the dialog. Global so settings are still
+								&apos;available for next time dialog is called.
+
+const nIndent = 3				&apos;Number spaces at left of item in listbox acting as tree control
+
+&apos;=====================================================
+&apos;	Main entry point.
+&apos;	Procedure to initialise and display the dialog box 
+&apos;=====================================================
+sub CrossReferenceHeadings
+dim sLevel as string
+dim sMode as string
+
+&apos;A routine to present a custom dialog for the creation of cross references to
+&apos;outlined heading levels
+oDoc = stardesktop.currentComponent
+&apos;Check that we are in a text document and that text is selected
+If not oDoc.supportsService(&quot;com.sun.star.text.GenericTextDocument&quot;) then
+	msgBox &quot;Sorry - only text documents can have cross references to outlined headings&quot;, 16, &quot;Error&quot;
+	exit sub
+end if
+
+oCurSelection = oDoc.CurrentSelection
+
+If not oCurSelection.supportsService(&quot;com.sun.star.text.TextRanges&quot;) then
+	msgBox &quot;Sorry - I can&apos;t handle anything being selected except text.&quot;, 16, &quot;Error&quot;
+	exit sub
+end if
+
+&apos;dialogLibraries.LoadLibrary(&quot;XRef&quot;)
+
+&apos;Set-up other module variables
+&apos;oText = oDoc.text
+subBuildArray(oDoc)
+
+DialogLibraries.LoadLibrary( &quot;eLAIX&quot; )
+oDialog = CreateUnoDialog(DialogLibraries.eLAIX.DlgRef)
+&apos;Set-up the dialog
+sLevel = GetInternalDocString(&quot;elaixReferenceLevel&quot;)
+sMode = GetInternalDocString(&quot;elaixReferenceMode&quot;)
+if sLevel &lt;&gt; &quot;&quot; then
+	oDialog.getControl(&quot;ListBoxLevel&quot;).selectItemPos(CInt(sLevel), true)
+else
+	oDialog.getControl(&quot;ListBoxLevel&quot;).selectItemPos(1, true)
+end if	
+if sMode &lt;&gt; &quot;&quot; then
+	oDialog.getControl(&quot;ListBoxMode&quot;).selectItemPos(CInt(sMode), true)
+else
+	oDialog.getControl(&quot;ListBoxMode&quot;).selectItemPos(1, true)
+end if	
+subShowLevel(oDialog.getControl(&quot;ListBoxHeadings&quot;),	oDialog.getControl(&quot;ListBoxLevel&quot;).selectedItemPos + 1)
+
+&apos;Present the dialog
+oDialog.Execute
+oDialog.dispose
+
+end sub
+
+
+sub subCreateCharStyle(sStyleName as string, sBasedOn as string)
+dim oCharStyles as object, oCharStyle as object
+
+oCharStyles = oDoc.styleFamilies.getByName(&quot;CharacterStyles&quot;)
+if not oCharStyles.hasByName(sStyleName) then
+	if not oCharStyles.hasByName(sBasedOn) then
+		oCharStyle = oDoc.createInstance(&quot;com.sun.star.style.CharacterStyle&quot;)
+		oCharStyles.insertByName(sBasedOn, oCharStyle)
+	end if
+	oCharStyle = oDoc.createInstance(&quot;com.sun.star.style.CharacterStyle&quot;)
+	oCharStyles.insertByName(sStyleName, oCharStyle)
+	oCharStyle.setParentStyle(sBasedOn)	&apos;If this comes before the insertion it crashes OOo1.1.1
+end if
+end sub
+
+
+sub subInsertReference(sRefname as string, nPart as integer, oCurText as object, oViewCursor as object)
+&apos;Inserts a reference into the document at the current cursor location
+dim oRefField as object
+
+	oRefField = oDoc.createInstance(&quot;com.sun.star.text.TextField.GetReference&quot;)
+	oRefField.ReferenceFieldSource = com.sun.star.text.ReferenceFieldSource.REFERENCE_MARK
+	oRefField.SourceName = sRefname
+	oRefField.ReferenceFieldPart = nPart
+	oCurText.insertTextContent(oViewCursor, oRefField, false)
+end sub
+
+
+sub subInsertTextRef(sTextField as string, sRefname as string, nRefPart as integer, _
+							bCharStyles as boolean, sStylenameText as string, sStyleNameRef as string)
+dim oCurText as object, oViewCursor as object, oCursor as object
+
+oViewCursor =  oDoc.CurrentController.ViewCursor
+oCurText = oViewCursor.Text
+oCursor = oCurText.createTextCursorByRange(oViewCursor)
+if bCharStyles then
+	subCreateCharStyle(sStylenameText, &quot;xRefBase&quot;)
+	oViewCursor.CharStyleName = sStylenameText
+end if
+&apos;oCurText.insertString(oCursor, oDialog.getControl(sTextField).text, false)
+if bCharStyles then
+	subCreateCharStyle(sStyleNameRef,&quot;xRefBase&quot;)
+	oViewCursor.CharStyleName = sStyleNameRef
+end if
+subInsertReference(sRefname, nRefPart, oCurText, oCursor)
+end sub
+
+
+sub EventCommandButtonInsert_Initiate
+&apos;Creates a reference for the selected heading if one doesn&apos;t already exist
+&apos;Inserts the references and text, optionally formatted with char styles as specified in the dialog
+dim oCursor as object, sRefName as string, i as long, nPosn as long, oRefField as object
+dim bCharStyles as boolean, oCharStyle as object
+dim iMode as integer
+dim oViewCursor as object
+
+	nPosn = odialog.getControl(&quot;ListBoxHeadings&quot;).SelectedItemPos
+	if nPosn &lt; 0 then	&apos;Nothing selected so can&apos;t insert anything
+		beep
+		exit sub
+	end if
+	
+	&apos;Create the reference if it doesn&apos;t already exist
+	i =  mLinks(nPosn)
+	if isNumeric(mOutlines(i, 2)) then
+		oCursor = oText.createTextCursor
+		for i = 1 to mOutlines(i, 2)
+			oCursor.gotoNextParagraph(false)
+		next
+		oCursor.gotoEndOfParagraph(true)
+		oRefField = oDoc.createInstance(&quot;com.sun.star.text.ReferenceMark&quot;)
+		sRefname = fnNewRefName(&quot;Ref&quot;)
+		oRefField.setName(sRefname)
+		oText.insertTextContent(oCursor, oRefField, True)	
+	else 
+		sRefName = mOutlines(i, 2)
+	end if
+
+	bCharStyles = true
+
+	iMode = oDialog.getControl(&quot;ListBoxMode&quot;).selectedItemPos
+	
+	Select case iMode
+	Case 0
+		subInsertTextRef(&quot;TextField0&quot;, sRefname, com.sun.star.text.ReferenceFieldPart.CHAPTER, _
+							bCharStyles, &quot;xRefChapterText&quot;, &quot;xRefChapter&quot;)	
+	Case 1 
+		subInsertTextRef(&quot;TextField1&quot;, sRefname, com.sun.star.text.ReferenceFieldPart.TEXT, _
+							bCharStyles, &quot;xRefText&quot;, &quot;xRef&quot;)
+	Case 2						
+		subInsertTextRef(&quot;TextField0&quot;, sRefname, com.sun.star.text.ReferenceFieldPart.CHAPTER, _
+							bCharStyles, &quot;xRefChapterText&quot;, &quot;xRefChapter&quot;)			
+		InsertString(&quot; &quot;)
+		subInsertTextRef(&quot;TextField1&quot;, sRefname, com.sun.star.text.ReferenceFieldPart.TEXT, _
+							bCharStyles, &quot;xRefText&quot;, &quot;xRef&quot;)
+	end select						
+	ActualizeReferences
+	odialog.endExecute
+	
+	SetInternalDocString(&quot;elaixReferenceLevel&quot;, oDialog.getControl(&quot;ListBoxLevel&quot;).selectedItemPos)
+	SetInternalDocString(&quot;elaixReferenceMode&quot;, oDialog.getControl(&quot;ListBoxMode&quot;).selectedItemPos)
+end sub
+
+
+function fnNewRefName(sBaseName as string)
+&apos;Returns a unique reference name
+dim i as integer
+
+if oDoc.ReferenceMarks.hasByName(sBaseName) then
+	i =  oDoc.ReferenceMarks.Count
+	while oDoc.ReferenceMarks.hasByName(sBaseName &amp; &quot;_&quot; &amp; i)
+		i = i + 1
+	wend
+	fnNewRefName = sBaseName &amp; &quot;_&quot; &amp; i
+else
+	fnNewRefName = sBaseName
+end if
+end function
+
+
+sub subBuildArray(oDoc)
+&apos;Uses module level variables: oText
+&apos;Set values for module level variables: mOutlines, nHeadCount
+&apos;Redimensions mOutlines to the number of found headings (nHeadCount)
+&apos;Stores the heading text, heading level, then either
+&apos;the reference name if it exists or the paragraph number
+dim oTextEnum as Object, oTextElement as Object
+dim oPortionEnum as object, oPortion as object
+dim i as long, nHeadsFound as long
+
+&apos;Find number of heading paragraphs
+oText = oDoc.Text
+nHeadsFound = -1
+oTextEnum = oText.createEnumeration
+while oTextEnum.hasMoreElements
+	oTextElement = oTextEnum.nextElement
+	If oTextElement.supportsService(&quot;com.sun.star.text.Paragraph&quot;) Then
+		if oTextElement.OutlineLevel &gt; 0 then
+			nHeadsFound = nHeadsFound + 1
+		end if
+	End If
+Wend
+nHeadCount = nHeadsFound
+redim mOutlines(nHeadCount + 1, 2)
+redim mLinks(nHeadCount + 1)
+
+&apos;Fill the array with the headings, heading level, 
+&apos;and reference name if it exist otherwise the paragraph number
+i = -1
+nHeadsFound = -1
+oTextEnum = oText.createEnumeration
+
+while nHeadsFound &lt; nHeadCount and oTextEnum.hasMoreElements &apos;Second condition should be unnecessary but...
+	oTextElement = oTextEnum.nextElement
+	If oTextElement.supportsService(&quot;com.sun.star.text.Paragraph&quot;) Then
+		i = i + 1		
+		if oTextElement.OutlineLevel &gt; 0 then
+			nHeadsFound = nHeadsFound + 1
+			mOutlines(nHeadsFound, 0) = oTextElement.string
+			mOutlines(nHeadsFound, 1) = oTextElement.OutlineLevel + 1
+			oPortionEnum = oTextElement.createEnumeration
+			mOutlines(nHeadsFound, 2) = i
+			do while oPortionEnum.hasMoreElements
+				oPortion = oPortionEnum.nextElement
+				if oPortion.TextPortionType = &quot;ReferenceMark&quot; then
+					mOutlines(nHeadsFound, 2) = oPortion.ReferenceMark.name
+					exit do
+				end if
+			loop
+		end if
+	End If
+Wend
+End Sub
+
+
+sub subEventListBoxLevels_Initiate(oEvent)
+subShowLevel(oDialog.getControl(&quot;ListBoxHeadings&quot;), oEvent.Source.SelectedItemPos + 1)
+end sub
+
+
+sub subShowLevel(oListBox as object, nDisplayLevel as integer)
+&apos;Called by:subMyCrossRef,  subEventListBoxLevels_Initiate
+&apos;Displays the headings in the listbox up to the specified level
+&apos;E.g.  subShowLevel(oListBox,2) would display headings with levels of 1 and 2
+dim i as long, nPosn as long
+
+oListBox.removeItems(0, oListBox.getItemCount)
+nPosn = -1
+
+for i = 0 to nHeadCount
+	if mOutlines(i, 1) &lt;= nDisplayLevel then
+		nPosn = nPosn + 1
+		subAddItem(oListBox, i, nPosn, nDisplayLevel)
+		mLinks(nPosn) = i
+	end if
+next
+end sub
+
+
+sub subAddSubLevel(oListBox as object, nPosn as long)
+&apos;Display the sublevel of the heading at nPosn in the listbox
+dim i as long, nLevel as integer, nCurPosn as long, nDiff as long, j as long
+
+nLevel = mOutlines(mLinks(nPosn), 1) + 1
+nCurPosn = nPosn
+i = mLinks(nPosn) + 1
+while mOutlines(i, 1) &gt;= nLevel
+	if mOutlines(i, 1) = nLevel then
+		nCurPosn = nCurPosn + 1
+		subAddItem(oListBox, i, nCurPosn, nLevel)
+		for j = oListBox.getItemCount - 1 to nCurPosn + 1 step -1
+			mLinks(j) = mLinks(j - 1)
+		next
+		mLinks(nCurPosn) = i
+	end if
+	i = i + 1
+wend
+end sub
+
+
+sub subAddItem(oListBox as object, i as long, nPosn as long, nDisplayLevel as integer)
+&apos;Insert an item into the listbox
+dim sInitial as string, nLevel as integer
+
+nLevel = mOutlines(i, 1)
+sInitial = string((abs(nLevel) - 1) * nIndent, &quot; &quot;)	
+if mOutlines(i + 1, 1) &gt; nLevel and nDisplayLevel = nLevel and nDisplayLevel &lt; 10 then
+	sInitial = sInitial &amp; &quot;+&quot;
+else
+	sInitial = sInitial &amp; &quot;-&quot;
+end if
+oListBox.addItem(sInitial &amp; mOutlines(i, 0), nPosn)
+end sub
+
+
+sub subRemoveSubLevels(oListBox as object, nPosn as long)
+&apos;Remove from the listbox the sublevel headings of the heading at nPosn
+dim i as integer, nCurLevel as integer, nCurPosn as long, nDiff as long
+
+nCurPosn = nPosn + 1
+nCurlevel = mOutlines(mLinks(nPosn), 1)
+i= nCurPosn
+while nPosn &lt; oListBox.getItemCount and mOutlines(mLinks(nCurPosn), 1) &gt; nCurLevel
+	oListBox.removeItems(i, 1)
+	nCurPosn = nCurPosn + 1
+wend
+
+&apos;Shift the link array back
+nDiff = nCurPosn - nPosn - 1
+for i = nPosn + 1 to oListBox.getItemCount -1
+	mLinks(i) = mLinks(i+nDiff)
+next
+end sub
+
+
+
+sub subEventListBoxheadings_Initiate(oEvent)
+&apos;Called when the listbox is double clicked
+dim oListBoxHeadings as object, nSelectedItemPos as long
+
+oListBoxHeadings = oDialog.getControl(&quot;ListBoxHeadings&quot;)
+nSelectedItemPos = oListBoxHeadings.SelectedItemPos
+subAddRemoveNextLevel(oEvent.Source)
+oListBoxHeadings.selectItemPos(oListBoxHeadings.itemCount -1, true)
+oListBoxHeadings.selectItemPos(nSelectedItemPos, true)
+end sub
+
+
+sub subAddRemoveNextLevel(oListBox as object)
+&apos;Called by: subEventListBoxheadings_Initiate
+dim nPosn as integer
+dim sSelection as string
+
+sSelection = oListbox.SelectedItem
+nPosn = oListBox.SelectedItemPos
+if nPosn &lt; 0 then	&apos;Don&apos;t think this could happen but just in case
+	exit sub
+end if
+
+if fnLevel(sSelection) &gt; 0 then
+	subSetPlusMinus(oListBox, nPosn, &quot;+&quot;, &quot;-&quot;)
+	subAddSubLevel(oListBox, nPosn)
+else
+	subSetPlusMinus(oListBox, nPosn, &quot;-&quot;, &quot;+&quot;)
+	subRemoveSubLevels(oListBox, nPosn)
+end if
+end sub
+
+
+sub subSetPlusMinus(oListBox as object, nPosn as Integer, sCur as string, sTo as string)
+&apos;Called by: subAddRemoveNextLevel
+&apos;Toggless the + and - in the currently selected item
+dim sSelection as string
+
+sSelection = oListBox.getItem(nPosn)
+oListBox.removeItems(nPosn, 1)
+mid(sSelection,instr(sSelection, sCur), 1, sTo)
+oListBox.addItem(sSelection, nPosn)
+oListBox.selectItemPos(nPosn, true)
+end sub
+
+
+function fnLevel(sSelection as string) as integer
+&apos;Called by: fnGetLevel,fnGetItem, subAddRemoveNextLevel
+&apos;Determines the level of the string by looking at the leading spaces and first symbol (highest level = 1)
+dim i as integer, iLen as integer
+iLen = len(sSelection)
+i=1
+while i &lt; iLen and mid(sSelection, i, 1) = &quot; &quot;
+	i = i + nIndent
+wend
+if mid(sSelection,i,1) = &quot;+&quot; then
+	fnLevel = int((i - 1) / nIndent) + 1
+else
+	fnLevel = -1*(int((i - 1) / nIndent) + 1)
+end if
+end function
+
+
+function fnGetLevel(oListBox as object) as integer
+&apos;Returns the level of the currently selected item
+fnGetLevel = abs(fnLevel(oListBox.SelectedItem))
+end function
+
+
+sub subEventFind_Initiate
+&apos;Uses module level variable: oDoc
+dim oFrame as object, oDispatcher as object
+
+oFrame = oDoc.CurrentController.Frame
+oDispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+oDispatcher.executeDispatch(oFrame, &quot;.uno:SearchDialog&quot;, &quot;&quot;, 0, array())
+end sub
+
+
+sub subEventChangeDoc
+dim oListboxDocs as object, oDocTemp as object
+oListboxDocs = oDialog.getControl(&quot;ListBoxDocs&quot;)
+oDocTemp = mDocs(oListboxDocs.SelectedItemPos)
+subBuildArray(oDocTemp)
+subShowLevel(oDialog.getControl(&quot;ListBoxHeadings&quot;),	oDialog.getControl(&quot;ListBoxLevel&quot;).selectedItemPos + 1)
+end sub
+
+
+sub ActualizeReferences
+rem ----------------------------------------------------------------------
+rem define variables
+dim document   as object
+dim dispatcher as object
+rem ----------------------------------------------------------------------
+rem get access to the document
+document   = ThisComponent.CurrentController.Frame
+dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+
+rem ----------------------------------------------------------------------
+dispatcher.executeDispatch(document, &quot;.uno:UpdateFields&quot;, &quot;&quot;, 0, Array())
+
+
+end sub
+
+Sub InsertString(sString as string)
+  Dim oDocument As Object
+  Dim oText As Object
+  Dim oViewCursor As Object
+  Dim oTextCursor As Object
+
+  oDocument = ThisComponent
+  REM This text object is not always the correct text object for use.
+  REM For example, each cell in a text table has its own text object.
+  REM the same is true if the cursor happens to be in a frame, etc....
+  REM oText = oDocument.Text
+  oViewCursor = oDocument.CurrentController.getViewCursor()
+
+  REM So, get the text object from the cursor itself!
+  oText = oViewCursor.getText()
+  oTextCursor = oText.createTextCursorByRange(oViewCursor.getStart())
+
+  oText.insertString(oTextCursor, sString, FALSE)
+End Sub
+
+</script:module>

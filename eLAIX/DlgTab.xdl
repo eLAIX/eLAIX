@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE dlg:window PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "dialog.dtd">
+<dlg:window xmlns:dlg="http://openoffice.org/2000/dialog" xmlns:script="http://openoffice.org/2000/script" dlg:id="DlgTab" dlg:left="164" dlg:top="159" dlg:width="176" dlg:height="70" dlg:closeable="true" dlg:moveable="true" dlg:title="Insert Accordion">
+ <dlg:bulletinboard>
+  <dlg:titledbox dlg:id="Orientation" dlg:tab-index="2" dlg:left="5" dlg:top="6" dlg:width="106" dlg:height="39">
+   <dlg:title dlg:value="Orientation"/>
+  </dlg:titledbox>
+  <dlg:button dlg:id="CommandButton1" dlg:tab-index="3" dlg:left="118" dlg:top="10" dlg:width="52" dlg:height="15" dlg:default="true" dlg:value="Insert" dlg:button-type="ok">
+   <script:event script:event-name="on-performaction" script:macro-name="vnd.sun.star.script:eLAIX.Menu.InsertAccordions?language=Basic&amp;location=application" script:language="Script"/>
+  </dlg:button>
+  <dlg:button dlg:id="CommandButton2" dlg:tab-index="5" dlg:left="118" dlg:top="27" dlg:width="52" dlg:height="15" dlg:value="Cancel" dlg:button-type="cancel"/>
+  <dlg:text dlg:id="Label1" dlg:tab-index="6" dlg:left="10" dlg:top="53" dlg:width="74" dlg:height="10" dlg:value="Accordion Elements"/>
+  <dlg:combobox dlg:id="edtElements" dlg:tab-index="4" dlg:left="88" dlg:top="52" dlg:width="23" dlg:height="12" dlg:align="right" dlg:spin="true" dlg:linecount="10">
+   <dlg:menupopup>
+    <dlg:menuitem dlg:value="1"/>
+    <dlg:menuitem dlg:value="2"/>
+    <dlg:menuitem dlg:value="3"/>
+    <dlg:menuitem dlg:value="4"/>
+    <dlg:menuitem dlg:value="6"/>
+    <dlg:menuitem dlg:value="6"/>
+    <dlg:menuitem dlg:value="7"/>
+    <dlg:menuitem dlg:value="8"/>
+    <dlg:menuitem dlg:value="9"/>
+    <dlg:menuitem dlg:value="10"/>
+    <dlg:menuitem dlg:value="11"/>
+    <dlg:menuitem dlg:value="12"/>
+    <dlg:menuitem dlg:value="13"/>
+    <dlg:menuitem dlg:value="14"/>
+    <dlg:menuitem dlg:value="15"/>
+    <dlg:menuitem dlg:value="16"/>
+    <dlg:menuitem dlg:value="17"/>
+    <dlg:menuitem dlg:value="18"/>
+    <dlg:menuitem dlg:value="19"/>
+    <dlg:menuitem dlg:value="20"/>
+    <dlg:menuitem dlg:value="21"/>
+    <dlg:menuitem dlg:value="22"/>
+    <dlg:menuitem dlg:value="23"/>
+    <dlg:menuitem dlg:value="24"/>
+   </dlg:menupopup>
+  </dlg:combobox>
+  <dlg:radiogroup>
+   <dlg:radio dlg:id="optHorizontal" dlg:tab-index="1" dlg:left="10" dlg:top="30" dlg:width="92" dlg:height="10" dlg:value="Horizontal Orientation"/>
+   <dlg:radio dlg:id="optVertical" dlg:tab-index="0" dlg:left="10" dlg:top="19" dlg:width="92" dlg:height="10" dlg:value="Vertical Orientation" dlg:checked="true"/>
+  </dlg:radiogroup>
+ </dlg:bulletinboard>
+</dlg:window>

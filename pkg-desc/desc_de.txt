@@ -1,0 +1,3 @@
+ILIAS Lerneinheiten offline erstellen mit OpenOffice.org Writer.
+Copyright (c) 2004-2011 Harry Boldt
+

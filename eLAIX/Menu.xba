@@ -1,0 +1,2857 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">
+<script:module xmlns:script="http://openoffice.org/2000/script" script:name="Menu" script:language="StarBasic">&apos;****************************************************************************
+&apos; eLAIX   : Writing ILIAS learning modules offline with OpenOffice.org Writer
+&apos; Author  : Harry Boldt - h.boldt@boldt-media.de - http://elaix.org
+&apos; License : GPL
+&apos;****************************************************************************
+
+&apos; This module is part of eLAIX. You can redistribute it and/or
+&apos; modify it under the terms of the GNU Lesser General Public
+&apos; License as published by the Free Software Foundation, either
+&apos; version 3 of the License, or (at your option) any later version.
+&apos; 
+&apos; This program is distributed in the hope that it will be useful,
+&apos; but WITHOUT ANY WARRANTY; without even the implied warranty of
+&apos; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+&apos; Lesser General Public License for more details.
+&apos; 
+&apos; You should have received a copy of the GNU Lesser General Public
+&apos; License along with this program. If not, please visit the Free
+&apos; Software Foundation website at http://www.gnu.org/licenses/.
+
+
+Option Explicit
+
+
+&apos;******************************************************************************************
+&apos; Globals for Menu
+&apos;******************************************************************************************
+
+&apos;Check Dialog
+Global goDlgCheck as object
+global goThisDoc as object
+
+private oBookmarkDialog as object
+private oStyleDialog as object
+
+Type Metadata
+	docTitle as string
+	docDescription as string
+	docLanguage as string
+	docKeywords as string
+	docAuthors as string
+	docCopyright as string
+	propOutlineNumbering as string
+End Type
+
+Type doc
+	docname as string
+	docsize as integer
+end type
+
+
+global const GRAPHIC_ALIGNLEFT     = 1
+global const GRAPHIC_ALIGNCENTER   = 2
+global const GRAPHIC_ALIGNRIGHT    = 3
+global const GRAPHIC_ALIGNINLINE   = 4
+
+private const STYLE_FAMILY_SECTION   = 4
+private const STYLE_FAMILY_PARAGRAPH = 2
+private const STYLE_FAMILY_CHARACTER = 1
+
+&apos;ILIAS Styles
+private gaCharacterStyles()
+private gaParagraphStyles()
+private gaSectionStyles()
+private gsStyleFamily as string
+private giStyleFamily as integer
+
+
+&apos;----- Init Globals ---------------
+
+sub InitSectionStyles
+redim gaSectionStyles(6)
+
+	gaSectionStyles(0) = &quot;ILIAS Additional&quot;
+	gaSectionStyles(1) = &quot;ILIAS Block&quot;
+	gaSectionStyles(2) = &quot;ILIAS Example&quot;
+	gaSectionStyles(3) = &quot;ILIAS Excursus&quot;
+	gaSectionStyles(4) = &quot;ILIAS Mnemonic&quot;
+	gaSectionStyles(5) = &quot;ILIAS Remark&quot;
+	gaSectionStyles(6) = &quot;ILIAS Special&quot;
+end sub
+
+
+sub InitParagraphStyles
+redim gaParagraphStyles(6)
+
+	gaParagraphStyles(0) = &quot;ILIAS Additional&quot;
+	gaParagraphStyles(1) = &quot;ILIAS Code&quot;
+	gaParagraphStyles(2) = &quot;ILIAS Example&quot;
+	gaParagraphStyles(3) = &quot;ILIAS LaTeX&quot;
+	gaParagraphStyles(4) = &quot;ILIAS Mnemonic&quot;
+	gaParagraphStyles(5) = &quot;ILIAS Quotation&quot;
+	gaParagraphStyles(6) = &quot;ILIAS Remark&quot;
+end sub
+
+
+sub InitCharacterStyles
+redim gaCharacterStyles(9)
+
+	gaCharacterStyles(0) = &quot;ILIAS Accent&quot;
+	gaCharacterStyles(1) = &quot;ILIAS Code&quot;
+	gaCharacterStyles(2) = &quot;ILIAS Comment&quot;
+	gaCharacterStyles(3) = &quot;ILIAS Important&quot;
+	gaCharacterStyles(4) = &quot;ILIAS Keyword&quot;
+	gaCharacterStyles(5) = &quot;ILIAS LaTeX&quot;
+	gaCharacterStyles(6) = &quot;ILIAS Link MediaObject&quot;
+	gaCharacterStyles(7) = &quot;ILIAS Link GlossaryItem&quot;
+	gaCharacterStyles(8) = &quot;ILIAS Link RepositoryItem&quot;
+	gaCharacterStyles(9) = &quot;ILIAS Quotation&quot;
+end sub
+
+
+&apos;******************************************************************************************
+&apos; eLAIX Preferences (still unused)
+&apos;******************************************************************************************
+
+sub ElaixPreferences()
+&apos; see http://www.oooforum.org/forum/viewtopic.phtml?t=33910&amp;view=next
+
+	vRegistry = createUnoService(&quot;com.sun.star.registry.SimpleRegistry&quot;)
+	vRegistry.open( ConvertToURL( &quot;c:\myRegistry.rdb&quot; ), FALSE, TRUE )
+	
+	vRootKey = vRegistry.getRootKey()
+	
+	&apos;vMyKey = vRootKey.createKey( &quot;tomData&quot; )
+	vMyKey = vRootKey.openKey( &quot;tomData&quot; )
+	&apos;vMyKey.setStringListValue( Array( &quot;one&quot;, &quot;two&quot;, &quot;three&quot; ) )
+	&apos;vMyKey.setStringValue( &quot;hello tom&quot; )
+	&apos;MsgBox vMyKey.ValueType
+	
+	&apos;vMyKey.createKey(&quot;subkey1&quot;)
+	&apos;vMyKey.createKey(&quot;subkey2&quot;)
+		
+	vMyKey.closeKey()
+	vRegistry.close() 
+end sub
+
+
+&apos;******************************************************************************************
+&apos; Document related functions: Doc Open | Doc Metadata | Doc Check | Doc Export
+&apos;******************************************************************************************
+
+
+function DocImport()
+  ImportFromILIAS
+end function
+
+
+function GetDocMetaData() as object
+dim oMetadata as object
+
+	oMetadata = createObject(&quot;Metadata&quot;)
+	with oMetadata
+		.docTitle = GetInternalDocString(&quot;elaixDocTitle&quot;)
+		.docDescription = GetInternalDocString(&quot;elaixDocDescription&quot;)
+		.docLanguage = GetInternalDocString(&quot;elaixDocLanguage&quot;)
+		.docKeywords = GetInternalDocString(&quot;elaixDocKeywords&quot;)
+		.docAuthors = GetInternalDocString(&quot;elaixDocAuthors&quot;)
+		.docCopyright = GetInternalDocString(&quot;elaixDocCopyright&quot;)
+		.propOutlineNumbering = GetInternalDocString(&quot;elaixPropOutlineNumbering&quot;)
+	end with
+	GetDocMetaData = oMetadata
+end function
+
+
+sub SetDocMetadata (oMetadata as object)
+	SetInternalDocString(&quot;elaixDocTitle&quot;, oMetadata.docTitle)
+	SetInternalDocString(&quot;elaixDocDescription&quot;, oMetadata.docDescription)
+	SetInternalDocString(&quot;elaixDocLanguage&quot;,  oMetadata.docLanguage)
+	SetInternalDocString(&quot;elaixDocKeywords&quot;,  oMetadata.docKeywords)
+	SetInternalDocString(&quot;elaixDocAuthors&quot;,  oMetadata.docAuthors)
+	SetInternalDocString(&quot;elaixDocCopyright&quot;,  oMetadata.docCopyright)
+	SetInternalDocString(&quot;elaixPropOutlineNumbering&quot;,  oMetadata.propOutlineNumbering)
+end sub
+
+
+function GetMetaDataFromForm(oMetadata as object) as object
+dim oForm As object
+dim Ctl As object
+dim i as integer
+dim vName as string
+dim oMetadata as object
+
+	oMetaData = createObject(&quot;Metadata&quot;)
+	if ThisComponent().DrawPage.Forms.Count &gt; 0 then
+		oForm = ThisComponent().DrawPage.Forms.GetByIndex(0)
+		if oForm.Count &gt; 1 then
+			for i = 0 to oForm.Count - 1
+				Ctl = oForm.GetByIndex(i)
+				if Ctl.Name &lt;&gt; &quot;butOK&quot; then
+					vName = Ctl.Name
+					Select case vName
+						case &quot;Titel&quot; : oMetadata.docTitle = Ctl.Text
+						case &quot;Kommentar&quot; : oMetadata.docDescription = Ctl.Text
+						case &quot;Schlagworte&quot; : oMetadata.docKeywords = Ctl.Text
+						case &quot;Sprache&quot; : vName = oMetadata.docLanguage = Ctl.Text
+						case &quot;AutorName&quot; : vName = oMetadata.docAuthors = Ctl.Text
+					end select
+				else
+					exit for
+				end if  
+			next i
+		end if  
+	end if  
+	GetMetaDataFromForm = oMetadata
+end function
+
+
+sub DocMetadata()
+dim oMetadata as object
+dim oDlgFilename as object
+dim oMetaDlg as object
+dim vShowDialog as boolean
+
+	oMetaData = createObject(&quot;Metadata&quot;)
+	oMetadata = GetDocMetaData()
+	vShowDialog = true
+
+	if oMetaData.docLanguage = &quot;&quot; then  &apos;no metadata in doc
+		&apos; this might be an old eLAIX document
+		if IsOldElaixDocType then 
+			oMetaData = GetMetaDataFromForm(oMetadata)  &apos; read metadata with Doc-&gt;SetMetaDataForm
+			SetDocMetadata(oMetadata)
+			vShowDialog = UpgradeOldElaixDocType()  &apos;= true if user decided to upgrade
+		else  &apos;a non-eLAIX document -&gt; just open dialog with blank fields
+			vShowDialog = true
+		end if 
+	end if	
+
+	if vShowDialog then
+		&apos;initialize dialog and elements
+		DialogLibraries.LoadLibrary(&quot;eLAIX&quot;)
+		oMetaDlg = CreateUnoDialog( DialogLibraries.eLAIX.DlgMeta )	
+		
+		oMetaDlg.Title = &quot;Edit Document Metadata&quot;
+		oMetaDlg.getControl(&quot;edtDocTitle&quot;).SetText(oMetaData.docTitle)
+		oMetaDlg.getControl(&quot;edtDocDescription&quot;).SetText(oMetaData.docDescription)
+		oMetaDlg.getControl(&quot;cmbDocLanguage&quot;).SetText(oMetaData.docLanguage)
+		oMetaDlg.getControl(&quot;edtDocKeywords&quot;).SetText(oMetaData.docKeywords)
+		oMetaDlg.getControl(&quot;edtDocAuthors&quot;).SetText(oMetaData.docAuthors)
+		oMetaDlg.getControl(&quot;edtDocCopyright&quot;).SetText(oMetaData.docCopyright)
+		oMetaDlg.getControl(&quot;chkPropOutlineNumbering&quot;).State = (oMetaData.propOutlineNumbering)
+
+		if oMetaDlg.execute() = 1 then
+			oMetaData.docTitle = oMetaDlg.getControl(&quot;edtDocTitle&quot;).Text
+			oMetaData.docDescription = oMetaDlg.getControl(&quot;edtDocDescription&quot;).Text
+			oMetaData.docLanguage = oMetaDlg.getControl(&quot;cmbDocLanguage&quot;).Text
+			oMetaData.docKeywords = oMetaDlg.getControl(&quot;edtDocKeywords&quot;).Text
+			oMetaData.docAuthors = oMetaDlg.getControl(&quot;edtDocAuthors&quot;).Text
+			oMetaData.docCopyright = oMetaDlg.getControl(&quot;edtDocCopyright&quot;).Text
+			oMetaData.propOutlineNumbering = oMetaDlg.getControl(&quot;chkPropOutlineNumbering&quot;).State
+			SetDocMetadata(oMetadata)
+		end if			
+	end if	
+end sub
+
+
+
+sub DocCheck()
+dim oGraphic as object
+dim oControl as object
+dim sPath as string
+dim sImgPath as string
+dim oMetadata as object
+dim oStructure as object
+dim oSyncOutlines as object
+dim oEmptyHeadings as object
+dim oDoubleSpaces as object
+dim oTabulators as object
+dim oTabToSpaceCount as object
+dim vTabToSpaceCount as integer
+dim oStatus as object
+dim vState as integer
+
+	if IsOldElaixDocType then UpgradeOldElaixDocType()
+	
+	&apos;initialize dialog and elements
+	DialogLibraries.LoadLibrary( &quot;eLAIX&quot; )
+	goDlgCheck = CreateUnoDialog( DialogLibraries.eLAIX.DlgCheck )		
+	sPath = GetPackageDirURL(&quot;vnd.harryboldt.elaix&quot;)  
+	sImgPath = sPath &amp; &quot;/icons/check.png&quot;
+	oControl = goDlgCheck.getControl(&quot;imgLogo&quot;)
+	oControl.getModel().ImageURL = ConvertToURL( sImgPath )
+
+	&apos;setting the dialog elements
+	oMetadata = goDlgCheck.getControl(&quot;chkMetadata&quot;)
+	oStructure = goDlgCheck.getControl(&quot;chkStructure&quot;)
+	oSyncOutlines = goDlgCheck.getControl(&quot;chkSyncOutlines&quot;)
+	oEmptyHeadings = goDlgCheck.getControl(&quot;chkEmptyHeadings&quot;)
+	oDoubleSpaces = goDlgCheck.getControl(&quot;chkDoubleSpaces&quot;)
+	oTabulators = goDlgCheck.getControl(&quot;chkTabulators&quot;)
+	oTabToSpaceCount = goDlgCheck.getControl(&quot;txtTabToSpaceCount&quot;)
+	oStatus = goDlgCheck.getControl(&quot;txtStatus&quot;)
+	oStatus.Text = &quot;Please select check-options and then start the document check and optimizing.&quot;
+	
+	&apos;get check-setting from document
+	oMetadata.State = GetInternalDocString(&quot;eLAIXCheckMetadata&quot;)
+	oStructure.State = GetInternalDocString(&quot;eLAIXCheckStructure&quot;)
+	oSyncOutlines.State = GetInternalDocString(&quot;eLAIXCheckSyncOutlines&quot;)
+	oEmptyHeadings.State = GetInternalDocString(&quot;eLAIXCheckEmptyHeadings&quot;)
+	oDoubleSpaces.State = GetInternalDocString(&quot;eLAIXCheckDoubleSpaces&quot;)
+	oTabulators.State = GetInternalDocString(&quot;eLAIXCheckTabulators&quot;)
+	vTabToSpaceCount = GetInternalDocString(&quot;eLAIXCheckTabToSpaceCount&quot;)
+	if vTabToSpaceCount &gt; 0 then 
+		oTabToSpaceCount.Text = vTabToSpaceCount
+	else
+		oTabToSpaceCount.Text = 4
+	end if	
+
+	goDlgCheck.execute	
+end sub
+
+sub DocCheckSetElements
+dim oStructure as object
+
+	oStructure = goDlgCheck.getControl(&quot;chkStructure&quot;)
+	&apos;xray oStructure
+	goDlgCheck.getControl(&quot;chkSyncOutlines&quot;).Enable = oStructure.State = 1
+	goDlgCheck.getControl(&quot;chkEmptyHeadings&quot;).Enable = oStructure.State = 1
+end sub
+
+sub DoDocCheck()
+dim oMetadata as object
+dim oStructure as object
+dim oSyncOutlines as object
+dim oEmptyHeadings as object
+dim oDoubleSpaces as object
+dim oTabulators as object
+dim oTabToSpaceCount as object
+dim oStatus as object
+dim oClose as object
+dim oPage as object
+dim oParagraph as object
+dim oMetadataRec as object
+dim crlf as string
+dim sStatus as string
+dim iCount as integer
+dim sMsg as string
+
+
+	&apos;set mouse pointer to hourglass
+	SwitchMousePointer(goDlgCheck.getPeer(), false)
+
+	&apos;setting the dialog elements
+	oMetadata = goDlgCheck.getControl(&quot;chkMetadata&quot;)
+	oStructure = goDlgCheck.getControl(&quot;chkStructure&quot;)
+	oSyncOutlines = goDlgCheck.getControl(&quot;chkSyncOutlines&quot;)
+	oEmptyHeadings = goDlgCheck.getControl(&quot;chkEmptyHeadings&quot;)
+	oDoubleSpaces = goDlgCheck.getControl(&quot;chkDoubleSpaces&quot;)
+	oTabulators = goDlgCheck.getControl(&quot;chkTabulators&quot;)
+	oTabToSpaceCount = goDlgCheck.getControl(&quot;txtTabToSpaceCount&quot;)
+	oStatus = goDlgCheck.getControl(&quot;txtStatus&quot;)
+	oStatus.Text = &quot;Checking document - please wait...&quot;
+		
+	crlf = chr(13) &amp; chr(10)
+	
+	sStatus = DocCheckFilename
+	if sStatus &lt;&gt; &quot;&quot; then
+		oStatus.Text = oStatus.Text &amp; crlf &amp; crlf &amp; &quot;FILENAME:&quot; &amp; crlf
+		oStatus.Text = oStatus.Text &amp; sStatus 
+	end if
+	
+	if oMetadata.State = 1 then 
+		oMetaDataRec = createObject(&quot;Metadata&quot;)
+		oMetadataRec = GetDocMetaData()
+		sStatus = &quot;METADATA:&quot; &amp; crlf
+		with oMetadataRec
+			sStatus = sStatus &amp; &quot;Document Title: &quot; &amp; .docTitle &amp; crlf
+			sStatus = sStatus &amp; &quot;Description: &quot; &amp; .docDescription &amp; crlf
+			sStatus = sStatus &amp; &quot;Language: &quot; &amp; .docLanguage &amp; crlf
+			sStatus = sStatus &amp; &quot;Keywords: &quot; &amp; .docKeywords &amp; crlf
+			sStatus = sStatus &amp; &quot;Authors: &quot; &amp; .docAuthors &amp; crlf
+			sStatus = sStatus &amp; &quot;Copyright: &quot; &amp; .docCopyright &amp; crlf
+			sStatus = sStatus &amp; &quot;Show Outline Numbering: &quot; &amp; .propOutlineNumbering &amp; crlf
+		end with
+		oStatus.Text = sStatus
+	end if
+	
+	if oStructure.State = 1 then 
+		sStatus = DocCheckStructure()
+		if sStatus = &quot;&quot; then
+			oStatus.Text = oStatus.Text &amp; crlf &amp; &quot;STRUCTURE: OK&quot;
+		else	
+			oStatus.Text = oStatus.Text &amp; crlf &amp; &quot;STRUCTURE:&quot;
+			oStatus.Text = oStatus.Text &amp; crlf &amp; sStatus 
+		end if
+	end if
+			
+	if oDoubleSpaces.State = 1 then 
+		iCount = DeleteDoubleSpaces()
+		select case iCount
+		case 0
+			oStatus.Text = oStatus.Text &amp; crlf &amp; crlf &amp; &quot;DOUBLE SPACES: OK&quot;
+		case 1
+			oStatus.Text = oStatus.Text &amp; crlf &amp; crlf &amp; &quot;DOUBLE SPACES:&quot;
+			oStatus.Text = oStatus.Text &amp; crlf &amp; &quot;1 occurrence removed.&quot;
+		case else
+			oStatus.Text = oStatus.Text &amp; crlf &amp; crlf &amp; &quot;DOUBLE SPACES:&quot;
+			oStatus.Text = oStatus.Text &amp; crlf &amp; CStr(iCount) &amp; &quot; occurrences removed.&quot;
+		end select
+	end if
+	
+	if oTabulators.State = 1 then 
+		iCount = ReplaceTabToSpaces(Val(oTabToSpaceCount.Text))
+		select case iCount
+		case 0
+			oStatus.Text = oStatus.Text &amp; crlf &amp; crlf &amp; &quot;TABULATORS: OK&quot;
+		case 1
+			oStatus.Text = oStatus.Text &amp; crlf &amp; crlf &amp; &quot;TABULATORS:&quot;
+			oStatus.Text = oStatus.Text &amp; crlf &amp; &quot;1 occurrence removed.&quot;
+		case else
+			oStatus.Text = oStatus.Text &amp; crlf &amp; crlf &amp; &quot;TABULATORS:&quot;
+			oStatus.Text = oStatus.Text &amp; crlf &amp; CStr(iCount) &amp; &quot; occurrences removed.&quot;
+		end select
+	end if
+	
+	&apos;Save check-settings to document
+	SetInternalDocString(&quot;eLAIXCheckMetadata&quot;, oMetadata.State)
+	SetInternalDocString(&quot;eLAIXCheckStructure&quot;, oStructure.State)
+	SetInternalDocString(&quot;eLAIXCheckSyncOutlines&quot;, oSyncOutlines.State)
+	SetInternalDocString(&quot;eLAIXCheckEmptyHeadings&quot;, oEmptyHeadings.State)
+	SetInternalDocString(&quot;eLAIXCheckDoubleSpaces&quot;, oDoubleSpaces.State)
+	SetInternalDocString(&quot;eLAIXCheckTabulator&quot;, oTabulators.State)
+	SetInternalDocString(&quot;eLAIXCheckTabToSpaceCount&quot;, oTabToSpaceCount.Text)
+
+	oClose = goDlgCheck.getControl(&quot;butClose&quot;)
+	oClose.setFocus()
+	
+	SwitchMousePointer(goDlgCheck.getPeer(), true)
+	Beep
+end sub
+
+
+sub DocExportILIAS()
+  &apos;InitGlobals 
+  if DocHasLocation() then
+    ShowIliasExportDialog &apos;this dialog calls sub DlgExportClick via &quot;Export&quot;-button
+  end if
+end sub
+
+
+sub DocExportEPUB()
+  &apos;InitGlobals 
+  if DocHasLocation() then
+    ShowEpubExportDialog &apos;this dialog calls sub DlgExportClick via &quot;Export&quot;-button
+  end if
+end sub
+
+
+sub DoInsertReference()
+	EventCommandButtonInsert_Initiate
+end sub
+
+
+
+&apos;******************************************************************************************
+&apos; Insert Routines
+&apos;******************************************************************************************
+
+sub InsertGraphic
+dim oViewCursor as object
+dim oText as object
+dim oTextCursor as object
+dim oTextCursor2 as object
+dim bParaIsEmpty as boolean
+dim sFileName as string
+dim filterNames(0) As String
+dim oSelectedObj as object
+
+
+	oSelectedObj = ThisComponent.getCurrentSelection()
+	&apos; check if the selected object is a TextGraphicObject
+	if oSelectedObj.supportsService(&quot;com.sun.star.text.TextRanges&quot;) then
+		oViewCursor = ThisComponent.CurrentController.getViewCursor() 		
+		oText = oViewCursor.Text
+		oTextCursor = oText.createTextCursorByRange(oViewCursor)
+		oTextCursor2 = oText.createTextCursorByRange(oViewCursor)
+		oTextCursor.gotoStartOfParagraph(False)
+		oTextCursor.gotoEndOfParagraph(True) 
+		bParaIsEmpty = oTextCursor.GetString = &quot;&quot;
+		&apos;check the position of the cursor as long as it is valid
+		if bParaIsEmpty then
+			EmbedGraphicByDispatcher(GRAPHIC_ALIGNCENTER)
+	&apos;	elseif oViewCursor.isAtStartOfLine then
+	&apos;		filterNames(0) = &quot;*.png;*.gif;*.jpg;*.jpeg;*.svg&quot;
+	&apos;		sFileName = GetOpenFileName(filterNames())
+	&apos;		if sFilename &lt;&gt; &quot;&quot; then
+	&apos;			EmbedGraphic(sFileName, GRAPHIC_ALIGNLEFT) 
+	&apos;		end if	
+			&apos;EmbedGraphicByDispatcher(GRAPHIC_ALIGNLEFT)
+		&apos;elseif oViewCursor.isAtEndOfLine then
+		&apos;	EmbedGraphicByDispatcher(GRAPHIC_ALIGNRIGHT)
+		else
+			&apos;&apos;iAnchor = com.sun.star.text.TextContentAnchorType.AS_CHARACTER
+			&apos;&apos;iTextWrap = com.sun.star.text.WrapTextMode.NONE
+			&apos;&apos;iAlignment = com.sun.star.text.HoriOrientation.LEFT
+			filterNames(0) = &quot;*.png;*.gif;*.jpg;*.jpeg;*.svg&quot;
+			sFileName = GetOpenFileName(filterNames())
+			if sFilename &lt;&gt; &quot;&quot; then
+				EmbedGraphic(sFileName, GRAPHIC_ALIGNINLINE) 
+	&apos;			EmbedGraphic(sFileName, iAnchor, iTextWrap, iAlignment) 
+			end if	
+		end if
+	else
+		Msgbox &quot;Please place the cursor somewhere into your document to indicate, where the graphic has to be shown. Do not select objects.&quot;
+	end if	
+end sub
+
+sub EmbedGraphicByDispatcher(iAlignment)	
+dim document   as object
+dim dispatcher as object
+
+	document = ThisComponent.CurrentController.Frame
+	dim args1(3) as new com.sun.star.beans.PropertyValue
+	args1(0).Name = &quot;FilterName&quot;
+	args1(0).Value = &quot;&lt;All formats&gt;&quot;
+	args1(1).Name = &quot;AsLink&quot;
+	args1(1).Value = false
+	args1(2).Name = &quot;Style&quot;
+	args1(2).Value = &quot;Graphics&quot;
+	dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)	
+	&apos; ----------------------------------------------------------------------
+	dispatcher.executeDispatch(document, &quot;.uno:InsertGraphic&quot;, &quot;&quot;, 0, args1())
+	
+	dim oSelectedObj as object
+	oSelectedObj = ThisComponent.getCurrentSelection()
+	if oSelectedObj.supportsService(&quot;com.sun.star.text.TextGraphicObject&quot;) or oSelectedObj.supportsService(&quot;com.sun.star.text.TextFrame&quot;) then
+		SetGraphicAlignment(oSelectedObj, iAlignment)
+		oSelectedObj.Anchor.ParaAdjust = com.sun.star.style.ParagraphAdjust.CENTER
+	end if		
+end sub
+
+
+Sub EmbedGraphic(sURL as string, iAlign as integer)
+  REM Author: Stephan Wunderlich. Two lines added by ms777, additional changes by Harry
+  Dim oShape
+  Dim oGraph     &apos;The graphic object is text content.
+  Dim oProvider  &apos;GraphicProvider service.
+  Dim oText
+ 
+  oDoc = ThisComponent
+  oShape = oDoc.createInstance(&quot;com.sun.star.drawing.GraphicObjectShape&quot;)
+  oGraph = oDoc.createInstance(&quot;com.sun.star.text.GraphicObject&quot;)
+  oDoc.getDrawPage().add(oShape)
+  oProvider = createUnoService(&quot;com.sun.star.graphic.GraphicProvider&quot;)
+  Dim oProps(0) as new com.sun.star.beans.PropertyValue
+  oProps(0).Name  = &quot;URL&quot;
+  oProps(0).Value = sURL
+  oShape.Graphic = oProvider.queryGraphic(oProps())
+  oGraph.GraphicUrl = oShape.GraphicUrl
+  
+&apos; next two lines are new
+  &apos;xray ograph
+  &apos;oGraph.Size = oShape.Graphic.Size100thMM
+  &apos;if oShape.graphic.MimeType = &quot;image/gif&quot; then
+  &apos;if oShape.Graphic.Size100thMM.Height &gt; 0 then
+&apos;	  oGraph.Size = oShape.Graphic.Size100thMM
+ &apos; else	 
+  	  dim oSize As New com.sun.star.awt.Size 
+  	  oSize.Height = int(oShape.Graphic.SizePixel.Height * 26.45)
+  	  oSize.Width = int(oShape.Graphic.SizePixel.Width * 26.45)
+	  oGraph.Size = oSize
+  &apos;end if	  
+  
+	select case iAlign
+		case GRAPHIC_ALIGNLEFT
+			oGraph.AnchorType = com.sun.star.text.TextContentAnchorType.AT_PARAGRAPH
+			oGraph.HoriOrient = com.sun.star.text.HoriOrientation.LEFT
+			oGraph.TextWrap = com.sun.star.text.WrapTextMode.RIGHT
+			oGraph.TopMargin = 250
+			oGraph.RightMargin = 300
+			oGraph.LeftMargin = 0
+			oGraph.Anchor.LeftBorderDistance = 1 &apos;refresh text
+			
+		case GRAPHIC_ALIGNRIGHT
+			oGraph.AnchorType = com.sun.star.text.TextContentAnchorType.AT_PARAGRAPH
+			oGraph.HoriOrient = com.sun.star.text.HoriOrientation.RIGHT
+			oGraph.TextWrap = com.sun.star.text.WrapTextMode.LEFT
+			oGraph.TopMargin = 250
+			oGraph.LeftMargin = 300
+			oGraph.RightMargin = 0
+			oGraph.Anchor.RightBorderDistance = 1 &apos; refresh text
+			
+		case GRAPHIC_ALIGNCENTER
+			oGraph.AnchorType = com.sun.star.text.TextContentAnchorType.AS_CHARACTER
+			oGraph.HoriOrient = com.sun.star.text.HoriOrientation.CENTER
+			oGraph.TextWrap = com.sun.star.text.WrapTextMode.NONE
+			
+		case GRAPHIC_ALIGNINLINE
+			oGraph.AnchorType = com.sun.star.text.TextContentAnchorType.AS_CHARACTER
+			oGraph.HoriOrient = com.sun.star.text.HoriOrientation.LEFT
+			oGraph.TextWrap = com.sun.star.text.WrapTextMode.NONE
+	end select	
+  
+  oText= oDoc.getText()
+  &apos; Insert at the current cursor location
+  oText.insertTextContent(oDoc.getCurrentController().getViewCursor(), oGraph, false)
+
+  &apos; We no longer require the shape object.
+  oDoc.getDrawPage().remove(oShape)
+
+End Sub
+
+
+Sub EmbedGraphic2(sFile)
+Dim oDocument
+Dim oCursor
+Dim oGraphic
+
+	oDoc =  ThisComponent
+	oText = oDoc.getText()
+	oCursor = oDoc.CurrentController.getViewCursor()
+	oCursor.gotoRange(oCursor.getEnd(), false)
+	oGraphic = oDoc.createInstance(&quot;com.sun.star.text.GraphicObject&quot;)	   
+	With oGraphic
+	  .GraphicURL = ConvertToURL(sFile)
+	  .AnchorType = com.sun.star.text.TextContentAnchorType.AS_CHARACTER
+	End With	
+	&apos;now insert the image into the text document
+	oText.insertTextContent( oCursor, oGraphic, False ) 
+	EmbedLinkedGraphic(oGraphic)
+End Sub
+
+
+sub InsertMovie()
+	dim document   as object
+	dim dispatcher as object
+	&apos; ----------------------------------------------------------------------
+	&apos; get access to the document
+	document   = ThisComponent.CurrentController.Frame
+	dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+	
+	&apos; ----------------------------------------------------------------------
+	dispatcher.executeDispatch(document, &quot;.uno:InsertAVMedia&quot;, &quot;&quot;, 0, Array())
+end sub
+
+
+sub InsertPageBreak
+Dim oCur As Object
+dim oSel as object
+
+    On Error Goto ERRORHANDLER
+   
+    oSel = thiscomponent.getcurrentcontroller.getselection
+    oCur = oSel(0).getText.createTextCursorByRange(oSel(0))
+    if oCur.BreakType = com.sun.star.style.BreakType.PAGE_BEFORE then
+        oCur.BreakType = com.sun.star.style.BreakType.NONE
+    else
+        oCur.BreakType = com.sun.star.style.BreakType.PAGE_BEFORE
+    end if
+    Exit Sub
+   
+    ERRORHANDLER:
+        msgbox (&quot;Cannot change page break settings here:&quot;+chr(13)+chr(13)+Error$,48,&quot;&quot;)
+end sub
+
+
+
+sub InsertFootnote_Test
+dim oSP as object
+dim oScript as object
+dim Array()
+
+	&apos;const PATH_TO_SCRIPT = &quot;vnd.sun.star.script:Tools.Getlatex.bsh?language=BeanShell&amp;location=user&quot; 
+	const PATH_TO_SCRIPT = &quot;vnd.sun.star.script:HelloWorld.helloworld.bsh?language=BeanShell&amp;location=share&quot; 
+	oSP    = ThisComponent.getScriptProvider(&quot;&quot;)
+	oScript = oSP.getScript(PATH_TO_SCRIPT)
+	msgbox oScript.invoke(Array(), Array(), Array()) 
+end sub
+
+
+sub InsertFootnote
+	rem ----------------------------------------------------------------------
+	rem define variables
+	dim document   as object
+	dim dispatcher as object
+	rem ----------------------------------------------------------------------
+	rem get access to the document
+	document   = ThisComponent.CurrentController.Frame
+	dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+	
+	rem ----------------------------------------------------------------------
+	dispatcher.executeDispatch(document, &quot;.uno:InsertFootnote&quot;, &quot;&quot;, 0, Array())
+end sub
+
+
+sub InsertFlash
+	rem ----------------------------------------------------------------------
+	rem define variables
+	dim document   as object
+	dim dispatcher as object
+	rem ----------------------------------------------------------------------
+	rem get access to the document
+	document   = ThisComponent.CurrentController.Frame
+	dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+	
+	rem ----------------------------------------------------------------------
+	dispatcher.executeDispatch(document, &quot;.uno:InsertPlugin&quot;, &quot;&quot;, 0, Array())
+end sub
+
+
+sub InsertSound
+	rem ----------------------------------------------------------------------
+	rem define variables
+	dim document   as object
+	dim dispatcher as object
+	rem ----------------------------------------------------------------------
+	rem get access to the document
+	document   = ThisComponent.CurrentController.Frame
+	dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+	
+	rem ----------------------------------------------------------------------
+	dispatcher.executeDispatch(document, &quot;.uno:InsertAVMedia&quot;, &quot;&quot;, 0, Array())
+end sub
+
+
+sub InsertDownload
+dim filterNames(0) As string
+dim aFilenames()
+dim i as integer
+dim iCount as integer
+dim sFilename as string
+dim sPath as string
+
+	filterNames(0) = &quot;*.*&quot;
+	aFilenames() = GetOpenFileNames(filterNames())
+	iCount = ubound(aFilenames())
+	if iCount &gt;= 0 then
+		&apos;msgbox &quot;Files selected.&quot;
+		SetFrameStyleFileList &apos;Create the FrameStyle for the download list
+		SetParaStylesFileList &apos;Create the ParagraphStyle for the caption of the download list
+
+		Dim oDoc As Object
+		Dim oViewCursor As Object
+		Dim oTextCursor As Object
+		Dim oFrame As Object
+		Dim oFrameCursor As Object
+		oDoc = thisComponent
+		oViewCursor = oDoc.CurrentController.getViewCursor() 
+		oTextCursor = oViewCursor.getText.createTextCursorByRange(oViewCursor)		
+		oFrame = oDoc.createInstance(&quot;com.sun.star.text.TextFrame&quot;)
+		with oFrame
+			.FrameStyleName = &quot;ILIAS FileList&quot;
+			.RelativeWidth = 100
+			.FrameIsAutomaticHeight = true
+		end with	
+
+		oTextCursor.Text.insertTextContent(oTextCursor, oFrame, False)
+
+		&apos;Put the names of the selected files into the frame
+		oFrameCursor = oFrame.createTextCursor()
+
+		oFrame.Text.insertString(oFrameCursor, &quot;FileList Caption&quot;, False)		
+		oFrameCursor.ParaStyleName = &quot;ILIAS FileList Caption&quot;
+		oFrame.Text.insertControlCharacter(oFrameCursor, com.sun.star.text.ControlCharacter.PARAGRAPH_BREAK, False)
+		oFrameCursor.ParaStyleName = &quot;ILIAS FileList Element&quot;
+		for i = 0 to iCount
+			sPath = ConvertToURL(aFilenames(i))
+			sFilename = ConvertFromUrl(FileNameOutOfPath(sPath))
+			oFrame.Text.insertString(oFrameCursor, sFilename, true)
+			oFrameCursor.hyperlinkurl = sPath
+			if i &lt; iCount then
+				oFrameCursor.GotoEndOfParagraph(false)
+				oFrame.Text.insertControlCharacter(oFrameCursor, com.sun.star.text.ControlCharacter.PARAGRAPH_BREAK, false)
+			end if	
+		next i	
+	end if
+end sub
+
+
+sub InsertLink
+	CrossReferenceHeadings
+end sub
+
+
+Sub InsertFormula
+  dim oDoc as object
+  Dim oVC
+  Dim oObj
+
+  oDoc = ThisComponent
+  oVC = oDoc.CurrentController.getViewCursor()
+  oVC.gotoRange(oVC.getEnd(), False)
+  oObj = oDoc.CreateInstance(&quot;com.sun.star.text.TextEmbeddedObject&quot;)
+  oObj.CLSID = &quot;078B7ABA-54FC-457F-8551-6147e776a997&quot;
+  oObj.AnchorType = com.sun.star.text.TextContentAnchorType.AS_CHARACTER
+  oVC.Text.insertTextContent(oVC, oObj, False)
+  &apos;oObj.EmbeddedObject.formula = sFormula
+End Sub
+
+
+sub InsertBookmark
+	InsertBookmarkByDispatcher
+end sub
+
+
+sub InsertBookmarkByDispatcher
+dim document   as object
+dim dispatcher as object
+
+	document   = ThisComponent.CurrentController.Frame
+	dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+	&apos;dim args1(0) as new com.sun.star.beans.PropertyValue
+	&apos;args1(0).Name = &quot;Bookmark&quot;
+	&apos;args1(0).Value = &quot;&quot;
+	dispatcher.executeDispatch(document, &quot;.uno:InsertBookmark&quot;, &quot;&quot;, 0, Array()
+end sub
+
+
+sub InsertLinkToBookmark
+dim oBookmarks as object
+dim oLinktext as object
+dim oListBox as object
+dim sLinktext as string
+dim sBookmark as string
+Dim oSelections As Object, oSel As Object, oText As Object
+Dim lSelCount As Long, lWhichSelection As Long
+dim oCursor as object
+dim i as integer
+dim iCount as integer
+dim oBookmark as object
+  
+	&apos;initialize dialog and elements
+	DialogLibraries.LoadLibrary( &quot;eLAIX&quot; )
+	oBookmarkDialog = CreateUnoDialog (DialogLibraries.eLAIX.DlgBookmark)
+
+	oText = ThisComponent.Text
+	oSelections = ThisComponent.getCurrentSelection()
+	lSelCount = oSelections.getCount()
+	if lSelCount &gt; 0 then
+		oSel = oSelections.getByIndex(0)
+		sLinktext = oSel.String
+		oLinktext = oBookmarkDialog.getControl(&quot;txtLink&quot;)
+		oLinktext.Text = sLinktext
+	end if
+
+	oBookmarks = thisComponent.Bookmarks
+	oListBox = oBookmarkDialog.getControl(&quot;listBookmarks&quot;)
+	&apos;xray oBookmarks
+
+	&apos;Do not read internal bookmarks starting with &quot;__UnoMark__&quot;
+	iCount = oBookmarks.GetCount - 1
+	for i = 0 to iCount
+		oBookmark = oBookmarks.GetByIndex(i)
+		if left(oBookmark.Name, 11) &lt;&gt; &quot;__UnoMark__&quot; then
+			oListBox.Additem(oBookmark.Name, oListBox.GetItemCount -1)
+		end if
+	next i
+
+	&apos;oListBox.SelectItem(sActStyle, true)
+	SetBookmarkDialogButtons
+	if oBookmarkDialog.execute() = 1 then
+		sLinktext = oBookmarkDialog.getControl(&quot;txtLink&quot;).Text
+		sBookmark = oListBox.SelectedItem
+		InsertLinkToBookmarkByDispatcher(sLinktext, sBookmark)
+	end if
+end sub
+
+
+sub InsertLinkToBookmarkByDispatcher(sLinktext as string, sBookmark as string)
+dim document as object
+dim dispatcher as object
+
+	document   = ThisComponent.CurrentController.Frame
+	dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+	dim args1(4) as new com.sun.star.beans.PropertyValue
+	args1(0).Name = &quot;Hyperlink.Text&quot;
+	args1(0).Value = sLinktext
+	args1(1).Name = &quot;Hyperlink.URL&quot;
+	args1(1).Value = &quot;#&quot; &amp; sBookmark
+	args1(2).Name = &quot;Hyperlink.Target&quot;
+	args1(2).Value = &quot;&quot;
+	args1(3).Name = &quot;Hyperlink.Name&quot;
+	args1(3).Value = &quot;&quot;
+	args1(4).Name = &quot;Hyperlink.Type&quot;
+	args1(4).Value = 1	
+	dispatcher.executeDispatch(document, &quot;.uno:SetHyperlink&quot;, &quot;&quot;, 0, args1())
+end sub
+
+
+sub SetBookmarkDialogButtons
+dim oTextLink as object
+dim oListBox as object
+dim sLink as string
+dim sBookmark as string
+dim oButtonInsert as object
+
+	oTextLink = oBookmarkDialog.getControl(&quot;txtLink&quot;)
+	oListBox = oBookmarkDialog.getControl(&quot;listBookmarks&quot;)
+	sLink = oTextLink.Text
+	sBookmark = oListBox.SelectedItem
+	oButtonInsert = oBookmarkDialog.getControl(&quot;btnInsert&quot;)
+	oButtonInsert.Model.Enabled = sLink &lt;&gt; &quot;&quot; and sBookmark &lt;&gt; &quot;&quot;
+end sub
+
+
+sub InsertAccordion
+dim oDialog as object
+dim oGraphic as object
+dim oControl as object
+dim oPath as object
+dim sPath as string
+dim sImgPath as string
+dim sOrientation as string
+dim oElements as object
+dim iElements as integer
+dim sElements as string
+dim oFrameCursor as object
+dim i as integer
+dim oElement as object
+dim oElementCursor as object
+dim sParaStyleName as string
+
+	&apos;initialize dialog and elements
+	DialogLibraries.LoadLibrary( &quot;eLAIX&quot; )
+	oDialog = CreateUnoDialog( DialogLibraries.eLAIX.DlgTab )
+	sOrientation = GetInternalDocString(&quot;elaixAccordionOrientation&quot;)
+	if (sOrientation = &quot;&quot;) or (sOrientation = &quot;Accordion Vertical&quot;) then
+		oDialog.getControl(&quot;optVertical&quot;).State = true
+	else
+		oDialog.getControl(&quot;optHorizontal&quot;).State = true
+	end if	
+	sElements = GetInternalDocString(&quot;elaixAccordionElements&quot;)
+	if sElements = &quot;&quot; then sElements = 3
+	oDialog.getControl(&quot;edtElements&quot;).Text = sElements
+	&apos;oDialog.Title = &quot;Insert Accordions&quot;
+	
+	&apos;oPath = CreateUnoService(&quot;com.sun.star.util.PathSettings&quot;)
+	&apos;sImgPath = oPath.UserConfig &amp; &quot;/elaix/about.png&quot;
+	&apos;sPath = GetPackageDirURL(&quot;vnd.harryboldt.elaix&quot;) 
+	&apos;sImgPath = sPath &amp; &quot;/icons/about.png&quot;
+	&apos;oControl = oDialog.getControl(&quot;imgLogo&quot;)
+	&apos;oControl.getModel().ImageURL = ConvertToURL( sImgPath )
+
+	if oDialog.execute() = 1 then
+		if oDialog.getControl(&quot;optVertical&quot;).State = true then
+			sOrientation = &quot;Accordion Vertical&quot;
+		else
+			sOrientation = &quot;Accordion Horizontal&quot;
+		end if	
+
+		SetInternalDocString(&quot;elaixAccordionOrientation&quot;, sOrientation)
+		iElements = oDialog.getControl(&quot;edtElements&quot;).Text
+		SetInternalDocString(&quot;elaixAccordionElements&quot;, CStr(iElements))
+		&apos;msgbox &quot;Vertical Orientation: &quot; &amp; IsVerticalOrientation &amp; chr(13) &amp; &quot;Elements: &quot; &amp; iElements
+				
+		SetFrameStylesAccordion(sOrientation) &apos;Create two FrameStyles: one for the group and one for the elements
+		SetParaStylesAccordion &apos;Create two ParagraphStyles: one for for the caption (Toggler) an one for the content
+
+		Dim oDoc As Object
+		Dim oViewCursor As Object
+		Dim oTextCursor As Object
+		Dim oFrame As Object
+		oDoc = thisComponent
+		oViewCursor = oDoc.CurrentController.getViewCursor() 
+		oTextCursor = oViewCursor.getText.createTextCursorByRange(oViewCursor)		
+		&apos;oCursor = oDoc.Text.createTextCursor()
+		&apos;oTextCursor.gotoEnd(False)
+		oFrame = oDoc.createInstance(&quot;com.sun.star.text.TextFrame&quot;)
+		with oFrame
+			.FrameStyleName = &quot;ILIAS &quot; &amp; sOrientation
+			&apos;.Title = sOrientation
+			.RelativeWidth = 100
+			.FrameIsAutomaticHeight = true
+		end with	
+
+		&apos;oDoc.Text.InsertString(oCursor, &quot;Hallo&quot;, false)
+		
+		&apos;if isnull(oTextCursor.Textframe) then
+			oTextCursor.Text.insertTextContent(oTextCursor, oFrame, False)
+		&apos;else
+		&apos;	oTextCursor.Textframe.Text.insertTextContent(oTextCursor, oFrame, False)
+		&apos;end if	
+		
+
+		&apos;Put frames into the outer Accordion frame that represents the Accordion elements
+		oFrameCursor = oFrame.createTextCursor()
+		&apos;oFrameCursor.charWeight = com.sun.star.awt.FontWeight.BOLD
+		oFrameCursor.paraAdjust = com.sun.star.style.ParagraphAdjust.CENTER
+		
+		for i = 1 to iElements
+			oElement = oDoc.createInstance(&quot;com.sun.star.text.TextFrame&quot;)
+			oElement.FrameStyleName = &quot;ILIAS Accordion Element&quot;
+			&apos;oElement.Title = &quot;Accordion Element&quot;
+			if sOrientation = &quot;Accordion Vertical&quot; then 
+				oElement.RelativeWidth = 98
+			else
+				oElement.RelativeWidth = (100-iElements)/iElements
+			end if	
+			
+			oFrame.Text.insertTextContent(oFrameCursor, oElement, False)
+			
+			oElementCursor = oElement.createTextCursor()
+			oElement.Text.insertString(oElementCursor, &quot;Caption &quot; &amp; CStr(i), False)
+			oElementCursor.ParaStyleName = &quot;ILIAS Accordion Caption&quot;
+			oElement.insertControlCharacter(oElementCursor, com.sun.star.text.ControlCharacter.PARAGRAPH_BREAK, False)
+			&apos;oElementCursor.setPropertyToDefault(&quot;ParaStyleName&quot;)
+			oElementCursor.ParaStyleName = &quot;ILIAS Accordion Content&quot;
+			oElement.Text.insertString(oElementCursor, &quot;Insert Content here...&quot;, False)
+		next i	
+		
+	end if			
+end sub
+
+
+sub SetFrameStylesAccordion(sOrientation)
+dim sStyleName as string
+dim oFamilies as object
+dim oFrameStyles as object
+dim oStyle as object
+dim oBorder As New com.sun.star.table.BorderLine
+
+	&apos;create frame style for the accordion group if it does not exists
+	oFamilies = ThisComponent.StyleFamilies
+	oFrameStyles = oFamilies.getByName(&quot;FrameStyles&quot;)
+	
+	&apos;delete this block after evaluation 
+	&apos;if oFrameStyles.HasByName(sStyleName) then
+	&apos;	oFrameStyles.RemoveByName(sStyleName)
+	&apos;end if
+	
+	sStyleName = &quot;ILIAS &quot; &amp; sOrientation
+	if not oFrameStyles.HasByName(sStyleName) then
+	&apos;create border object
+		with oBorder
+			.Color = rgb(230,230,230)
+			.OuterLineWidth = 2
+			.InnerLineWidth = 0
+			.LineDistance = 0
+		end with	
+		&apos; create frame style here
+		oStyle = ThisComponent.createInstance(&quot;com.sun.star.style.FrameStyle&quot;)
+		with oStyle
+			.AnchorType = com.sun.star.text.TextContentAnchorType.AS_CHARACTER
+			.TopMargin = 150
+			.BottomMargin = 150
+			.TopBorder = oBorder
+			.RightBorder = oBorder
+			.BottomBorder = oBorder
+			.LeftBorder = oBorder
+			.TopBorderDistance = 50
+			.LeftBorderDistance = 0
+			.BottomBorderDistance = 50
+			.RightBorderDistance = 0
+			.BackColor = rgb(245,245,245)
+			.HoriOrient = com.sun.star.text.HoriOrientation.NONE
+			.VertOrient = com.sun.star.text.VertOrientation.LINE_TOP
+		end with			
+		oFrameStyles.insertByName(sStyleName, oStyle)
+	end if
+
+	&apos;create frame style for an accordion element if it does not exists
+	sStylename = &quot;ILIAS Accordion Element&quot;
+
+	&apos;delete this block after evaluation 
+	&apos;if oFrameStyles.HasByName(sStyleName) then
+	&apos;	oFrameStyles.RemoveByName(sStyleName)
+	&apos;end if
+
+	if not oFrameStyles.HasByName(sStylename) then	
+		&apos;create border object
+		with oBorder
+			.Color = rgb(163,191,224)
+			.OuterLineWidth = 2
+			.InnerLineWidth = 0
+			.LineDistance = 0
+		end with	
+		&apos; create paragraph style here
+		oStyle = ThisComponent.createInstance(&quot;com.sun.star.style.FrameStyle&quot;)
+		with oStyle
+			.TopBorder = oBorder
+			.RightBorder = oBorder
+			.BottomBorder = oBorder
+			.LeftBorder = oBorder			
+			.TopMargin = 150
+			.BottomMargin = 150
+			.LeftMargin = 100
+			.RightMargin = 100
+			.TopBorderDistance = 50
+			.RightBorderDistance = 50
+			.BottomBorderDistance = 250
+			.LeftBorderDistance = 50
+			.BackColor = rgb(255,255,255)
+			.HoriOrient = com.sun.star.text.HoriOrientation.NONE
+			.VertOrient = com.sun.star.text.VertOrientation.LINE_TOP
+			.AnchorType = com.sun.star.text.TextContentAnchorType.AS_CHARACTER
+		end with			
+		oFrameStyles.insertByName(sStyleName, oStyle)
+	end if
+end sub
+
+
+sub SetParaStylesAccordion
+dim sStyleName as string
+dim oFamilies as object
+dim oParaStyles as object
+dim oStyle as object
+dim oBorder As New com.sun.star.table.BorderLine
+
+	&apos;create style if it does not exists
+	oFamilies = ThisComponent.StyleFamilies
+	oParaStyles = oFamilies.getByName(&quot;ParagraphStyles&quot;)
+
+	&apos;delete this block after evaluation 
+	&apos;if oParaStyles.HasByName(sStyleName) then
+	&apos;	oParaStyles.RemoveByName(sStyleName)
+	&apos;end if
+	
+	sStyleName = &quot;ILIAS Accordion Content&quot;
+	if not oParaStyles.HasByName(sStyleName) then
+		&apos; create paragraph style here
+		oStyle = ThisComponent.createInstance(&quot;com.sun.star.style.ParagraphStyle&quot;)
+		with oStyle
+			.ParentStyle = &quot;Standard&quot;
+			.FollowStyle = &quot;ILIAS Accordion&quot;
+			.ParaTopMargin = 100
+			.ParaRightMargin = 100
+			.ParaBottomMargin = 100
+			.ParaLeftMargin = 100
+		end with			
+		oParaStyles.insertByName(sStyleName, oStyle)
+	end if
+
+	&apos;create style for the toggler if it does not exists
+	sStylename = &quot;ILIAS Accordion Caption&quot;
+	if not oParaStyles.HasByName(sStylename) then	
+		&apos;create border object
+		with oBorder
+			.Color = rgb(226,234,244)
+			.OuterLineWidth = 10
+			.InnerLineWidth = 0
+			.LineDistance = 0
+		end with	
+		&apos; create paragraph style here
+		oStyle = ThisComponent.createInstance(&quot;com.sun.star.style.ParagraphStyle&quot;)
+		&apos;xray oStyle
+		with oStyle
+			.ParentStyle = &quot;Standard&quot;
+			.FollowStyle = &quot;Text body&quot;
+			.ParaTopMargin = 0
+			.ParaRightMargin = 0
+			.ParaBottomMargin = 0
+			.ParaLeftMargin = 0
+			.TopBorder = oBorder
+			.RightBorder = oBorder
+			.BottomBorder = oBorder
+			.LeftBorder = oBorder
+			.BorderDistance = 100
+			.CharWeight = com.sun.star.awt.FontWeight.BOLD
+			.ParaBackColor = rgb(226,234,244)
+		end with			
+		oParaStyles.insertByName(sStyleName, oStyle)
+	&apos;else 
+	&apos;	xray oParaStyles.GetByName(sStylename)	
+	end if
+end sub
+
+
+sub SetFrameStyleFileList
+dim sStyleName as string
+dim oFamilies as object
+dim oFrameStyles as object
+dim oStyle as object
+dim oBorder As New com.sun.star.table.BorderLine
+
+	&apos;create frame style for the FileList if it does not exists
+	sStyleName = &quot;ILIAS FileList&quot;
+	oFamilies = ThisComponent.StyleFamilies
+	oFrameStyles = oFamilies.getByName(&quot;FrameStyles&quot;)
+	
+	if not oFrameStyles.HasByName(sStyleName) then	
+		&apos;create border object
+		with oBorder
+			.Color = rgb(155,155,155)
+			.OuterLineWidth = 2
+			.InnerLineWidth = 0
+			.LineDistance = 0
+		end with	
+		&apos; create paragraph style here
+		oStyle = ThisComponent.createInstance(&quot;com.sun.star.style.FrameStyle&quot;)
+		with oStyle
+			.TopBorder = oBorder
+			.RightBorder = oBorder
+			.BottomBorder = oBorder
+			.TopBorderDistance = 50
+			.RightBorderDistance = 50
+			.BottomBorderDistance = 200
+			.LeftBorderDistance = 50
+			.LeftBorder = oBorder			
+			.TopMargin = 150
+			.BottomMargin = 150
+			.BackColor = rgb(255,255,255)
+			.HoriOrient = com.sun.star.text.HoriOrientation.NONE
+			.VertOrient = com.sun.star.text.VertOrientation.LINE_TOP
+			.AnchorType = com.sun.star.text.TextContentAnchorType.AS_CHARACTER
+		end with			
+		oFrameStyles.insertByName(sStyleName, oStyle)
+	&apos;else
+	&apos;	xray oFrameStyles.GetByName(sStyleName)	
+	end if
+end sub
+
+
+sub SetParaStylesFileList
+dim sStyleName as string
+dim oFamilies as object
+dim oParaStyles as object
+dim oStyle as object
+dim oBorder As New com.sun.star.table.BorderLine
+
+	&apos;get the paragraph styles
+	oFamilies = ThisComponent.StyleFamilies
+	oParaStyles = oFamilies.getByName(&quot;ParagraphStyles&quot;)
+
+	&apos;create border object
+	&apos;create style for the elements if it does not exists
+	sStyleName = &quot;ILIAS FileList Element&quot;
+	if not oParaStyles.HasByName(sStyleName) then
+		&apos; create paragraph style here
+		oStyle = ThisComponent.createInstance(&quot;com.sun.star.style.ParagraphStyle&quot;)
+		with oStyle
+			.ParentStyle = &quot;Standard&quot;
+			.FollowStyle = &quot;ILIAS FileList Element&quot;
+			.ParaTopMargin = 100
+			.ParaRightMargin = 100
+			.ParaBottomMargin = 100
+			.ParaLeftMargin = 100
+		end with			
+		oParaStyles.insertByName(sStyleName, oStyle)
+	end if
+
+	&apos;create style for the toggler if it does not exists
+	sStylename = &quot;ILIAS FileList Caption&quot;
+	if not oParaStyles.HasByName(sStylename) then	
+		&apos; create paragraph style here
+		oStyle = ThisComponent.createInstance(&quot;com.sun.star.style.ParagraphStyle&quot;)
+		with oBorder
+			.Color = rgb(226,226,226)
+			.OuterLineWidth = 10
+			.InnerLineWidth = 0
+			.LineDistance = 0
+		end with	
+		&apos;xray oStyle
+		with oStyle
+			.ParentStyle = &quot;Standard&quot;
+			.FollowStyle = &quot;ILIAS FileList Element&quot;
+			.ParaTopMargin = 0
+			.ParaRightMargin = 0
+			.ParaBottomMargin = 0
+			.ParaLeftMargin = 0
+			.TopBorder = oBorder
+			.RightBorder = oBorder
+			.BottomBorder = oBorder
+			.LeftBorder = oBorder
+			.BorderDistance = 100
+			.CharWeight = com.sun.star.awt.FontWeight.BOLD
+			.ParaBackColor = rgb(226,226,226)
+		end with			
+		oParaStyles.insertByName(sStyleName, oStyle)
+	end if
+	
+end sub
+
+
+
+&apos;******************************************************************************************
+&apos; Formatting Headings
+&apos;******************************************************************************************
+
+sub SetHeading1()
+	SetParagraphStyle( &quot;Heading 1&quot; )
+end sub
+
+sub SetHeading2()
+	SetParagraphStyle( &quot;Heading 2&quot; )
+end sub
+
+sub SetHeading3()
+	SetParagraphStyle( &quot;Heading 3&quot; )
+end sub
+
+sub SetHeading4()
+	SetParagraphStyle( &quot;Heading 4&quot; )
+end sub
+
+sub SetHeading5()
+	SetParagraphStyle( &quot;Heading 5&quot; )
+end sub
+
+sub SetHeading6()
+	SetParagraphStyle( &quot;Heading 6&quot; )
+end sub
+
+sub SetOutlineNumbering
+  Dim i%, j%
+  Dim oRules
+  Dim oRule()
+  Dim oProp
+
+  oRules = ThisComponent.getChapterNumberingRules()
+  for i = 0 to oRules.GetCount -1
+    oRule() = oRules.getByIndex(i)
+    for j = LBound(oRule()) To Ubound(oRule())
+      oProp = oRule(j)
+      Select Case oProp.Name
+      Case &quot;NumberingType&quot;
+        oProp.Value = com.sun.star.style.NumberingType.ARABIC
+      Case &quot;ParentNumbering&quot;
+        oProp.Value = i + 1
+      Case &quot;Prefix&quot;
+        oProp.Value = &quot;&quot;
+      Case &quot;Suffix&quot;
+        oProp.Value = &quot; &quot;
+      &apos;Case &quot;CharStyleName&quot;
+      &apos;  oProp.Value = 
+      End Select
+      oRule(j) = oProp
+    Next j
+    oRules.replaceByIndex(i, oRule())
+  next i
+end sub
+
+
+Sub SetNumbering()
+  Dim i%, j%
+  Dim oRules
+  Dim oRule()
+  Dim oProp
+
+  oRules = ThisComponent.getChapterNumberingRules()
+  For i = 0 To UBound(sNames())
+    If i &gt;= oRules.getCount() Then Exit Sub
+    oRule() = oRules.getByIndex(i)
+    REM I do not set the following:
+    REM Adjust, StartWith, LeftMargin, 
+    REM SymbolTextDistance, FirstLineOffset
+    For j = LBound(oRule()) To Ubound(oRule())
+      REM oProp is only a copy of the property.
+      REM You must assign the property back into the array.
+      oProp = oRule(j)
+      Select Case oProp.Name
+      Case &quot;HeadingStyleName&quot;
+        oProp.Value = sNames(i)
+      Case &quot;NumberingType&quot;
+        oProp.Value = com.sun.star.style.NumberingType.ARABIC
+      Case &quot;ParentNumbering&quot;
+        oProp.Value = i + 1
+      Case &quot;Prefix&quot;
+        oProp.Value = &quot;&quot;
+      Case &quot;Suffix&quot;
+        oProp.Value = &quot; &quot;
+      &apos;Case &quot;CharStyleName&quot;
+      &apos;  oProp.Value = 
+      End Select
+      oRule(j) = oProp
+    Next
+    oRules.replaceByIndex(i, oRule())
+  Next
+End Sub
+
+
+&apos;******************************************************************************************
+&apos; Formatting Code
+&apos;******************************************************************************************
+
+sub SetCodeC()
+	SetCodeParagraph( &quot;ILIAS Code C&quot; )
+end sub
+
+sub SetCodeCPP()
+	SetCodeParagraph( &quot;ILIAS Code C++&quot; )
+end sub
+
+sub SetCodeDelphi()
+	SetCodeParagraph( &quot;ILIAS Code Delphi&quot; )
+end sub
+
+sub SetCodeHTML()
+	SetCodeParagraph( &quot;ILIAS Code HTML&quot; )
+end sub
+
+sub SetCodeJava()
+	SetCodeParagraph( &quot;ILIAS Code Java&quot; )
+end sub
+
+sub SetCodeLatex()
+	SetCodeParagraph( &quot;ILIAS Code LateX&quot; )
+end sub
+
+sub SetCodePHP()
+	SetCodeParagraph( &quot;ILIAS Code PHP&quot; )
+end sub
+
+sub SetCodeVB()
+	SetCodeParagraph( &quot;ILIAS Code VB&quot; )
+end sub
+
+sub SetCodeXML()
+	SetCodeParagraph( &quot;ILIAS Code XML&quot; )
+end sub
+
+sub SetCodeParagraph( sStylename as string)
+dim vFamilies as object
+dim vParaStyles as object
+dim vStyle as object
+dim vMonoFontName as string
+
+	&apos;create style if it does not exists
+	vFamilies = ThisComponent.StyleFamilies
+	vParaStyles = vFamilies.getByName( &quot;ParagraphStyles&quot; )
+	if not vParaStyles.HasByName( sStyleName ) then
+		&apos; create paragraph style here
+		vStyle = ThisComponent.createInstance(&quot;com.sun.star.style.ParagraphStyle&quot;)
+		&apos;Get the first monospaced font from the font collection
+		vMonoFontName = GetMonospacedFontName()
+		if vMonoFontName &lt;&gt; &quot;&quot; then
+			vStyle.CharFontName = vMonoFontName
+		end if
+		vStyle.CharHeight = 9
+		vStyle.ParentStyle = &quot;Standard&quot;
+		vStyle.FollowStyle = &quot;Standard&quot;
+		vStyle.ParaOrphans = 3
+		vStyle.ParaWidows = 3
+		vStyle.BorderDistance = 200 &apos; distance between text and border
+		vStyle.ParaTopMargin = 200  &apos; margin on top of border
+		vStyle.ParaBottomMargin = 200 &apos; margin on bottom of border 
+		vStyle.ParaLeftMargin = 500  &apos; margin on the left of border
+		vStyle.ParaRightMargin = 500  &apos; margin on the right of border
+
+		dim vBorder As New com.sun.star.table.BorderLine
+		vBorder.Color = 0
+		vBorder.OuterLineWidth = 35
+		vStyle.TopBorder = vBorder
+		vStyle.LeftBorder = vBorder
+		vStyle.RightBorder = vBorder
+		vStyle.BottomBorder = vBorder
+		
+		vParaStyles.insertByName( sStyleName, vStyle )
+	end if
+	
+	&apos;assign selected text to this style
+	SetParagraphStyle( sStyleName )	
+end sub
+
+
+
+
+&apos;******************************************************************************************
+&apos; Formatting ILIAS Styles (Handling Dialog DlgStyles)
+&apos;******************************************************************************************
+
+sub SetSection()
+dim iDialog as integer
+dim oListBoxStyles as object
+dim oListBoxMode as object
+dim sStyleName as string
+dim oFamilies as object
+dim oStyles as object
+dim oStyle as object
+dim iFilter as integer
+
+	&apos;initialize dialog and elements
+	InitSectionStyles
+	gsStyleFamily = &quot;FrameStyles&quot;
+	giStyleFamily = STYLE_FAMILY_SECTION
+	
+	DialogLibraries.LoadLibrary( &quot;eLAIX&quot; )
+	oStyleDialog = CreateUnoDialog( DialogLibraries.eLAIX.DlgStyle )
+	oStyleDialog.Model.Title = &quot;Frame Styles&quot;
+	oListBoxStyles = oStyleDialog.getControl(&quot;ListBoxStyles&quot;)
+	oListBoxMode = oStyleDialog.getControl(&quot;ListBoxMode&quot;)
+	iFilter = GetInternalDocString(&quot;elaixStyleFilterSection&quot;)
+	oListBoxMode.SelectItemPos(iFilter, true)
+	iDialog = oStyleDialog.execute()
+
+	if iDialog = 1 then	
+		sStyleName = oListBoxStyles.SelectedItem		
+		&apos;create style if it does not exist
+		oFamilies = ThisComponent.StyleFamilies
+		oStyles = oFamilies.getByName(&quot;FrameStyles&quot;)
+		if not oStyles.HasByName(sStyleName) then
+			&apos; create section style here
+			oStyle = ThisComponent.createInstance(&quot;com.sun.star.style.FrameStyle&quot;)
+			DefineSectionStyle(sStylename, oStyle)
+			oStyles.insertByName(sStyleName, oStyle)
+		end if
+		SetSectionStyle(sStyleName)	
+	end if	
+	SetInternalDocString(&quot;elaixStyleFilterSection&quot;, oListBoxMode.selectedItemPos)
+end sub
+
+
+sub SetParagraph()
+dim iDialog as integer
+dim oListBoxStyles as object
+dim oListBoxMode as object
+dim sStyleName as string
+dim oFamilies as object
+dim oStyles as object
+dim oStyle as object
+dim iFilter as integer
+
+	&apos;initialize dialog and elements
+	InitParagraphStyles
+	gsStyleFamily = &quot;ParagraphStyles&quot;
+	giStyleFamily = STYLE_FAMILY_PARAGRAPH
+	
+	DialogLibraries.LoadLibrary( &quot;eLAIX&quot; )
+	oStyleDialog = CreateUnoDialog( DialogLibraries.eLAIX.DlgStyle )
+	oStyleDialog.Model.Title = &quot;Paragraph Styles&quot;
+	oListBoxStyles = oStyleDialog.getControl(&quot;ListBoxStyles&quot;)
+	oListBoxMode = oStyleDialog.getControl(&quot;ListBoxMode&quot;)
+	oListBoxMode.SelectItemPos(0, true)
+	iFilter = GetInternalDocString(&quot;elaixStyleFilterParagraph&quot;)
+	oListBoxMode.SelectItemPos(iFilter, true)
+
+	iDialog = oStyleDialog.execute()
+	if iDialog = 1 then	
+		sStyleName = oListBoxStyles.SelectedItem		
+		&apos;create style if it does not exists
+		oFamilies = ThisComponent.StyleFamilies
+		oStyles = oFamilies.getByName( &quot;ParagraphStyles&quot; )
+		if not oStyles.HasByName(sStyleName) then
+			&apos; create paragraph style here
+			oStyle = ThisComponent.createInstance(&quot;com.sun.star.style.ParagraphStyle&quot;)
+			DefineParagraphStyle(sStylename, oStyle)
+			oStyles.insertByName(sStyleName, oStyle)
+		end if
+		SetParagraphStyle(sStyleName)	
+	end if	
+	SetInternalDocString(&quot;elaixStyleFilterParagraph&quot;, oListBoxMode.selectedItemPos)
+end sub
+
+
+sub SetCharacter()
+dim iDialog as integer
+dim oListBoxStyles as object
+dim oListBoxMode as object
+dim sStyleName as string
+dim oFamilies as object
+dim oStyles as object
+dim oStyle as object
+dim iFilter as integer
+
+	&apos;initialize dialog and elements
+	InitCharacterStyles
+	gsStyleFamily = &quot;CharacterStyles&quot;
+	giStyleFamily = STYLE_FAMILY_CHARACTER
+	
+	DialogLibraries.LoadLibrary( &quot;eLAIX&quot; )
+	oStyleDialog = CreateUnoDialog( DialogLibraries.eLAIX.DlgStyle )
+	oStyleDialog.Model.Title = &quot;Character Styles&quot;
+	oListBoxStyles = oStyleDialog.getControl(&quot;ListBoxStyles&quot;)
+	oListBoxMode = oStyleDialog.getControl(&quot;ListBoxMode&quot;)
+	oListBoxMode.SelectItemPos(0, true)
+	iFilter = GetInternalDocString(&quot;elaixStyleFilterCharacter&quot;)
+	oListBoxMode.SelectItemPos(iFilter, true)
+
+	iDialog = oStyleDialog.execute()
+	if iDialog = 1 then	
+		sStyleName = oListBoxStyles.SelectedItem		
+		&apos;create style if it does not exists
+		oFamilies = ThisComponent.StyleFamilies
+		oStyles = oFamilies.getByName( &quot;CharacterStyles&quot; )
+		if not oStyles.HasByName(sStyleName) then
+			&apos; create paragraph style here
+			oStyle = ThisComponent.createInstance(&quot;com.sun.star.style.CharacterStyle&quot;)
+			DefineCharacterStyle(sStylename, oStyle)
+			oStyles.insertByName(sStyleName, oStyle)
+		end if
+		SetCharacterStyle(sStyleName)	
+	end if	
+	SetInternalDocString(&quot;elaixStyleFilterCharacter&quot;, oListBoxMode.selectedItemPos)
+end sub
+
+
+sub RefreshStyleList
+	DoRefreshStyleList
+end sub
+
+sub DoRefreshStyleList(Optional sStyleName as string)
+dim aStyleList()
+dim oListBoxStyles as object
+dim oListBoxMode as object
+dim nCount as integer
+dim oViewCursor as object
+dim sActStyle as string
+
+	oListBoxMode = oStyleDialog.getControl(&quot;ListBoxMode&quot;)
+	select case oListBoxMode.selectedItemPos
+	case 0 &apos; Applied styles
+		aStyleList = GetAppliedStylesList(gsStyleFamily, true)
+	case 1 &apos; ILIAS styles
+		select case giStyleFamily
+			case STYLE_FAMILY_SECTION   : aStyleList = gaSectionStyles() 
+			case STYLE_FAMILY_PARAGRAPH : aStyleList = gaParagraphStyles() 
+			case STYLE_FAMILY_CHARACTER : aStyleList = gaCharacterStyles() 
+		end select
+	case 2 &apos; All styles
+		aStyleList = GetAllStylesList(gsStyleFamily, false)
+		select case giStyleFamily
+			case STYLE_FAMILY_SECTION   : aStyleList = GetCombinedStylesList(gaSectionStyles(), aStyleList())
+			case STYLE_FAMILY_PARAGRAPH : aStyleList = GetCombinedStylesList(gaParagraphStyles(), aStyleList())
+			case STYLE_FAMILY_CHARACTER : aStyleList = GetCombinedStylesList(gaCharacterStyles(), aStyleList())
+		end select
+	end select
+
+	&apos;a stylename has not been passed
+	if IsMissing(sStyleName) then
+		select case giStyleFamily
+			case STYLE_FAMILY_SECTION
+				&apos;aStyleList = GetCombinedStylesList(gaSectionStyles(), aStyleList())
+	
+			case STYLE_FAMILY_PARAGRAPH
+				&apos;aStyleList = GetCombinedStylesList(gaParagraphStyles(), aStyleList())
+				oViewCursor = ThisComponent.CurrentController.getViewCursor() 
+				sStyleName = oViewCursor.ParaStylename
+				if sStylename = &quot;&quot; then sStyleName = &quot;Standard&quot;
+				
+			case STYLE_FAMILY_CHARACTER
+				&apos;aStyleList = GetCombinedStylesList(gaCharacterStyles(), aStyleList())
+				oViewCursor = ThisComponent.CurrentController.getViewCursor() 
+				sStyleName = oViewCursor.CharStylename
+				if sStylename = &quot;&quot; then sStyleName = &quot;Standard&quot;
+		end select 
+	end if	
+	
+	oListBoxStyles = oStyleDialog.getControl(&quot;ListBoxStyles&quot;)
+	nCount = oListBoxStyles.getItemCount()
+	oListBoxStyles.RemoveItems(0, nCount)
+	oListBoxStyles.AddItems(aStyleList, 1)
+	sActStyle = GetStyleDisplayName(sStyleName, gsStyleFamily)
+	oListBoxStyles.SelectItem(sActStyle, true)
+end sub
+
+
+function GetCombinedStylesList(aILIAS(), aStyleList())
+dim i as integer
+dim iCount as integer
+dim iPos as integer
+
+	iCount = uBound(aILIAS())
+	iPos = uBound(aStyleList())
+	&apos; if there are styles in the style list, add items on the next position
+	if aStyleList(0) &gt; &quot;&quot; then iPos = iPos + 1
+	for i = 0 to iCount
+		if FindInArray(aStyleList(), aILIAS(i)) &lt; 0 then
+			redim preserve aStyleList(iPos)
+			aStyleList(iPos) = aILIAS(i)
+			iPos = iPos + 1
+		end if
+	next i	
+	BubbleSortArray(aStyleList())
+	GetCombinedStylesList = aStyleList()
+end function
+
+
+sub ResetStyle
+dim oListBoxStyles as object
+dim oButton as object
+dim sStyleName as string
+dim aStyleList()
+dim iCount as integer
+dim oSection as object
+dim iPos as integer
+dim oStyle as object
+
+	select case giStyleFamily
+		case STYLE_FAMILY_CHARACTER
+			SetCharStandard
+
+		case STYLE_FAMILY_PARAGRAPH
+			SetParagraphStyle( &quot;Text body&quot; )
+	end select 
+	oStyleDialog.endExecute
+end sub
+
+
+sub CreateStyle
+dim oListBoxStyles as object
+dim oButton as object
+dim sStyleName as string
+dim aStyleList()
+dim iCount as integer
+dim oSection as object
+dim iPos as integer
+dim oStyle as object
+
+	&apos;oListBoxStyles = oStyleDialog.getControl(&quot;ListBoxStyles&quot;)
+	sStyleName = InputBox(&quot;Please enter the style name:&quot;, &quot;Create new style&quot;, &quot;&quot;)
+
+	select case giStyleFamily
+		case STYLE_FAMILY_CHARACTER
+			CreateStyleByName(sStyleName, &quot;CharacterStyles&quot;, &quot;com.sun.star.style.CharacterStyle&quot;)
+			EditStyleByDispatcher(sStyleName, STYLE_FAMILY_CHARACTER)
+			DoRefreshStyleList(sStyleName)
+
+		case STYLE_FAMILY_PARAGRAPH
+			CreateStyleByName(sStyleName, &quot;ParagraphStyles&quot;, &quot;com.sun.star.style.ParagraphStyle&quot;)
+			EditStyleByDispatcher(sStyleName, STYLE_FAMILY_PARAGRAPH)
+			DoRefreshStyleList(sStyleName)
+
+		case STYLE_FAMILY_SECTION
+			CreateStyleByName(sStyleName, &quot;FrameStyles&quot;, &quot;com.sun.star.style.FrameStyle&quot;)
+			EditStyleByDispatcher(sStyleName, STYLE_FAMILY_SECTION)
+			DoRefreshStyleList(sStyleName)
+	end select 
+end sub
+
+
+sub EditStyle()
+dim oListBoxStyles as object
+dim oFamilies as object
+dim oStyles as object
+dim oStyle as object
+dim sStyleName as string
+dim sFamily as string
+dim sInstance as string
+
+	oListBoxStyles = oStyleDialog.getControl(&quot;ListBoxStyles&quot;)
+	sStyleName = oListBoxStyles.SelectedItem
+
+	select case giStyleFamily
+		case STYLE_FAMILY_CHARACTER
+			sFamily = &quot;CharacterStyles&quot;
+			sInstance = &quot;com.sun.star.style.CharacterStyle&quot;
+			&apos;create style if it does not exists
+			oFamilies = ThisComponent.StyleFamilies
+			oStyles = oFamilies.getByName(sFamily)
+			if not oStyles.HasByName(sStyleName) then
+				&apos; create paragraph style here
+				oStyle = ThisComponent.createInstance(sInstance)
+				DefineCharacterStyle(sStyleName, oStyle)
+				oStyles.insertByName(sStyleName, oStyle)
+			end if
+					
+		case STYLE_FAMILY_PARAGRAPH
+			sFamily = &quot;ParagraphStyles&quot;
+			sInstance = &quot;com.sun.star.style.ParagraphStyle&quot;
+			&apos;create style if it does not exists
+			oFamilies = ThisComponent.StyleFamilies
+			oStyles = oFamilies.getByName(sFamily)
+			if not oStyles.HasByName(sStyleName) then
+				&apos; create paragraph style here
+				oStyle = ThisComponent.createInstance(sInstance)
+				DefineParagraphStyle(sStyleName, oStyle)
+				oStyles.insertByName(sStyleName, oStyle)
+			end if
+
+		case STYLE_FAMILY_SECTION
+			sFamily = &quot;FrameStyles&quot;
+			sInstance = &quot;com.sun.star.style.FrameStyle&quot;
+			&apos;create style if it does not exists
+			oFamilies = ThisComponent.StyleFamilies
+			oStyles = oFamilies.getByName(sFamily)
+			if not oStyles.HasByName(sStyleName) then
+				&apos; create paragraph style here
+				oStyle = ThisComponent.createInstance(sInstance)
+				DefineFrameStyle(sStyleName, oStyle)
+				oStyles.insertByName(sStyleName, oStyle)
+			end if
+	end select
+		
+	EditStyleByDispatcher(sStylename, giStyleFamily)
+	&apos;refresh dialog list (the name of the style could have been changed)
+	DoRefreshStyleList(sStyleName)
+end sub
+
+
+sub RemoveStyle()
+dim oListBoxStyles as object
+dim sStyle as string
+dim aStyleList()
+dim sMsg as string
+dim iAnswer as integer
+dim iPos as integer
+dim iCount as integer
+dim sStyleName as string
+
+	oListBoxStyles = oStyleDialog.getControl(&quot;ListBoxStyles&quot;)
+	&apos;xray oListBoxStyles
+	iPos = oListBoxStyles.SelectedItemPos
+	iCount = oListBoxStyles.ItemCount
+	if iPos &lt; iCount then
+		sStylename = oListBoxStyles.GetItem(iPos + 1)
+	else
+		sStylename = oListBoxStyles.GetItem(iCount)
+	end if
+	sStyle = oListBoxStyles.SelectedItem
+	select case sStyle
+	case &quot;&quot;
+		msgbox &quot;Please select a style first.&quot;
+	case &quot;Standard&quot;
+		msgbox &quot;You can not remove the Standard style.&quot;
+	case else	
+		sMsg = &quot;Do you really want to remove this Style?&quot; &amp; Chr(13) &amp;_
+		       &quot;This will reset all occurrencies of this style to default.&quot;
+		iAnswer =  msgbox(sMsg, 164, &quot;Removing Style &quot; &amp; sStyle)
+		if iAnswer = 6 then
+			RemoveStyleByDispatcher(sStyle, giStyleFamily)
+			DoRefreshStyleList(sStyleName)
+		end if
+	end select
+end sub
+
+
+sub CreateStyleByName(sStyleName as string, sFamily as string, sInstance as string)
+dim oFamilies as object
+dim oStyles as object
+dim oStyle as object
+dim sMessage as string
+dim iAnswer as integer
+
+	&apos;create style if it does not exists
+	oFamilies = ThisComponent.StyleFamilies
+	oStyles = oFamilies.getByName(sFamily)
+	if not oStyles.HasByName(sStyleName) then
+		&apos; create paragraph style here
+		oStyle = ThisComponent.createInstance(sInstance)
+		oStyles.insertByName(sStyleName, oStyle)
+	else	
+		sMessage = &quot;The style was not created. A style with the name &quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot; already exists.&quot;
+		msgbox(sMessage, 48, &quot;Style already exists&quot;)
+	end if	
+end sub
+
+
+sub EditStyleByDispatcher(sStylename as string, iFamily as integer)
+dim document   as object
+dim dispatcher as object
+
+	document   = ThisComponent.CurrentController.Frame
+	dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)	
+	dim args1(1) as new com.sun.star.beans.PropertyValue
+	args1(0).Name = &quot;Param&quot;
+	args1(0).Value = sStylename
+	args1(1).Name = &quot;Family&quot;
+	args1(1).Value = iFamily	
+	dispatcher.executeDispatch(document, &quot;.uno:EditStyle&quot;, &quot;&quot;, 0, args1())
+end sub
+
+
+sub RemoveStyleByDispatcher(sStylename as string, iFamily as integer)
+dim document   as object
+dim dispatcher as object
+
+	document   = ThisComponent.CurrentController.Frame
+	dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+
+	dim args1(1) as new com.sun.star.beans.PropertyValue
+	args1(0).Name = &quot;Param&quot;
+	args1(0).Value = sStylename
+	args1(1).Name = &quot;Family&quot;
+	args1(1).Value = iFamily	
+	dispatcher.executeDispatch(document, &quot;.uno:DeleteStyle&quot;, &quot;&quot;, 0, args1())
+end sub
+
+
+sub SetStyleDialogButtons
+dim oListBoxStyles as object
+dim sStyle as string
+dim oFamilies as object
+dim oStyles as object
+dim oStyle as object
+dim oButtonApply as object
+dim oButtonReset as object
+dim oButtonEdit as object
+dim oButtonRemove as object
+dim bStyleExists as boolean
+dim bIsUserDefined as boolean
+
+	oListBoxStyles = oStyleDialog.getControl(&quot;ListBoxStyles&quot;)
+	oButtonApply = oStyleDialog.getControl(&quot;btnApply&quot;)
+	oButtonReset = oStyleDialog.getControl(&quot;btnReset&quot;)
+	oButtonEdit = oStyleDialog.getControl(&quot;btnEdit&quot;)
+	oButtonRemove = oStyleDialog.getControl(&quot;btnRemove&quot;)
+	sStyle = oListBoxStyles.SelectedItem
+	bIsUserDefined = true
+
+	oButtonApply.Model.Enabled = oListBoxStyles.SelectedItemPos &gt;= 0
+	oButtonEdit.Model.Enabled = oListBoxStyles.SelectedItemPos &gt;= 0
+	oFamilies = ThisComponent.StyleFamilies
+	oStyles = oFamilies.getByName(gsStyleFamily)
+	bStyleExists = oStyles.HasByName(sStyle)
+	if bStyleExists then
+		oStyle = oStyles.GetByName(sStyle) 
+		bIsUserDefined = oStyle.isUserDefined
+		&apos;xray oStyle
+	end if 
+	oButtonRemove.Model.Enabled = bStyleExists and bIsUserDefined
+	oButtonReset.Model.Enabled = giStyleFamily &lt;&gt; STYLE_FAMILY_SECTION
+end sub
+
+
+function GetStyleDisplayName(sStylename as string, sStyleFamily as string) as string
+dim oFamilies as object
+dim oParaStyles as object
+dim oStyle as object
+
+	oFamilies = ThisComponent.StyleFamilies
+	oParaStyles = oFamilies.getByName(sStyleFamily)
+	if oParaStyles.HasByName(sStylename) then
+		oStyle = oParaStyles.GetByname(sStylename)
+		GetStyleDisplayName = oStyle.Displayname
+	end if
+end function
+
+
+&apos;******************************************************************************************
+&apos; Formatting ILIAS Sections
+&apos;******************************************************************************************
+
+function DefineSectionStyle(sStyleName as string, oStyle as object) as object
+dim oBorder As new com.sun.star.table.BorderLine
+dim oSize as new com.sun.star.awt.Size
+
+dim sMonoFontName as string
+
+	select case sStyleName
+		case &quot;ILIAS Block&quot;
+			oBorder.Color = rgb(160,160,160)
+			oBorder.OuterLineWidth = 10
+			with oStyle
+				.width = 10000
+				.TopMargin = 200
+				.BottomMargin = 200
+				.TopBorder = oBorder
+				.RightBorder = oBorder
+				.BottomBorder = oBorder
+				.LeftBorder = oBorder
+				.BorderDistance = 200
+				.BackColor = rgb(255,255,255)
+				.IsAutoUpdate = true
+				.HoriOrientPosition = 0
+				.VertOrientPosition = 0
+				.HoriOrient = com.sun.star.text.HoriOrientation.NONE
+				.VertOrient = com.sun.star.text.VertOrientation.LINE_TOP
+				.AnchorType = com.sun.star.text.TextContentAnchorType.AS_CHARACTER
+			end with	
+
+		case &quot;ILIAS Additional&quot;
+			oBorder.Color = rgb(0,0,255)
+			oBorder.OuterLineWidth = 10
+			with oStyle
+				.width = 10000
+				.TopMargin = 200
+				.BottomMargin = 200
+				.TopBorder = oBorder
+				.RightBorder = oBorder
+				.BottomBorder = oBorder
+				.LeftBorder = oBorder
+				.BorderDistance = 200
+				.BackColor = 14410735
+				.IsAutoUpdate = true
+				.HoriOrientPosition = 0
+				.VertOrientPosition = 0
+				.HoriOrient = com.sun.star.text.HoriOrientation.NONE
+				.VertOrient = com.sun.star.text.VertOrientation.LINE_TOP
+				.AnchorType = com.sun.star.text.TextContentAnchorType.AS_CHARACTER
+			end with
+
+		case &quot;ILIAS Example&quot;
+			oBorder.Color = rgb(0,0,255)
+			oBorder.OuterLineWidth = 100
+			with oStyle
+				.width = 10000
+				.TopMargin = 200
+				.BottomMargin = 200
+				.LeftBorder = oBorder
+				.BorderDistance = 200
+				.IsAutoUpdate = true
+				.HoriOrientPosition = 0
+				.VertOrientPosition = 0
+				.HoriOrient = com.sun.star.text.HoriOrientation.NONE
+				.VertOrient = com.sun.star.text.VertOrientation.LINE_TOP
+				.AnchorType = com.sun.star.text.TextContentAnchorType.AS_CHARACTER
+			end with
+
+		case &quot;ILIAS Excursus&quot;
+			oBorder.Color = rgb(160,160,160)
+			oBorder.OuterLineWidth = 10
+			with oStyle
+				.Width = 10000
+				.TopMargin = 200
+				.BottomMargin = 200
+				.TopBorder = oBorder
+				.RightBorder = oBorder
+				.BottomBorder = oBorder
+				.LeftBorder = oBorder
+				.BorderDistance = 200
+				.BackColor = rgb(247,255,247)
+				.IsAutoUpdate = true
+				.HoriOrientPosition = 0
+				.VertOrientPosition = 0
+				.HoriOrient = com.sun.star.text.HoriOrientation.NONE
+				.VertOrient = com.sun.star.text.VertOrientation.LINE_TOP
+				.AnchorType = com.sun.star.text.TextContentAnchorType.AS_CHARACTER
+			end with
+
+		case &quot;ILIAS Mnemonic&quot;
+			oBorder.Color = rgb(255,0,0)
+			oBorder.OuterLineWidth = 10
+			with oStyle
+				.Width = 10000
+				.TopMargin = 200
+				.BottomMargin = 200
+				.TopBorder = oBorder
+				.RightBorder = oBorder
+				.BottomBorder = oBorder
+				.LeftBorder = oBorder
+				.BorderDistance = 200
+				.BackColor = rgb(255,247,247)
+				.IsAutoUpdate = true
+				.HoriOrientPosition = 0
+				.VertOrientPosition = 0
+				.HoriOrient = com.sun.star.text.HoriOrientation.NONE
+				.VertOrient = com.sun.star.text.VertOrientation.LINE_TOP
+				.AnchorType = com.sun.star.text.TextContentAnchorType.AS_CHARACTER
+			end with
+	
+
+		case &quot;ILIAS Remark&quot;
+			oBorder.Color = rgb(9,9,9)
+			oBorder.OuterLineWidth = 10
+			with oStyle
+				.Width = 10000
+				.TopMargin = 200
+				.BottomMargin = 200
+				.TopBorder = oBorder
+				.RightBorder = oBorder
+				.BottomBorder = oBorder
+				.LeftBorder = oBorder
+				.BorderDistance = 200
+				.BackColor = rgb(208,208,208)
+				.IsAutoUpdate = true
+				.HoriOrientPosition = 0
+				.VertOrientPosition = 0
+				.HoriOrient = com.sun.star.text.HoriOrientation.NONE
+				.VertOrient = com.sun.star.text.VertOrientation.LINE_TOP
+				.AnchorType = com.sun.star.text.TextContentAnchorType.AS_CHARACTER
+			end with
+
+		case &quot;ILIAS Special&quot;
+			oBorder.Color = rgb(160,160,160)
+			oBorder.OuterLineWidth = 10
+			with oStyle
+				.Width = 10000
+				.TopMargin = 200
+				.BottomMargin = 200
+				.TopBorder = oBorder
+				.RightBorder = oBorder
+				.BottomBorder = oBorder
+				.LeftBorder = oBorder
+				.BorderDistance = 200
+				.BackColor = rgb(255,247,247)
+				.IsAutoUpdate = true
+				.HoriOrientPosition = 0
+				.VertOrientPosition = 0
+				.HoriOrient = com.sun.star.text.HoriOrientation.NONE
+				.VertOrient = com.sun.star.text.VertOrientation.LINE_TOP
+				.AnchorType = com.sun.star.text.TextContentAnchorType.AS_CHARACTER
+			end with
+	end select
+	DefineSectionStyle = oStyle	
+end function
+
+
+sub SetSectionStyle(sStyleName as string)
+dim oSelection as object
+dim oSel as object
+dim oDocument as object
+dim oDispatcher as object
+dim oFrame as object
+dim oFrameCursor as object
+dim oViewCursor as object
+dim oTextCursor as object
+dim isTextSelected as boolean
+dim oText as object
+  
+	isTextSelected = false
+	if sStyleName &lt;&gt; &quot;&quot; then
+		&apos;Get the current selection
+		oSelection = ThisComponent.getCurrentSelection()
+		if oSelection.supportsService(&quot;com.sun.star.text.TextFrame&quot;) then
+			oSelection.FrameStylename = sStyleName
+		else	
+			&apos;Cut the current selection if something has been selected
+			&apos;xray oSelection
+			if oSelection.getCount &gt; 0 then
+				oSel = oSelection.GetByIndex(0)
+				if oSel.String &lt;&gt; &quot;&quot; then
+					oDocument = ThisComponent.CurrentController.Frame
+					oDispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+					oDispatcher.executeDispatch(oDocument, &quot;.uno:Cut&quot;, &quot;&quot;, 0, Array())
+					isTextSelected = true	
+				end if	
+			end if	
+
+			&apos;Get the current Viewcursor	
+			oViewCursor = ThisComponent.GetCurrentController.ViewCursor() 
+			oTextCursor = oViewCursor.getText.createTextCursorByRange(oViewCursor)		
+			
+			&apos;Create the frame
+			oFrame = ThisComponent.createInstance(&quot;com.sun.star.text.TextFrame&quot;)
+			oFrame.FrameStyleName = sStyleName
+			oTextCursor.Text.insertTextContent(oTextCursor, oFrame, False)
+			oFrame.RelativeWidth = 100
+			
+			&apos;Put the cursor into the frame
+			oFrameCursor = oFrame.createTextCursor
+			oViewCursor.gotoRange(oFrameCursor,false)
+			
+			&apos;Paste the selection into the frame if something has been selected
+			if isTextSelected then
+				oDispatcher.executeDispatch(oDocument, &quot;.uno:Paste&quot;, &quot;&quot;, 0, Array())
+			end if	
+		end if	
+	end if	
+end sub
+
+sub CreateFrameStyleByDispatcher
+rem ----------------------------------------------------------------------
+rem define variables
+dim document   as object
+dim dispatcher as object
+rem ----------------------------------------------------------------------
+rem get access to the document
+document   = ThisComponent.CurrentController.Frame
+dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+
+rem ----------------------------------------------------------------------
+dispatcher.executeDispatch(document, &quot;.uno:NewStyle&quot;, &quot;&quot;, 0, Array())
+
+end sub
+
+sub InsertFrameByDispatcher
+rem ----------------------------------------------------------------------
+rem define variables
+dim document   as object
+dim dispatcher as object
+rem ----------------------------------------------------------------------
+rem get access to the document
+document   = ThisComponent.CurrentController.Frame
+dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+
+rem ----------------------------------------------------------------------
+dim args1(4) as new com.sun.star.beans.PropertyValue
+args1(0).Name = &quot;AnchorType&quot;
+args1(0).Value = 0
+args1(1).Name = &quot;Pos.X&quot;
+args1(1).Value = 0
+args1(2).Name = &quot;Pos.Y&quot;
+args1(2).Value = 0
+args1(3).Name = &quot;Size.Width&quot;
+args1(3).Value = 2000
+args1(4).Name = &quot;Size.Height&quot;
+args1(4).Value = 499
+
+dispatcher.executeDispatch(document, &quot;.uno:InsertFrame&quot;, &quot;&quot;, 0, args1())
+
+end sub
+
+&apos;******************************************************************************************
+&apos; Formatting ILIAS Paragraphs
+&apos;******************************************************************************************
+
+sub DefineParagraphStyle(sStyleName as string, oStyle as object)
+dim oBorder As New com.sun.star.table.BorderLine
+dim sMonoFontName as string
+
+	select case sStyleName
+		case &quot;ILIAS Additional&quot;
+			oBorder.Color = 255
+			oBorder.OuterLineWidth = 2
+			with oStyle
+				.ParentStyle = &quot;Standard&quot;
+				.FollowStyle = &quot;Standard&quot;
+				.ParaOrphans = 3
+				.ParaWidows = 3
+				.BorderDistance = 200
+				.ParaTopMargin = 200
+				.ParaBottomMargin = 200
+				.ParaLeftMargin = 500  &apos; margin on the left of border
+				.ParaRightMargin = 500  &apos; margin on the right of border
+				.ParaBackColor = 14410735
+				.TopBorder = oBorder
+				.LeftBorder = oBorder
+				.RightBorder = oBorder
+				.BottomBorder = oBorder
+				.IsAutoUpdate = true
+			end with
+		
+		case &quot;ILIAS Quotation&quot;   
+			with oStyle
+				.ParentStyle = &quot;Standard&quot;
+				.FollowStyle = &quot;Standard&quot;
+				.ParaOrphans = 3
+				.ParaWidows = 3
+				.BorderDistance = 200
+				.ParaTopMargin = 200
+				.ParaBottomMargin = 200
+				.ParaLeftMargin = 500  &apos; margin on the left of border
+				.ParaRightMargin = 500  &apos; margin on the right of border
+				.CharColor = 8388608
+				.CharPosture = 2
+				.IsAutoUpdate = true
+			end with
+				
+		case &quot;ILIAS Example&quot;
+			oBorder.Color = 255
+			oBorder.OuterLineWidth = 88
+			with oStyle
+				.ParentStyle = &quot;Standard&quot;
+				.FollowStyle = &quot;Standard&quot;
+				.ParaOrphans = 3
+				.ParaWidows = 3
+				.BorderDistance = 200
+				.LeftBorderDistance= 500
+				.ParaTopMargin = 200
+				.ParaBottomMargin = 200
+				.ParaLeftMargin = 500  &apos; margin on the left of border
+				.ParaRightMargin = 500  &apos; margin on the right of border
+				.LeftBorder = oBorder				
+				.IsAutoUpdate = true
+			end with
+
+		case &quot;ILIAS Mnemonic&quot;
+			oBorder.Color = 16730910
+			oBorder.OuterLineWidth = 2
+			with oStyle
+				.ParentStyle = &quot;Standard&quot;
+				.FollowStyle = &quot;Standard&quot;
+				.ParaOrphans = 3
+				.ParaWidows = 3
+				.BorderDistance = 200
+				.ParaTopMargin = 200
+				.ParaBottomMargin = 200
+				.ParaLeftMargin = 500  &apos; margin on the left of border
+				.ParaRightMargin = 500  &apos; margin on the right of border
+				.ParaBackColor = 15590883
+				.TopBorder = oBorder
+				.LeftBorder = oBorder
+				.RightBorder = oBorder
+				.BottomBorder = oBorder
+				.IsAutoUpdate = true
+			end with
+
+		case &quot;ILIAS Remark&quot;
+			oBorder.Color = 9474192
+			oBorder.OuterLineWidth = 2
+			with oStyle
+				.ParentStyle = &quot;Standard&quot;
+				.FollowStyle = &quot;Standard&quot;
+				.ParaOrphans = 3
+				.ParaWidows = 3
+				.BorderDistance = 200
+				.ParaTopMargin = 200
+				.ParaBottomMargin = 200
+				.ParaLeftMargin = 500  &apos; margin on the left of border
+				.ParaRightMargin = 500  &apos; margin on the right of border
+				.ParaBackColor = 14737632
+				.ParaAdjust = 1 &apos; right align
+				.TopBorder = oBorder
+				.LeftBorder = oBorder
+				.RightBorder = oBorder
+				.BottomBorder = oBorder
+				.IsAutoUpdate = true
+			end with
+
+		case &quot;ILIAS Code&quot;
+			&apos;Get the first monospaced font from the font collection
+			sMonoFontName = GetMonospacedFontName()
+			if sMonoFontName &lt;&gt; &quot;&quot; then
+				oStyle.CharFontName = sMonoFontName
+			end if
+			oBorder.Color = 0
+			oBorder.OuterLineWidth = 35
+			with oStyle
+				.CharHeight = 9
+				.ParentStyle = &quot;Standard&quot;
+				.FollowStyle = &quot;Standard&quot;
+				.ParaOrphans = 3
+				.ParaWidows = 3
+				.BorderDistance = 200 &apos; distance between text and border
+				.ParaTopMargin = 200  &apos; margin on top of border
+				.ParaBottomMargin = 200 &apos; margin on bottom of border 
+				.ParaLeftMargin = 500  &apos; margin on the left of border
+				.ParaRightMargin = 500  &apos; margin on the right of border		
+				.TopBorder = oBorder
+				.LeftBorder = oBorder
+				.RightBorder = oBorder
+				.BottomBorder = oBorder
+				.IsAutoUpdate = true
+			end with
+
+		case &quot;ILIAS LaTeX&quot;
+			&apos;Get the first monospaced font from the font collection
+			sMonoFontName = GetMonospacedFontName()
+			if sMonoFontName &lt;&gt; &quot;&quot; then
+				oStyle.CharFontName = sMonoFontName
+			end if
+			oBorder.Color = rgb(0,0,255)
+			oBorder.OuterLineWidth = 35
+			with oStyle
+				.CharHeight = 9
+				.ParentStyle = &quot;Standard&quot;
+				.FollowStyle = &quot;Standard&quot;
+				.ParaOrphans = 3
+				.ParaWidows = 3
+				.BorderDistance = 200 &apos; distance between text and border
+				.ParaTopMargin = 200  &apos; margin on top of border
+				.ParaBottomMargin = 200 &apos; margin on bottom of border 
+				.ParaLeftMargin = 500  &apos; margin on the left of border
+				.ParaRightMargin = 500  &apos; margin on the right of border
+				.TopBorder = oBorder
+				.LeftBorder = oBorder
+				.RightBorder = oBorder
+				.BottomBorder = oBorder
+				.IsAutoUpdate = true
+			end with
+	end select
+end sub
+
+
+sub SetParaStandard()
+	SetParagraphStyle( &quot;Text body&quot; )
+end sub
+
+
+Sub SetParagraphStyle( sStyleName as string )
+  Dim oSelections As Object, oSel As Object, oText As Object
+  Dim lSelCount As Long, lWhichSelection As Long
+  
+  oText = ThisComponent.Text
+  oSelections = ThisComponent.getCurrentSelection()
+  if not oSelections.supportsService(&quot;com.sun.star.text.TextRanges&quot;) then
+	  oSel = oSelections.Anchor
+      oSel.ParaStyleName = sStyleName
+      if sStyleName = &quot;Text body&quot; then
+      	  oSel.NumberingStyleName = &quot;&quot;
+	      oSel.CharStyleName = &quot;Standard&quot;
+	  end if
+  else	  
+	  lSelCount = oSelections.getCount()
+	  For lWhichSelection = 0 To lSelCount - 1
+	    oSel = oSelections.getByIndex(lWhichSelection)
+	    oSel.ParaStyleName = sStyleName
+	    if sStyleName = &quot;Text body&quot; then
+	    	oSel.NumberingStyleName = &quot;&quot;
+	    	&apos;oSel.CharStyleName = &quot;Standard&quot;
+	    end if
+	  Next lWhichSelection
+  end if	  
+End Sub
+
+
+&apos;******************************************************************************************
+&apos; Formatting ILIAS Character Styles
+&apos;******************************************************************************************
+
+sub SetCharStandard()
+  Dim oSelections As Object, oSel As Object, oText As Object
+  Dim lSelCount As Long, lWhichSelection As Long
+  
+  oText = ThisComponent.Text
+  oSelections = ThisComponent.getCurrentSelection()
+  lSelCount = oSelections.getCount()
+  For lWhichSelection = 0 To lSelCount - 1
+    oSel = oSelections.getByIndex(lWhichSelection)
+    oSel.setPropertyToDefault(&quot;CharStyleName&quot;)
+  Next
+
+end sub
+
+
+sub DefineCharacterStyle(sStyleName as string, oStyle as object)
+dim sMonoFontName as string
+
+	select case sStyleName
+		case &quot;ILIAS Important&quot;
+			oStyle.CharUnderline = com.sun.star.awt.FontUnderline.SINGLE
+		case &quot;ILIAS Comment&quot;   
+			oStyle.CharColor = rgb(0, 256, 0)
+		case &quot;ILIAS Quotation&quot;
+			oStyle.CharColor = rgb(165, 42, 42)
+		case &quot;ILIAS Accent&quot;
+			oStyle.CharColor = rgb(224, 0, 224)
+		case &quot;ILIAS Keyword&quot;
+			oStyle.CharFontFamily = &quot;Times New Roman&quot;
+			&apos;oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD
+			&apos;oStyle.CharPosture = com.sun.star.awt.FontSlant.ITALIC
+		case &quot;ILIAS Code&quot;
+			&apos;Get the first monospaced font from the font collection
+			sMonoFontName = GetMonospacedFontName()
+			if sMonoFontName &lt;&gt; &quot;&quot; then
+				oStyle.CharFontName = sMonoFontName
+			end if
+		case &quot;ILIAS LaTeX&quot;
+			oStyle.CharBackColor = rgb(219, 226, 248)
+	end select
+end sub
+
+
+sub SetCharacterStyle(sStyleName as string)
+dim oSelections as object
+dim oSel as object
+dim oText as object
+dim lSelCount as long
+dim lWhichSelection as long
+  
+  oText = ThisComponent.Text
+  oSelections = ThisComponent.getCurrentSelection()
+  lSelCount = oSelections.getCount() - 1
+  for lWhichSelection = 0 to lSelCount 
+    oSel = oSelections.getByIndex(lWhichSelection)
+    oSel.CharStyleName = sStyleName
+  next
+
+end sub
+
+
+&apos;******************************************************************************************
+&apos; Formatting ILIAS Lists
+&apos;******************************************************************************************
+
+sub SetListAlphaA()
+  SetNumberingStyle(&quot;ILIAS List Alpha A&quot;, com.sun.star.style.NumberingType.CHARS_UPPER_LETTER)
+end sub
+
+sub SetListAlphab()
+  SetNumberingStyle(&quot;ILIAS List Alpha b&quot;, com.sun.star.style.NumberingType.CHARS_LOWER_LETTER)
+end sub
+
+sub SetListBullet()
+  &apos;CheckParagraphStyle
+  SetNumberingStyle(&quot;ILIAS List Bullet&quot;, com.sun.star.style.NumberingType.CHAR_SPECIAL)
+  &apos;SetParagraphList(&quot;ILIAS List Bullet&quot;, com.sun.star.style.NumberingType.CHAR_SPECIAL)
+end sub
+
+sub SetListNumber()
+  SetNumberingStyle(&quot;ILIAS List Number&quot;, com.sun.star.style.NumberingType.ARABIC)
+end sub
+
+sub SetListRomanI()
+  SetNumberingStyle(&quot;ILIAS List Roman I&quot;, com.sun.star.style.NumberingType.ROMAN_UPPER)
+end sub
+
+sub SetListRomanii()
+  SetNumberingStyle(&quot;ILIAS List Roman ii&quot;, com.sun.star.style.NumberingType.ROMAN_LOWER)
+end sub
+
+
+sub SetNumberingStyle(sStylename as string, iNumberingType as integer)
+dim oFamilies as object
+dim oStyle as object
+dim oParaStyles as object
+dim oNumStyles as object
+dim oNumRules as object
+dim i as integer
+dim j as integer
+dim mLevel As Variant
+dim vProperty as variant
+Dim oSelections As Object, oSel As Object, oText As Object
+Dim lSelCount As Long, lWhichSelection As Long
+
+	&apos;Get all Styles
+	oFamilies = ThisComponent.StyleFamilies
+
+	&apos;Get only Numbering Styles from all Styles
+	oNumStyles = oFamilies.getByName(&quot;NumberingStyles&quot;)
+	&apos;check if the corresponding NumberingStyle exists
+	if not oNumStyles.HasByName(sStyleName) then
+		&apos; create NumberingStyle 
+		oStyle = ThisComponent.createInstance(&quot;com.sun.star.style.NumberingStyle&quot;)
+		&apos; save style in order to set all properties
+		oNumStyles.insertByName( sStyleName, oStyle )
+		&apos;reopen style in order to change the NumberingType
+		oStyle = oNumStyles.getByName(sStylename)
+		&apos;if oStyle.NumberingStyleName
+		
+		&apos;iterate through the Numbering Rules
+		oNumRules = oStyle.NumberingRules
+		for j = 0 to oNumRules.GetCount() - 1
+			mLevel = oNumRules.getByIndex(j)
+			&apos;search the property &quot;NumberingType&quot; in the Property-Set 
+			For i = LBound(mLevel()) To UBound(mLevel())
+			  vProperty = mLevel(i)
+			  &apos;xRay vProperty
+			  If (vProperty.Name = &quot;NumberingType&quot;) Then
+			    &apos;and give it the passed Format
+			    vProperty.Value = iNumberingType			    
+			  End If
+			  if vProperty.Name = &quot;CharStyleName&quot; then
+			  	if iNumberingType = com.sun.star.style.NumberingType.CHAR_SPECIAL then
+				    vProperty.Value = &quot;Bullet Symbols&quot;
+			  	end if
+			  end if
+			  mLevel(i) = vProperty
+			Next i
+			&apos;overwrite the old Property-Value
+			oNumRules.replaceByIndex(j, mLevel)
+		next j
+		&apos;overwrite the old NumberingRules with the new ones
+		oStyle.NumberingRules = oNumRules
+	end if
+	
+	&apos;set the NumberingRule to current selection
+	oText = ThisComponent.Text
+	oSelections = ThisComponent.getCurrentSelection()
+	if not oSelections.supportsService(&quot;com.sun.star.text.TextRanges&quot;) then
+		oSel = oSelections.Anchor
+		oSel.NumberingStyleName = sStyleName
+		oSel.NumberingStartValue = 1
+	else
+		lSelCount = oSelections.getCount()
+		For lWhichSelection = 0 To lSelCount - 1
+			oSel = oSelections.getByIndex(lWhichSelection)
+			oSel.NumberingStyleName = sStyleName
+			oSel.NumberingStartValue = 1
+		Next
+	endif	
+end sub
+
+
+&apos;******************************************************************************************
+&apos; Graphic Alignment
+&apos;******************************************************************************************
+sub SetGraphicAlignLeft()
+dim iAlignment as integer
+dim oAlignObj as object
+On Local Error Goto ErrorHandler
+
+	iAlignment = GRAPHIC_ALIGNLEFT
+	oAlignObj = GetSelectedObject()
+	if IsObject(oAlignObj) then
+		SetGraphicAlignment(oAlignObj, iAlignment)
+	end if	
+	exit sub
+	
+ErrorHandler:
+	MsgBox (&quot;Please select a graphic or a frame first.&quot;, 48, &quot;Graphic alignment&quot;)
+end sub
+
+sub SetGraphicAlignCenter()
+dim iAlignment as integer
+dim oAlignObj as object
+On Local Error Goto ErrorHandler
+
+	iAlignment = GRAPHIC_ALIGNCENTER
+	oAlignObj = GetSelectedObject()
+	if IsObject(oAlignObj) then
+		SetGraphicAlignment(oAlignObj, iAlignment)
+		oAlignObj.Anchor.ParaAdjust = com.sun.star.style.ParagraphAdjust.CENTER
+	end if	
+	exit sub
+	
+ErrorHandler:
+	MsgBox (&quot;Please select a graphic or a frame first.&quot;, 48, &quot;Graphic alignment&quot;)
+end sub
+
+sub SetGraphicAlignRight()
+dim iAlignment as integer
+dim oAlignObj as object
+On Local Error Goto ErrorHandler
+
+	iAlignment = GRAPHIC_ALIGNRIGHT
+	oAlignObj = GetSelectedObject()
+	if IsObject(oAlignObj) then
+		SetGraphicAlignment(oAlignObj, iAlignment)
+	end if	
+	exit sub
+	
+ErrorHandler:
+	MsgBox (&quot;Please select a graphic or a frame first.&quot;, 48, &quot;Graphic alignment&quot;)
+end sub
+
+
+sub SetGraphicAlignInline()
+dim iAlignment as integer
+dim oAlignObj as object
+On Local Error Goto ErrorHandler
+
+	iAlignment = GRAPHIC_ALIGNINLINE
+	oAlignObj = GetSelectedObject()
+	if IsObject(oAlignObj) then
+		SetGraphicAlignment(oAlignObj, iAlignment)
+	end if	
+	exit sub
+	
+ErrorHandler:
+	MsgBox (&quot;Please select a graphic or a frame first.&quot;, 48, &quot;Graphic alignment&quot;)
+end sub
+
+
+function GetSelectedObject()
+dim oSelectedObj as object
+dim oAlignObj as object
+dim bObjectFound as boolean
+
+
+	bObjectFound = false
+	
+	&apos;Get the current selection
+	oSelectedObj = ThisComponent.getCurrentSelection()
+	
+	&apos; check if the selected object is a TextGraphicObject
+	if oSelectedObj.supportsService(&quot;com.sun.star.text.TextGraphicObject&quot;) or _
+		oSelectedObj.supportsService(&quot;com.sun.star.text.TextEmbeddedObject&quot;) or _
+		oSelectedObj.supportsService(&quot;com.sun.star.drawing.GraphicObjectShape&quot;)	then
+		&apos;if graphic has a frame them align the frame
+		if oSelectedObj.getAnchor.Text.supportsService(&quot;com.sun.star.text.TextFrame&quot;) then
+			&apos; there is already a frame around the image
+			oAlignObj = oSelectedObj.GetAnchor.TextFrame
+			bObjectFound = true
+		&apos;otherwise align the graphic
+        else 
+			oAlignObj = oSelectedObj
+			bObjectFound = true
+        end if
+
+	&apos;if selection is a frame then align the frame
+    elseif oSelectedObj.supportsService(&quot;com.sun.star.text.TextFrame&quot;) then
+		oAlignObj = oSelectedObj 
+		bObjectFound = true
+	else
+    	&apos;msgbox (&quot;Please select a graphic or a frame first.&quot;, 48, &quot;Graphic alignment&quot;)
+	end if
+
+	if bObjectFound then
+		GetSelectedObject = oAlignObj
+	else
+		GetSelectedObject = NULL	
+	end if
+end function
+
+
+sub SetGraphicAlignment(oAlignObj, iAlignment)
+dim iAnchorAtParagraph as integer
+dim iAnchorAsCharacter as integer
+
+	iAnchorAtParagraph = com.sun.star.text.TextContentAnchorType.AT_PARAGRAPH
+	iAnchorAsCharacter = com.sun.star.text.TextContentAnchorType.AS_CHARACTER
+	
+	&apos;xRay oAlignObj
+	select case iAlignment
+	case GRAPHIC_ALIGNLEFT
+		&apos;set anchor at paragraph and the alignment of the paragraph to left
+		if oAlignObj.AnchorType = iAnchorAsCharacter then oAlignObj.AnchorType = iAnchorAtParagraph
+		with oAlignObj
+			.TopMargin = 250
+			.LeftMargin = 0
+			.RightMargin = 300
+			.HoriOrient = com.sun.star.text.HoriOrientation.LEFT
+			.TextWrap = com.sun.star.text.WrapTextMode.RIGHT
+		end with	
+
+	case GRAPHIC_ALIGNCENTER
+		&apos;set anchor as character and the alignment of the paragraph to center
+		with oAlignObj
+			.AnchorType = iAnchorAsCharacter
+			.HoriOrient = com.sun.star.text.HoriOrientation.CENTER
+			.TextWrap = com.sun.star.text.WrapTextMode.NONE
+		end with	
+
+	case GRAPHIC_ALIGNRIGHT
+		&apos;set anchor at paragraph and the alignment of the paragraph to right
+		if oAlignObj.AnchorType = iAnchorAsCharacter then oAlignObj.AnchorType = iAnchorAtParagraph
+		with oAlignObj
+			.TopMargin = 250
+			.LeftMargin = 300
+			.RightMargin = 0
+			.HoriOrient = com.sun.star.text.HoriOrientation.RIGHT
+			.TextWrap = com.sun.star.text.WrapTextMode.LEFT
+		end with	
+	
+	case GRAPHIC_ALIGNINLINE
+		&apos;set anchor as character and the alignment of the paragraph to left
+		with oAlignObj
+			.AnchorType = iAnchorAsCharacter
+			.HoriOrient = com.sun.star.text.HoriOrientation.LEFT
+			.TextWrap = com.sun.star.text.WrapTextMode.NONE
+		end with	
+	end select
+end sub
+
+
+&apos;******************************************************************************************
+&apos; eLAIX Help and About
+&apos;******************************************************************************************
+
+sub ElaixHelp_ori
+dim envBrowser as variant
+	&apos; get the browser env var
+	envBrowser = Environ(&quot;BROWSER&quot;)
+
+	&apos;if (envBrowser &lt;&gt; &quot;&quot;) then
+        Shell(&quot;Firefox&quot;, 1, &quot;http://www.boldt-media.de&quot;)
+    &apos;end if 
+    
+    
+	&apos;alternativ:
+	&apos;dim document as object
+	&apos;dim dispatcher as object
+	&apos;get access to the document
+	&apos;document   = ThisComponent.CurrentController.Frame
+	&apos;dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+	&apos;dispatcher.executeDispatch(document, &quot;.uno:Open&quot;, &quot;&quot;, 0, Array())
+
+end sub
+
+
+sub ElaixHelp
+dim oDoc as object
+dim vName as string
+dim vSize as integer
+
+	CrossReferenceHeadings
+end sub
+
+
+sub ElaixAbout
+dim oDialog as object
+dim oGraphic as object
+dim oControl as object
+dim oPath as object
+dim sPath as string
+dim sImgPath as string
+	&apos;initialize dialog and elements
+	DialogLibraries.LoadLibrary( &quot;eLAIX&quot; )
+	oDialog = CreateUnoDialog( DialogLibraries.eLAIX.DlgAbout )	
+	oDialog.Title = &quot;About eLAIX&quot;
+	
+	&apos;oPath = CreateUnoService(&quot;com.sun.star.util.PathSettings&quot;)
+	&apos;sImgPath = oPath.UserConfig &amp; &quot;/elaix/about.png&quot;
+	sPath = GetPackageDirURL(&quot;vnd.harryboldt.elaix&quot;) 
+	sImgPath = sPath &amp; &quot;/icons/about.png&quot;
+	oControl = oDialog.getControl(&quot;imgLogo&quot;)
+	oControl.getModel().ImageURL = ConvertToURL( sImgPath )
+	oDialog.execute
+end sub
+
+
+
+&apos;******************************************************************************************
+&apos; Internal routines
+&apos;******************************************************************************************
+
+function ParaStyleExists( sStylename as string ) as string
+	ParaStyleExists = true
+end function
+
+
+
+Function GetMonospacedFontName()
+  Dim oWindow          &apos;Container window AWT XDevice interface.
+  Dim oFonts()         &apos;Array of awt FontDescriptor structures.
+  Dim i&amp;               &apos;General index variable.
+  dim vFontname as string
+
+  vFontname = &quot;&quot;
+  oWindow  = ThisComponent.getCurrentController().getFrame().getContainerWindow()
+  oFonts() = oWindow.getFontDescriptors()
+
+  &apos;first look for Courier New or Bitstream Vera Mono	
+  For i = 0 to UBound(oFonts())
+    if oFonts(i).name = &quot;Courier New&quot; or oFonts(i).name = &quot;Bitstream Vera Sans Mono&quot; then
+    	vFontname = oFonts(i).name
+    	Exit for
+    end if
+  Next i
+
+  if vFontname = &quot;&quot; then  &apos;Font was not found
+    for i = 0 to UBound(oFonts())
+      if oFonts(i).family = 2 then
+      	  vFontname = oFonts(i).name
+		  exit function
+      end if
+    next i
+  end if  
+  
+  GetMonospacedFontName = vFontname
+end function
+
+
+sub SetNumType
+	rem ----------------------------------------------------------------------
+	rem define variables
+	dim document   as object
+	dim dispatcher as object
+	rem ----------------------------------------------------------------------
+	rem get access to the document
+	document   = ThisComponent.CurrentController.Frame
+	dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+	
+	rem ----------------------------------------------------------------------
+	dim args1(1) as new com.sun.star.beans.PropertyValue
+	args1(0).Name = &quot;Param&quot;
+	args1(0).Value = &quot;ILIAS List Alpha A&quot;
+	args1(1).Name = &quot;Family&quot;
+	args1(1).Value = 16
+	
+	dispatcher.executeDispatch(document, &quot;.uno:EditStyle&quot;, &quot;&quot;, 0, args1())
+end sub
+
+
+sub SetHeadings
+rem ----------------------------------------------------------------------
+rem define variables
+dim document   as object
+dim dispatcher as object
+rem ----------------------------------------------------------------------
+rem get access to the document
+document   = ThisComponent.CurrentController.Frame
+dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+
+rem ----------------------------------------------------------------------
+dispatcher.executeDispatch(document, &quot;.uno:ChapterNumberingDialog&quot;, &quot;&quot;, 0, Array())
+end sub
+
+
+function GotoStartOfParagraph as object
+Dim document As Object
+Dim Cursor
+Dim oText As Object
+Dim mySelection As Object
+Dim Font As String
+	document=ThisComponent
+	oText = document.Text
+	Cursor = document.currentcontroller.getViewCursor()
+	mySelection = oText.createTextCursorByRange(Cursor.getStart())
+	mySelection.gotoStartOfParagraph(false)
+	&apos;mySelection.gotoEndOfParagraph(true)
+	GotoStartOfParagraph = mySelection
+end function
+
+
+sub MoveSelection2Frame
+rem ----------------------------------------------------------------------
+rem define variables
+dim document   as object
+dim dispatcher as object
+rem ----------------------------------------------------------------------
+rem get access to the document
+document   = ThisComponent.CurrentController.Frame
+dispatcher = createUnoService(&quot;com.sun.star.frame.DispatchHelper&quot;)
+
+rem ----------------------------------------------------------------------
+dispatcher.executeDispatch(document, &quot;.uno:Cut&quot;, &quot;&quot;, 0, Array())
+
+rem ----------------------------------------------------------------------
+dispatcher.executeDispatch(document, &quot;.uno:Paste&quot;, &quot;&quot;, 0, Array())
+
+
+end sub
+</script:module>
