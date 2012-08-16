@@ -1,19 +1,19 @@
 *************************************************************************
- eLAIX   : Crea mÛdulos de aprendizaje ILIAS desde writer OpenOffice.org.
+ eLAIX   : Crea m√≥dulos de aprendizaje ILIAS desde writer OpenOffice.org.
  Autor   : Harry Boldt - h.boldt@boldt-media.de - http://elaix.org
  Licencia: GPL
 *************************************************************************
 
 eLAIX es software libre. Usted puede redistribuir y/o modificarlo bajo
-los tÈrminos de la GNU (General Public License) tal y como publica la 
-Free Software Foundation; tambiÈn la versiÛn de la licencia, o (a su 
-elecciÛn) o versiones posteriores.
+los t√©rminos de la GNU (General Public License) tal y como publica la 
+Free Software Foundation; tambi√©n la versi√≥n de la licencia, o (a su 
+elecci√≥n) o versiones posteriores.
 
-Este programa se distribuye con la esperanza de que sea ˙til, sin NING⁄N 
-TIPO DE GARANTÕAS; sin siquiera la garantÌa implÌcita de COMERCIALIZACI”N 
-o ADAPTACI”N PARA UN MOTIVO EN PARTICULAR. Vea la Licencia P˙blica 
-General GNU para m·s detalles.
+Este programa se distribuye con la esperanza de que sea √∫til, sin NING√öN 
+TIPO DE GARANT√çAS; sin siquiera la garant√≠a impl√≠cita de COMERCIALIZACI√ìN 
+o ADAPTACI√ìN PARA UN MOTIVO EN PARTICULAR. Vea la Licencia P√∫blica 
+General GNU para m√°s detalles.
 
-DeberÌa haber recibido una copia de la Licencia P˙blica General GNU 
-junto con esta librerÌa; en caso contrario, por favor visite la web de la 
+Deber√≠a haber recibido una copia de la Licencia P√∫blica General GNU 
+junto con esta librer√≠a; en caso contrario, por favor visite la web de la 
 Free Software Foundation http://www.gnu.org/licenses/.
