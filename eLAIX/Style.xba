@@ -541,7 +541,7 @@ dim iCount as integer
 	end if
 	 
 	for i = 0 to ubound(oProps)
-		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+		sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
 	next i	
 	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
 		

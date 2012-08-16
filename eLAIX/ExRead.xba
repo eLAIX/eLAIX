@@ -173,13 +173,19 @@ dim oPara as object
 	oStyleFamilies = thisComponent().StyleFamilies
 	oPageStyles = oStyleFamilies.getByName(&quot;PageStyles&quot;)
 	oStandardPage = oPageStyles.getByName(&quot;Standard&quot;)
-	oHeader = oStandardPage.HeaderText  
-	oEnum = oHeader.createEnumeration() 
-	&apos;read the complete header 
-	while oEnum.HasMoreElements 
-		oPara = oEnum.nextElement()
-		ReadParagraph(oPara, PAGE_AREA_HEADER, 0)
-	wend	
+	if oStandardPage.HeaderIsOn then
+		oHeader = oStandardPage.HeaderText  
+		oEnum = oHeader.createEnumeration() 
+		&apos;read the complete header 
+		while oEnum.HasMoreElements 
+			oPara = oEnum.nextElement()
+
+			ReadParagraph(oPara, PAGE_AREA_HEADER, 0)
+		wend
+	else
+		gsEnumErrors = gsEnumErrors &amp; chr(13) &amp; &quot;Note: The standard page style of this document doesn&apos;t have a header. &quot;
+		gsEnumErrors = gsEnumErrors &amp; &quot;The option &quot;&quot;Include standard Header&quot;&quot; was therefore ignored.&quot; &amp; chr(13)	
+	end if	
 end sub
 
 
@@ -194,14 +200,20 @@ dim oPara as object
 	oStyleFamilies = thisComponent().StyleFamilies
 	oPageStyles = oStyleFamilies.getByName(&quot;PageStyles&quot;)
 	oStandardPage = oPageStyles.getByName(&quot;Standard&quot;)
-	oFooter = oStandardPage.FooterText  
-	oEnum = oFooter.createEnumeration() 
-	&apos;read the complete footer 
-	while oEnum.HasMoreElements 
-		oPara = oEnum.nextElement()
-		ReadParagraph(oPara, PAGE_AREA_FOOTER, 0)
-	wend	
+	if oStandardPage.FooterIsOn then
+		oFooter = oStandardPage.FooterText  
+		oEnum = oFooter.createEnumeration() 
+		&apos;read the complete footer 
+		while oEnum.HasMoreElements 
+			oPara = oEnum.nextElement()
+			ReadParagraph(oPara, PAGE_AREA_FOOTER, 0)
+		wend	
+	else
+		gsEnumErrors = gsEnumErrors &amp; chr(13) &amp; &quot;Note: The standard page style of this document doesn&apos;t have a footer. &quot;
+		gsEnumErrors = gsEnumErrors &amp; &quot;The option &quot;&quot;Include standard footer&quot;&quot; was therefore ignored.&quot; &amp; chr(13)	
+	end if	
 end sub
+
 
 
 sub ReadGraphics
@@ -318,7 +330,7 @@ sub ReadParagraph(oPara as object, iPageArea as integer, iActChapterID as long, 
 &apos;oTableRec  : Table information if oPara is part of a table
 dim sParaStyleName as string
 dim sNumberingStyle as string
-dim oParaRec as object
+dim oParaRec as docParagraph
 dim iActParaID as long
 dim iTableWidth as integer	
 dim iPageInnerWidth as integer
@@ -375,6 +387,7 @@ dim oRules as object
 				oParaRec.TableRow = oTableRec.Row
 				oParaRec.TableCol = oTableRec.Col
 			end if
+						
 			&apos;append ParaRec to the array of paragraphs
 			redim preserve gaDocParagraph(iActParaID)
 			goDlgExport.Model.lblCountRead.Label = iActParaID
@@ -392,7 +405,7 @@ dim oRules as object
 			&apos;create a new paragraph record
 			&apos;xRay oPara
 			iActParaID = ubound(gaDocParagraph()) + 1
-			oParaRec = createObject(&quot;docParagraph&quot;)
+			oParaRec = createObject(&quot;docParagraph&quot;) 
 			with oParaRec
 				.ID = iActParaID
 				.ChapterID = iActChapterID
@@ -416,6 +429,7 @@ dim oRules as object
 					.ParaAdjust = oPara.ParaAdjust
 				end if
 			end with
+			xray oPararec
 			&apos;append oParaRec to the array of paragraphs
 			redim preserve gaDocParagraph(iActParaID)
 			gaDocParagraph(iActParaID) = oParaRec	
@@ -856,7 +870,7 @@ dim iColCount as integer
 	ErrorHandler:
 	gsEnumErrors = gsEnumErrors &amp; Chr(13) &amp; Chr(13)
 	gsEnumErrors = gsEnumErrors &amp; &quot;Table &quot; &amp; oTable.Name &amp; &quot; could not be exported.&quot; &amp; chr(13)
-	gsEnumErrors = gsEnumErrors &amp; &quot;Error &quot; &amp; Err &amp; &quot;: &quot; &amp; Error$ &amp; &quot; (line : &quot; &amp; Erl &amp; &quot;)&quot;
+	gsEnumErrors = gsEnumErrors &amp; &quot;Error &quot; &amp; Err &amp; &quot;: &quot; &amp; Error$ &amp; &quot; (line : &quot; &amp; Erl &amp; &quot;)&quot; &amp; chr(13)
 End sub 
 
 

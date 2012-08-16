@@ -176,7 +176,7 @@ dim oStartButton as object
 
 	&apos;---- Init XML File Globals -------------------------&apos;
 	gsHead = &quot;&lt;?xml version=&quot;&quot;1.0&quot;&quot; encoding=&quot;&quot;utf-8&quot;&quot;?&gt;&quot; &amp;_
-		&quot;&lt;!--created with eLAIX 3.0 - http://elaix.org--&gt;&quot; &amp;_
+		&quot;&lt;!--created with eLAIX 4.0 - http://elaix.org--&gt;&quot; &amp;_
 		&quot;&lt;!DOCTYPE LearningModule SYSTEM &quot;&quot;http://www.ilias.uni-koeln.de/download/dtd/ilias_co.dtd&quot;&quot;&gt;&quot;
 	sLang = GetInternalDocString(&quot;elaixDocLanguage&quot;)
 	gsLang = &quot;&quot;&quot;&quot; &amp; GetLanguageCode(sLang) &amp; &quot;&quot;&quot;&quot;
@@ -1199,7 +1199,7 @@ function GetResultString()
     &apos;MsgBox  &quot;The export was finished.&quot; &amp; chr(13) &amp; chr(13) &amp; vMsg
   end if
   
-  GetResultString = vMsg + gsEnumErrors
+  GetResultString = vMsg &amp; chr(13) &amp; gsEnumErrors
 end function
 
 function DocHasLocation() as boolean

@@ -338,7 +338,7 @@ dim iActPageID as long
 				goDlgExport.Model.lblCountWrite.Label = oPara.ID
 			next i
 			
-			&apos;Export footnotes if existing
+			&apos;Place footnotes at the end of the page
 			if gsFootnotes &lt;&gt; &quot;&quot; then
 				poPageStream.writeString(&quot;&lt;div class=&quot;&quot;footnotes&quot;&quot;&gt;&quot; &amp; gsCR)
 				poPageStream.writeString(gsFootnotes)
@@ -380,10 +380,13 @@ dim sFootnote as string
 		end if  
 	next i
 	sId = lTrim(rTrim(oPortionRec.GetString))
-	sRef =  &quot;&lt;a class=&quot;&quot;footnote&quot;&quot; epub:type=&quot;&quot;noteref&quot;&quot; href=&quot;&quot;#fn&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;&quot; &amp; sID &amp; &quot;&lt;/a&gt;&quot;
+	sRef =  &quot;&lt;a class=&quot;&quot;footnote&quot;&quot; epub:type=&quot;&quot;noteref&quot;&quot; id=&quot;&quot;noteref&quot; &amp; sID &amp; &quot;&quot;&quot; href=&quot;&quot;#fn&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;&quot; &amp; sID &amp; &quot;&lt;/a&gt;&quot;
+	&apos;when readers will be able to show aside elements as tooltip
 	&apos;sFootnote = &quot;&lt;aside epub:type=&quot;&quot;footnote&quot;&quot; id=&quot;&quot;fn&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/aside&gt;&quot;
 	&apos;GetEpubFootnoteExportString = sRef &amp; sFootnote
-	gsFootnotes = gsFootnotes &amp; &quot;&lt;aside epub:type=&quot;&quot;footnote&quot;&quot; id=&quot;&quot;fn&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;&lt;p&gt;&lt;span class=&quot;&quot;fn-id&quot;&quot;&gt;&quot; &amp; sId &amp; &quot;&lt;/span&gt;&quot; &amp; sResult &amp; &quot;&lt;/p&gt;&lt;/aside&gt;&quot;
+	&apos;meanwhile:
+	gsFootnotes = gsFootnotes &amp; &quot;&lt;aside epub:type=&quot;&quot;footnote&quot;&quot; id=&quot;&quot;fn&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;&lt;p&gt;&lt;span class=&quot;&quot;fn-id&quot;&quot;&gt;&quot; &amp; sId &amp; &quot;&lt;/span&gt;&quot;_
+							 &amp; sResult &amp; &quot;&lt;a href=&quot;&quot;#noteref&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;↑&lt;/a&gt;&lt;/p&gt;&lt;/aside&gt;&quot;
 	GetEpubFootnoteExportString = sRef
 
 end function
