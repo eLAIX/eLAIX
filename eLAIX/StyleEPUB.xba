@@ -262,7 +262,7 @@ dim oProps(8) as new com.sun.star.beans.PropertyValue
 dim i as integer
 
 	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
-	sStyleString = &quot;&lt;Style Tag=&quot;&quot;ol&quot;&quot; Type=&quot;&quot;list_o&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+	sStyleString = &quot;ol.&quot; &amp; sStyleName &amp; &quot; {&quot; &amp; gsCR
 
 	oProps(0).Name  = &quot;margin-top&quot;
 	oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / 30))
@@ -283,12 +283,12 @@ dim i as integer
 	oProps(8).Name  = &quot;font-size&quot;
 	oProps(8).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
 	&apos;oProps(8).Name  = &quot;text-indent&quot;
-	&apos;oProps(8).Value = CStr(Int(oStyle.ParaFirstLineIndent / 30)) &amp; &quot;px&quot;
+	&apos;oProps(8).Value = GetEpubFormattedPixelString(Int(oStyle.ParaFirstLineIndent / 30))
 
 	for i = 0 to ubound(oProps)
-		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+		sStyleString = sStyleString + oProps(i).Name &amp; &quot;: &quot; &amp; oProps(i).Value &amp; &quot;;&quot; &amp; gsCR
 	next i	
-	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	sStyleString = sStyleString &amp; &quot;}&quot; &amp; gsCR
 	
 	GetEpubStyleStringOrderedList = sStyleString
 end function
@@ -307,7 +307,7 @@ dim iFirstLineOffset as integer
 
 
 	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
-	sStyleString = &quot;&lt;Style Tag=&quot;&quot;ul&quot;&quot; Type=&quot;&quot;list_u&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+	sStyleString = &quot;ul.&quot; &amp; sStyleName &amp; &quot; {&quot; &amp; gsCR
 
 	oProps(0).Name  = &quot;margin-top&quot;
 	oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / 30))
@@ -347,15 +347,15 @@ dim iFirstLineOffset as integer
 	&apos;	&apos;if oPara.NumberingLevel = 1 then
 	&apos;		redim preserve oProps(7)
 	&apos;		oProps(7).Name  = &quot;margin-left&quot;
-	&apos;		oProps(7).Value =  CStr(Int(oStyle.ParaLeftMargin / 30) + Int(oStyle.ParaFirstLineIndent / 30)) &amp; &quot;px&quot;
+	&apos;		oProps(7).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaLeftMargin / 30) + Int(oStyle.ParaFirstLineIndent / 30))
 	&apos;	&apos;end if	
 	&apos;end if	
 
 
 	for i = 0 to ubound(oProps)
-		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+		sStyleString = sStyleString + oProps(i).Name &amp; &quot;: &quot; &amp; oProps(i).Value &amp; &quot;;&quot; &amp; gsCR
 	next i	
-	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	sStyleString = sStyleString &amp; &quot;}&quot; &amp; gsCR
 	
 	GetEpubStyleStringUnorderedList = sStyleString
 end function
@@ -368,7 +368,7 @@ dim oProps(8) as new com.sun.star.beans.PropertyValue
 dim i as integer
 
 	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
-	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;text_block&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+	sStyleString = &quot;div.&quot; &amp; sStyleName &amp; &quot; {&quot; &amp; gsCR
 
 	oProps(0).Name  = &quot;margin-top&quot;
 	oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / 30))
@@ -398,9 +398,9 @@ dim i as integer
 	end if 
 	
 	for i = 0 to ubound(oProps)
-		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
-	next i		
-	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+		sStyleString = sStyleString + oProps(i).Name &amp; &quot;: &quot; &amp; oProps(i).Value &amp; &quot;;&quot; &amp; gsCR
+	next i	
+	sStyleString = sStyleString &amp; &quot;}&quot; &amp; gsCR
 	
 	GetEpubStyleStringMarginaleLeft = sStyleString
 end function
@@ -413,7 +413,7 @@ dim oProps(10) as new com.sun.star.beans.PropertyValue
 dim i as integer
 
 	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
-	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;text_block&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+	sStyleString = &quot;div.&quot; &amp; sStyleName &amp; &quot; {&quot; &amp; gsCR
 
 	oProps(0).Name  = &quot;margin-top&quot;
 	oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / 30))
@@ -447,9 +447,9 @@ dim i as integer
 	end if 
 	
 	for i = 0 to ubound(oProps)
-		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
-	next i		
-	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+		sStyleString = sStyleString + oProps(i).Name &amp; &quot;: &quot; &amp; oProps(i).Value &amp; &quot;;&quot; &amp; gsCR
+	next i	
+	sStyleString = sStyleString &amp; &quot;}&quot; &amp; gsCR
 	
 	GetEpubStyleStringMarginaleRight = sStyleString
 end function
@@ -462,7 +462,7 @@ end function
 function GetEpubStyleStringSection(oStyle as object, sGraphicName as string) as string
 dim sStyleString as string
 dim sStyleName as string
-dim oProps(15) as new com.sun.star.beans.PropertyValue
+dim oProps(14) as new com.sun.star.beans.PropertyValue
 dim i as integer
 dim iCount as integer
 
@@ -515,7 +515,7 @@ dim iCount as integer
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount + 2)
 		oProps(iCount).Name  = &quot;background-image&quot;
-		oProps(iCount).Value = sGraphicname
+		oProps(iCount).Value = &quot;url(&apos;../images/&quot; &amp; sGraphicname &amp; &quot;&apos;)&quot;
 		iCount = iCount + 1
 		oProps(iCount).Name  = &quot;background-repeat&quot;
 		oProps(iCount).Value = &quot;no-repeat&quot;
@@ -525,9 +525,9 @@ dim iCount as integer
 	end if
 	 
 	for i = 0 to ubound(oProps)
-		sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+		sStyleString = sStyleString + oProps(i).Name &amp; &quot;: &quot; &amp; oProps(i).Value &amp; &quot;;&quot; &amp; gsCR
 	next i	
-	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	sStyleString = sStyleString &amp; &quot;}&quot; &amp; gsCR
 		
 	GetEpubStyleStringSection = sStyleString
 end function
@@ -549,28 +549,28 @@ dim iCount as integer
 	
 	if sStyleName = gsPageTitleStyle then
 &apos;	if Left(sStylename, 9) = &quot;Heading&quot; then
-		sStyleString = &quot;&lt;Style Tag=&quot;&quot;h1&quot;&quot; Type=&quot;&quot;page_title&quot;&quot; Class=&quot;&quot;PageTitle&quot;&quot;&gt;&quot;
+		sStyleString = &quot;h1.PageTitle {&quot; &amp; gsCR
 		oProps(0).Name  = &quot;margin-top&quot;
 		oProps(0).Value =  GetEpubFormattedPixelString(0)
 		oProps(1).Name  = &quot;margin-left&quot;
 		oProps(1).Value =  GetEpubFormattedPixelString(0)
 		
 	elseif sStylename = &quot;ILIAS_FileList_Caption&quot; then
-		sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;flist_head&quot;&quot; Class=&quot;&quot;FileListHeading&quot;&quot;&gt;&quot;
+		sStyleString = &quot;div.FileListHeading {&quot; &amp; gsCR
 		oProps(0).Name  = &quot;margin-top&quot;
 		oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / 30))
 		oProps(1).Name  = &quot;margin-left&quot;
 		oProps(1).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaLeftMargin / 30))
 		
 	elseif sStylename = &quot;ILIAS_FileList_Element&quot; then
-		sStyleString = &quot;&lt;Style Tag=&quot;&quot;li&quot;&quot; Type=&quot;&quot;flist_li&quot;&quot; Class=&quot;&quot;FileListItem&quot;&quot;&gt;&quot;
+		sStyleString = &quot;li.FileListItem {&quot; &amp; gsCR
 		oProps(0).Name  = &quot;margin-top&quot;
 		oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / 30))
 		oProps(1).Name  = &quot;margin-left&quot;
 		oProps(1).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaLeftMargin / 30))
 		
 	else
-		sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;text_block&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+		sStyleString = &quot;div.&quot; &amp; sStyleName &amp; &quot; {&quot; &amp; gsCR
 		oProps(0).Name  = &quot;margin-top&quot;
 		oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / 30))
 		oProps(1).Name  = &quot;margin-left&quot;
@@ -699,9 +699,9 @@ dim iCount as integer
 	SetEpubMoreParaStyleProperties(oStyle, oProps(), sGraphicName)	
 	 
 	for i = 0 to ubound(oProps)
-		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+		sStyleString = sStyleString + oProps(i).Name &amp; &quot;: &quot; &amp; oProps(i).Value &amp; &quot;;&quot; &amp; gsCR
 	next i	
-	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	sStyleString = sStyleString &amp; &quot;}&quot; &amp; gsCR
 		
 	GetEpubStyleStringParagraph = sStyleString
 end function
@@ -715,7 +715,7 @@ dim oProp as new com.sun.star.beans.PropertyValue
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProp.Name  = &quot;text-shadow&quot;
-		oProp.Value = &quot;#b0b0b0 2px 2px 3px&quot;
+		oProp.Value = &quot;#b0b0b0 &quot; &amp; GetEpubFormattedPixelString(2) &amp; &quot; &quot; &amp; GetEpubFormattedPixelString(2) &amp; &quot; &quot; &amp; GetEpubFormattedPixelString(3)
 		oProps(iCount) = oProp
 	end if
 	
@@ -803,7 +803,7 @@ dim oProp as new com.sun.star.beans.PropertyValue
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount + 2)
 		oProp.Name  = &quot;background-image&quot;
-		oProp.Value = sGraphicname
+		oProp.Value = &quot;url(&apos;../images/&quot; &amp; sGraphicname &amp; &quot;&apos;)&quot;
 		oProps(iCount) = oProp
 		iCount = iCount + 1
 		oProp.Name  = &quot;background-repeat&quot;
@@ -828,7 +828,7 @@ dim iCount as integer
 	&apos;xray oStyle
 	&apos;oPara = GetEpubParaByStyleName(sStyleName)
 	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
-	sStyleString = &quot;&lt;Style Tag=&quot;&quot;span&quot;&quot; Type=&quot;&quot;text_inline&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+	sStyleString = &quot;span.&quot; &amp; sStyleName &amp; &quot; {&quot; &amp; gsCR
 
 	if oStyle.GetPropertyState(&quot;CharColor&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
 		iCount = uBound(oProps) + 1
@@ -874,7 +874,7 @@ dim iCount as integer
 			iCount = uBound(oProps) + 1
 			redim preserve oProps(iCount)
 			oProps(iCount).Name  = &quot;text-shadow&quot;
-			oProps(iCount).Value = &quot;#b0b0b0 2px 2px 3px&quot;
+			oProps(iCount).Value = &quot;#b0b0b0 &quot; &amp; GetEpubFormattedPixelString(2) &amp; &quot; &quot; &amp; GetEpubFormattedPixelString(2) &amp; &quot; &quot; &amp; GetEpubFormattedPixelString(3)
 		end if
 	end if	
 	
@@ -960,9 +960,9 @@ dim iCount as integer
 	end if	
 		 
 	for i = 1 to ubound(oProps)
-		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+		sStyleString = sStyleString + oProps(i).Name &amp; &quot;: &quot; &amp; oProps(i).Value &amp; &quot;;&quot; &amp; gsCR
 	next i	
-	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	sStyleString = sStyleString &amp; &quot;}&quot; &amp; gsCR
 		
 	GetEpubStyleStringCharacter = sStyleString
 end function
@@ -972,9 +972,7 @@ function GetEpubStyleStringAlignment(sAlignment as string) as string
 dim sStyleName as string
 dim sStyleString as string
 	sStyleName = &quot;align&quot; &amp; sAlignment
-	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;text_block&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
-	sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot; text-align&quot;&quot; Value=&quot;&quot;&quot; &amp; sAlignment &amp; &quot;&quot;&quot;/&gt;&quot;
-	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	sStyleString = &quot;div.&quot; &amp; sStyleName &amp; &quot; {&quot; &amp; gsCR &amp; &quot;text-align: &quot; &amp; sAlignment &amp; &quot;;&quot; &amp; gsCR &amp; &quot;}&quot; &amp; gsCR
 	GetEpubStyleStringAlignment = sStyleString
 end function
 
@@ -992,7 +990,7 @@ dim oProps(15) as new com.sun.star.beans.PropertyValue
 dim i as integer
 
 	&apos;first set default values
-	sStyleString = &quot;&lt;Style Tag=&quot;&quot;table&quot;&quot; Type=&quot;&quot;page_cont&quot;&quot; Class=&quot;&quot;PageContainer&quot;&quot;&gt;&quot;
+	sStyleString = &quot;table.PageContainer {&quot; &amp; gsCR
 	if giMarginaleLeftWidth = 0 then 
 		iMarginaleLeft = 20
 	else	
@@ -1056,9 +1054,9 @@ dim i as integer
 	SetEpubMoreParaStyleProperties(oStyle, oProps(), &quot;&quot;)		 
 
 	for i = 0 to ubound(oProps)
-		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+		sStyleString = sStyleString + oProps(i).Name &amp; &quot;: &quot; &amp; oProps(i).Value &amp; &quot;;&quot; &amp; gsCR
 	next i	
-	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	sStyleString = sStyleString &amp; &quot;}&quot; &amp; gsCR
 		
 	GetEpubStyleStringPageContainer = sStyleString
 end function
@@ -1071,10 +1069,7 @@ dim iLeft as integer
 
 	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
 	iLeft = Int((oStyle.ParaFirstLineIndent) / 30)
-	sStyleString = &quot;&lt;Style Tag=&quot;&quot;span&quot;&quot; Type=&quot;&quot;text_inline&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;Label&quot;&quot;&gt;&quot;
-	sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;position&quot;&quot; Value=&quot;&quot;absolute&quot;&quot;/&gt;&quot;
-	sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;left&quot;&quot; Value=&quot;&quot;&quot; &amp; GetEpubFormattedPixelString(iLeft) &amp; &quot;/&gt;&quot;
-	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	sStyleString = &quot;span.&quot; &amp; sStyleName &amp; &quot; {&quot; &amp; gsCR &amp; &quot;position: absolute;&quot; &amp; gsCR &amp; &quot;}&quot; &amp; gsCR
 	
 	GetEpubStyleStringListLabel = sStyleString
 end function
@@ -1087,7 +1082,7 @@ dim oProps(8) as new com.sun.star.beans.PropertyValue
 dim i as integer
 
 	sStyleName = &quot;VAccordICntr&quot;
-	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;va_icntr&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+	sStyleString = &quot;div.&quot; &amp; sStyleName &amp; &quot; {&quot;
 
 	oProps(0).Name  = &quot;margin-top&quot;
 	oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.TopMargin / 30))
@@ -1109,9 +1104,9 @@ dim i as integer
 	oProps(8).Value = GetEpubHexColorString(oStyle.BackColor)
 
 	for i = 0 to ubound(oProps)
-		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+		sStyleString = sStyleString + oProps(i).Name &amp; &quot;: &quot; &amp; oProps(i).Value &amp; &quot;;&quot; &amp; gsCR
 	next i	
-	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	sStyleString = sStyleString &amp; &quot;}&quot; &amp; gsCR
 	
 	GetEpubStyleStringAccordionVertical = sStyleString
 end function
@@ -1124,7 +1119,7 @@ dim oProps(8) as new com.sun.star.beans.PropertyValue
 dim i as integer
 
 	sStyleName = &quot;HAccordICntr&quot;
-	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;ha_icntr&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+	sStyleString = &quot;div.&quot; &amp; sStyleName &amp; &quot; {&quot;
 
 	oProps(0).Name  = &quot;margin-top&quot;
 	oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.TopMargin / 30))
@@ -1146,9 +1141,9 @@ dim i as integer
 	oProps(8).Value = GetEpubHexColorString(oStyle.BackColor)
 
 	for i = 0 to ubound(oProps)
-		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+		sStyleString = sStyleString + oProps(i).Name &amp; &quot;: &quot; &amp; oProps(i).Value &amp; &quot;;&quot; &amp; gsCR
 	next i	
-	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	sStyleString = sStyleString &amp; &quot;}&quot; &amp; gsCR
 	
 	GetEpubStyleStringAccordionHorizontal = sStyleString
 end function
@@ -1161,7 +1156,7 @@ dim oProps(7) as new com.sun.star.beans.PropertyValue
 dim i as integer
 
 	sStyleName = &quot;VAccordIHead&quot;
-	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;va_ihead&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+	sStyleString = &quot;div.&quot; &amp; sStyleName &amp; &quot; {&quot;
 
 	oProps(0).Name  = &quot;color&quot;
 	oProps(0).Value =  GetEpubHexColorString(oStyle.CharColor)
@@ -1174,7 +1169,7 @@ dim i as integer
 	oProps(4).Name  = &quot;cursor&quot;
 	oProps(4).Value =  &quot;pointer&quot;
 	oProps(5).Name  = &quot;padding&quot;
-	oProps(5).Value =  &quot;3px 8px&quot;
+	oProps(5).Value =  GetEpubFormattedPixelString(3) &amp; &quot; &quot; &amp; GetEpubFormattedPixelString(8)
 	oProps(6).Name  = &quot;text-align&quot;
 	oProps(6).Value =  &quot;left&quot;
 	oProps(7).Name  = &quot;font-weight&quot;
@@ -1187,9 +1182,9 @@ dim i as integer
 	SetEpubMoreParaStyleProperties(oStyle, oProps(), &quot;&quot;)	
 
 	for i = 0 to ubound(oProps)
-		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+		sStyleString = sStyleString + oProps(i).Name &amp; &quot;: &quot; &amp; oProps(i).Value &amp; &quot;;&quot; &amp; gsCR
 	next i	
-	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	sStyleString = sStyleString &amp; &quot;}&quot; &amp; gsCR
 	
 	GetEpubStyleStringAccordionTogglerVertical = sStyleString
 end function
@@ -1202,7 +1197,7 @@ dim oProps(7) as new com.sun.star.beans.PropertyValue
 dim i as integer
 
 	sStyleName = &quot;HAccordIHead&quot;
-	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;ha_ihead&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+	sStyleString = &quot;div.&quot; &amp; sStyleName &amp; &quot; {&quot;
 
 	oProps(0).Name  = &quot;color&quot;
 	oProps(0).Value =  GetEpubHexColorString(oStyle.CharColor)
@@ -1215,7 +1210,7 @@ dim i as integer
 	oProps(4).Name  = &quot;cursor&quot;
 	oProps(4).Value =  &quot;pointer&quot;
 	oProps(5).Name  = &quot;padding&quot;
-	oProps(5).Value =  &quot;3px 8px&quot;
+	oProps(5).Value =  GetEpubFormattedPixelString(3) &amp; &quot; &quot; &amp; GetEpubFormattedPixelString(8)
 	oProps(6).Name  = &quot;text-align&quot;
 	oProps(6).Value =  &quot;left&quot;
 	oProps(7).Name  = &quot;font-weight&quot;
@@ -1228,9 +1223,9 @@ dim i as integer
 	SetEpubMoreParaStyleProperties(oStyle, oProps(), &quot;&quot;)	
 
 	for i = 0 to ubound(oProps)
-		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+		sStyleString = sStyleString + oProps(i).Name &amp; &quot;: &quot; &amp; oProps(i).Value &amp; &quot;;&quot; &amp; gsCR
 	next i	
-	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	sStyleString = sStyleString &amp; &quot;}&quot; &amp; gsCR
 	
 	GetEpubStyleStringAccordionTogglerHorizontal = sStyleString
 end function
@@ -1243,15 +1238,15 @@ dim oProps(0) as new com.sun.star.beans.PropertyValue
 dim i as integer
 
 	sStyleName = &quot;VAccordICont&quot;
-	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;va_icont&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+	sStyleString = &quot;div.&quot; &amp; sStyleName &amp; &quot; {&quot;
 
 	oProps(0).Name  = &quot;padding&quot;
-	oProps(0).Value =  &quot;8px&quot;
+	oProps(0).Value =  GetEpubFormattedPixelString(8)
 
 	for i = 0 to ubound(oProps)
-		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+		sStyleString = sStyleString + oProps(i).Name &amp; &quot;: &quot; &amp; oProps(i).Value &amp; &quot;;&quot; &amp; gsCR
 	next i	
-	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	sStyleString = sStyleString &amp; &quot;}&quot; &amp; gsCR 
 	
 	GetEpubStyleStringAccordionTextVertical = sStyleString
 end function
@@ -1264,15 +1259,15 @@ dim oProps(0) as new com.sun.star.beans.PropertyValue
 dim i as integer
 
 	sStyleName = &quot;HAccordICont&quot;
-	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;ha_icont&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+	sStyleString = &quot;div.&quot; &amp; sStyleName &amp; &quot; {&quot;
 
 	oProps(0).Name  = &quot;padding&quot;
-	oProps(0).Value =  &quot;0 8px&quot;
+	oProps(0).Value =  GetEpubFormattedPixelString(0) &amp; &quot; &quot; &amp; GetEpubFormattedPixelString(8)
 
 	for i = 0 to ubound(oProps)
-		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+		sStyleString = sStyleString + oProps(i).Name &amp; &quot;: &quot; &amp; oProps(i).Value &amp; &quot;;&quot; &amp; gsCR
 	next i	
-	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	sStyleString = sStyleString &amp; &quot;}&quot; &amp; gsCR
 	
 	GetEpubStyleStringAccordionTextHorizontal = sStyleString
 end function
@@ -1460,7 +1455,7 @@ function GetEpubFormattedPixelString(iPixelValue as integer) as string
 	if iPixelValue = 0 then
 		GetEpubFormattedPixelString = &quot;0&quot;
 	else
-		GetEpubFormattedPixelString = CStr(iPixelValue)
+		GetEpubFormattedPixelString = CStr(iPixelValue) &amp; &quot;px&quot;
 	end if
 end function
 </script:module>
