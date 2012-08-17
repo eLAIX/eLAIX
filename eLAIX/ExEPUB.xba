@@ -1064,9 +1064,9 @@ dim sType as string
 				&apos;only reflect hard formatted text portions, if the character style is standard
 				if oPortion.CharWeight = com.sun.star.awt.FontWeight.BOLD then  &apos;this portion is formatted in bold
 					if len(sResult) &gt; 1 then
-						sResult = &quot;&lt;strong&gt;&quot; &amp; sResult &amp; &quot;&lt;/strong&gt;&quot; 
+						sResult = &quot;&lt;b&gt;&quot; &amp; sResult &amp; &quot;&lt;/b&gt;&quot; 
 					elseif asc(sResult) &lt;&gt; 9 and sResult &lt;&gt; &quot; &quot; then
-						sResult = &quot;&lt;strong&gt;&quot; &amp; sResult &amp; &quot;&lt;/strong&gt;&quot; 
+						sResult = &quot;&lt;b&gt;&quot; &amp; sResult &amp; &quot;&lt;/b&gt;&quot; 
 					end if    
 				end if    
 		
@@ -1087,7 +1087,7 @@ dim sType as string
 				end if
 		
 				if (oPortion.CharPosture = com.sun.star.awt.FontSlant.ITALIC) then  &apos;this portion is formatted in italic
-					sResult = &quot;&lt;emph&gt;&quot; &amp; sResult &amp; &quot;&lt;/emph&gt;&quot;  
+					sResult = &quot;&lt;i&gt;&quot; &amp; sResult &amp; &quot;&lt;/i&gt;&quot;  
 				end if
 		
 				&apos;check if the textportion is underlined
@@ -1172,9 +1172,9 @@ dim iNumberOfNull as integer
 
 		if oPortionRec.CharWeight = com.sun.star.awt.FontWeight.BOLD then  &apos;this portion is formatted in bold
 			if len(sResult) &gt; 1 then
-		        sResult = &quot;&lt;strong&gt;&quot; &amp; sResult &amp; &quot;&lt;/strong&gt;&quot; 
+		        sResult = &quot;&lt;b&gt;&quot; &amp; sResult &amp; &quot;&lt;/b&gt;&quot; 
 		    elseif asc(sResult) &lt;&gt; 9 and sResult &lt;&gt; &quot; &quot; then
-		        sResult = &quot;&lt;strong&gt;&quot; &amp; sResult &amp; &quot;&lt;/strong&gt;&quot; 
+		        sResult = &quot;&lt;b&gt;&quot; &amp; sResult &amp; &quot;&lt;/b&gt;&quot; 
 		    end if    
 		endif    
     
@@ -1197,7 +1197,7 @@ dim iNumberOfNull as integer
 		end if
 		
 		if oPortionRec.CharPosture = com.sun.star.awt.FontSlant.ITALIC THEN  &apos;this portion is formatted in italic
-	        sResult = &quot;&lt;emph&gt;&quot; &amp; sResult &amp; &quot;&lt;emph&gt;&quot;  
+	        sResult = &quot;&lt;i&gt;&quot; &amp; sResult &amp; &quot;&lt;i&gt;&quot;  
 		endif
 	end if	
       
