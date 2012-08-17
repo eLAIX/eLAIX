@@ -20,7 +20,6 @@
 &apos; License along with this program. If not, please visit the Free
 &apos; Software Foundation website at http://www.gnu.org/licenses/.
 
-
 Option Explicit
 
 private psFrameCaption as string
@@ -1065,9 +1064,9 @@ dim sType as string
 				&apos;only reflect hard formatted text portions, if the character style is standard
 				if oPortion.CharWeight = com.sun.star.awt.FontWeight.BOLD then  &apos;this portion is formatted in bold
 					if len(sResult) &gt; 1 then
-						sResult = &quot;&lt;Strong&gt;&quot; &amp; sResult &amp; &quot;&lt;/Strong&gt;&quot; 
+						sResult = &quot;&lt;strong&gt;&quot; &amp; sResult &amp; &quot;&lt;/strong&gt;&quot; 
 					elseif asc(sResult) &lt;&gt; 9 and sResult &lt;&gt; &quot; &quot; then
-						sResult = &quot;&lt;Strong&gt;&quot; &amp; sResult &amp; &quot;&lt;/Strong&gt;&quot; 
+						sResult = &quot;&lt;strong&gt;&quot; &amp; sResult &amp; &quot;&lt;/strong&gt;&quot; 
 					end if    
 				end if    
 		
@@ -1088,7 +1087,7 @@ dim sType as string
 				end if
 		
 				if (oPortion.CharPosture = com.sun.star.awt.FontSlant.ITALIC) then  &apos;this portion is formatted in italic
-					sResult = &quot;&lt;Emph&gt;&quot; &amp; sResult &amp; &quot;&lt;/Emph&gt;&quot;  
+					sResult = &quot;&lt;emph&gt;&quot; &amp; sResult &amp; &quot;&lt;/emph&gt;&quot;  
 				end if
 		
 				&apos;check if the textportion is underlined
@@ -1097,7 +1096,7 @@ dim sType as string
 				end if         	
 
 				if oPortion.CharFontPitch =  com.sun.star.awt.FontPitch.FIXED then
-			        sResult = &quot;&lt;Code&gt;&quot; &amp; sResult &amp; &quot;&lt;/Code&gt;&quot; 
+			        sResult = &quot;&lt;code&gt;&quot; &amp; sResult &amp; &quot;&lt;/code&gt;&quot; 
 				end if
 			else	
 				vCharStyle = ReplaceString(vCharStyle, &quot;_&quot;, &quot; &quot;)
@@ -1173,9 +1172,9 @@ dim iNumberOfNull as integer
 
 		if oPortionRec.CharWeight = com.sun.star.awt.FontWeight.BOLD then  &apos;this portion is formatted in bold
 			if len(sResult) &gt; 1 then
-		        sResult = &quot;&lt;Strong&gt;&quot; &amp; sResult &amp; &quot;&lt;/Strong&gt;&quot; 
+		        sResult = &quot;&lt;strong&gt;&quot; &amp; sResult &amp; &quot;&lt;/strong&gt;&quot; 
 		    elseif asc(sResult) &lt;&gt; 9 and sResult &lt;&gt; &quot; &quot; then
-		        sResult = &quot;&lt;Strong&gt;&quot; &amp; sResult &amp; &quot;&lt;/Strong&gt;&quot; 
+		        sResult = &quot;&lt;strong&gt;&quot; &amp; sResult &amp; &quot;&lt;/strong&gt;&quot; 
 		    end if    
 		endif    
     
@@ -1194,11 +1193,11 @@ dim iNumberOfNull as integer
       endif
 
 		if oPortionRec.CharFontPitch =  com.sun.star.awt.FontPitch.FIXED then
-	        sResult = &quot;&lt;Code&gt;&quot; &amp; sResult &amp; &quot;&lt;/Code&gt;&quot; 
+	        sResult = &quot;&lt;code&gt;&quot; &amp; sResult &amp; &quot;&lt;/code&gt;&quot; 
 		end if
 		
 		if oPortionRec.CharPosture = com.sun.star.awt.FontSlant.ITALIC THEN  &apos;this portion is formatted in italic
-	        sResult = &quot;&lt;Emph&gt;&quot; &amp; sResult &amp; &quot;&lt;/Emph&gt;&quot;  
+	        sResult = &quot;&lt;emph&gt;&quot; &amp; sResult &amp; &quot;&lt;emph&gt;&quot;  
 		endif
 	end if	
       

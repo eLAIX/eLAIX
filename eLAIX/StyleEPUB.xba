@@ -52,6 +52,7 @@ sub ExportEpubStandardStyles(oStream as object)
 	oStream.writeString(&quot;a.footnote{vertical-align:4px;font-size:80%;text-decoration:none;}&quot; &amp; gsCR)
 	oStream.writeString(&quot;.footnotes .separator{width:150px;border-top:2px solid #000;margin-top:25px;padding-top:15px}&quot; &amp; gsCR)
 	oStream.writeString(&quot;.footnotes .fn-id{padding-right:20px;}&quot; &amp; gsCR)
+	oStream.writeString(&quot;.footnotes a.back {text-decoration:none;}&quot;) 
 end sub
 
 
