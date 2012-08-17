@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE dlg:window PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "dialog.dtd">
 <dlg:window xmlns:dlg="http://openoffice.org/2000/dialog" xmlns:script="http://openoffice.org/2000/script" dlg:id="DlgMeta" dlg:left="131" dlg:top="44" dlg:width="272" dlg:height="292" dlg:closeable="true" dlg:moveable="true" dlg:title="Learning Module Metadata and Properties">
  <dlg:styles>

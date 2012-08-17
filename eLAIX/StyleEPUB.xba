@@ -1,0 +1,1439 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">
+<script:module xmlns:script="http://openoffice.org/2000/script" script:name="StyleEPUB" script:language="StarBasic">&apos;****************************************************************************
+&apos; eLAIX   : Writing ILIAS learning modules offline with OpenOffice.org Writer
+&apos; Author  : Harry Boldt - h.boldt@boldt-media.de - http://elaix.org
+&apos; License : GPL
+&apos;****************************************************************************
+
+&apos; This module is part of eLAIX. You can redistribute it and/or
+&apos; modify it under the terms of the GNU Lesser General Public
+&apos; License as published by the Free Software Foundation, either
+&apos; version 3 of the License, or (at your option) any later version.
+&apos; 
+&apos; This program is distributed in the hope that it will be useful,
+&apos; but WITHOUT ANY WARRANTY; without even the implied warranty of
+&apos; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+&apos; Lesser General Public License for more details.
+&apos; 
+&apos; You should have received a copy of the GNU Lesser General Public
+&apos; License along with this program. If not, please visit the Free
+&apos; Software Foundation website at http://www.gnu.org/licenses/.
+
+Option Explicit
+
+sub ExportEpubStyles
+dim oStream as object 
+
+	oStream = GetExportFileObject(gsExportZipDir &amp; &quot;/EPUB/css/style.css&quot;)
+	oStream.writeString(&quot;body{margin:2em;font-family:arial;color:#000;}&quot; &amp; gsCR)
+	oStream.writeString(&quot;nav#toc ol{list-style-type:none;}&quot; &amp; gsCR)
+	oStream.writeString(&quot;nav#toc ol li a{text-decoration:none;}&quot; &amp; gsCR)
+	oStream.writeString(&quot;nav#toc ol li a:hover{text-decoration:underline;}&quot; &amp; gsCR)
+	oStream.writeString(&quot;body#titlepage{text-align:center;}&quot; &amp; gsCR)
+	oStream.writeString(&quot;.footnotes{border-top:2px solid #333;margin-top:30;padding-top:15;font-size:0.85em;}&quot;) 
+	oStream.writeString(&quot;a.footnote{vertical-align:4px;font-size:80%;text-decoration:none;}&quot; &amp; gsCR)
+	oStream.writeString(&quot;.footnotes .separator{width:150px;border-top:2px solid #000;margin-top:25px;padding-top:15px}&quot; &amp; gsCR)
+	oStream.writeString(&quot;.footnotes .fn-id{padding-right:20px;}&quot;) 
+	oStream.closeOutput() 
+end sub
+
+	
+sub ExportEpubSectionStyles(oStyleXML as object, sStyleImageFolder as string)
+dim oDocument as object
+dim oStyleFamilies as object
+dim oFrameStyles as object
+dim oStyle as object
+dim sStylename as string
+dim iCount as integer
+dim i as integer
+dim sStyleString as string
+dim iNumType as integer
+dim sGraphicName as string
+dim sLocation as string
+
+	oStyleFamilies = ThisComponent.StyleFamilies
+	oFrameStyles = oStyleFamilies.getByName( &quot;FrameStyles&quot; )
+
+	&apos;get all applied paragraphs
+	iCount = oFrameStyles.GetCount
+	for i = 0 to iCount - 1
+		oStyle = oFrameStyles.GetByIndex(i)
+		sStylename = oStyle.Name &apos;(already converted in Enum	)	
+		
+		&apos;the style is used by the document
+		if oStyle.isInUse and (oStyle.Name &lt;&gt; &quot;&quot;) then
+			&apos;xray oStyle
+			sStylename = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+			sGraphicName = oStyle.BackGraphicURL
+			if sGraphicName &lt;&gt; &quot;&quot; then
+				sGraphicName = ExportGraphicByURL(oStyle.BackGraphicURL, sStyleImageFolder)
+				if sGraphicName = &quot;save_again&quot; then
+					oDocument = ThisComponent()
+					oDocument.Store
+					sGraphicName = ExportGraphicByURL(oStyle.BackGraphicURL, sStyleImageFolder)
+				end if
+			end if
+			sStyleString = GetStyleStringSection(oStyle, sGraphicName)
+			WriteToStream(oStyleXML, sStyleString)			
+		end if			
+	next i
+end sub
+
+
+sub ExportParagraphStyles(oStyleXML as object, sStyleImageFolder as string)
+dim oDocument as object
+dim oStyleFamilies as object
+dim oParaStyles as object
+dim oStyle as object
+dim sStylename as string
+dim iCount as integer
+dim i as integer
+dim sStyleString as string
+dim iNumType as integer
+dim sGraphicName as string
+dim sLocation as string
+
+	oStyleFamilies = ThisComponent.StyleFamilies
+	oParaStyles = oStyleFamilies.getByName( &quot;ParagraphStyles&quot; )
+
+	&apos;get all applied paragraphs
+	iCount = oParaStyles.GetCount
+	for i = 0 to iCount - 1
+		oStyle = oParaStyles.GetByIndex(i)
+		sStylename = oStyle.Name &apos;already converted in Enum
+		
+		
+		&apos;the style is used by the document
+		if oStyle.isInUse and (oStyle.Name &lt;&gt; &quot;&quot;) then
+			sStylename = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+			iNumType = GetNumberingTypeByStyleName(sStylename)
+			
+			&apos;check if this style is an ordered list
+			if iNumType = 4 then
+				sStyleString = GetStyleStringOrderedList(oStyle) 
+				WriteToStream(oStyleXML, sStyleString)
+			
+			&apos;check if this style is an unordered list
+			elseif iNumType = 6 then
+				sStyleString = GetStyleStringUnorderedList(oStyle) 
+				WriteToStream(oStyleXML, sStyleString)
+
+			&apos;check if this style is a marginale right style
+			elseif oStyle.Name = gsMarginaleRightStyle then
+				sStyleString = GetStyleStringMarginaleRight(oStyle)
+				WriteToStream(oStyleXML, sStyleString)
+							
+			&apos;check if this style is the standard style
+			elseif oStyle.Name = gsMarginaleRightStyle then
+				sStyleString = GetStyleStringMarginaleRight(oStyle)
+				WriteToStream(oStyleXML, sStyleString)
+
+			elseif oStyle.Name = &quot;Standard&quot; then
+				&apos;do nothing, this paragraph is handled in the page container
+				
+			&apos;this is a non special style
+			else				
+				sGraphicName = oStyle.ParaBackGraphicURL
+				if sGraphicName &lt;&gt; &quot;&quot; then
+					sGraphicName = ExportGraphicByURL(oStyle.ParaBackGraphicURL, sStyleImageFolder)
+					if sGraphicName = &quot;save_again&quot; then
+						oDocument = ThisComponent()
+						oDocument.Store
+						sGraphicName = ExportGraphicByURL(oStyle.ParaBackGraphicURL, sStyleImageFolder)
+					end if
+				end if				
+				sStyleString = GetStyleStringParagraph(oStyle, sGraphicName)
+				WriteToStream(oStyleXML, sStyleString)
+			end if	
+			
+			&apos;always create a ListLabel Class, if there&apos;s a negative FirstLineIndent
+			if oStyle.ParaFirstLineIndent &lt; 0 then
+				sStyleString = GetStyleStringListLabel(oStyle)
+				WriteToStream(oStyleXML, sStyleString)
+			end if			
+		end if			
+	next i
+	
+	&apos;step 2: set extra alignment styles for hard aligned paragraphs
+	sStyleString = GetStyleStringAlignment(&quot;center&quot;)
+	WriteToStream(oStyleXML, sStyleString)
+	sStyleString = GetStyleStringAlignment(&quot;right&quot;)
+	WriteToStream(oStyleXML, sStyleString)
+	sStyleString = GetStyleStringAlignment(&quot;justify&quot;)
+	WriteToStream(oStyleXML, sStyleString)
+end sub
+
+
+sub ExportCharacterStyles(oStyleXML as object, sStyleImageFolder as string)
+dim oDocument as object
+dim oStyleFamilies as object
+dim oCharStyles as object
+dim oStyle as object
+dim sStylename as string
+dim iCount as integer
+dim i as integer
+dim sStyleString as string
+dim iNumType as integer
+dim sGraphicName as string
+dim sLocation as string
+
+	oStyleFamilies = ThisComponent.StyleFamilies
+	oCharStyles = oStyleFamilies.getByName( &quot;CharacterStyles&quot; )
+
+	&apos;get all applied paragraphs
+	iCount = oCharStyles.GetCount
+	for i = 0 to iCount - 1
+		oStyle = oCharStyles.GetByIndex(i)
+		sStylename = oStyle.Name &apos;(already converted in Enum	)	
+		
+		&apos;the style is used by the document
+		if oStyle.isInUse and (oStyle.Name &lt;&gt; &quot;&quot;) then
+			&apos;xray oStyle
+			sStylename = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+			sStyleString = GetStyleStringCharacter(oStyle)
+			WriteToStream(oStyleXML, sStyleString)			
+		end if			
+	next i
+end sub
+
+
+sub ExportAccordionStyles(oStyleXML as object)
+dim sStyleString as string
+dim oStyleFamilies as object
+dim oStyles as object
+dim oStyle as object
+
+	oStyleFamilies = ThisComponent.StyleFamilies
+	oStyles = oStyleFamilies.getByName( &quot;FrameStyles&quot; )	
+	if oStyles.HasByName(&quot;ILIAS Accordion Element&quot;) then
+		oStyle = oStyles.GetByName(&quot;ILIAS Accordion Element&quot;)
+		sStyleString = GetStyleStringAccordionVertical(oStyle)
+		WriteToStream(oStyleXML, sStyleString)
+		sStyleString = GetStyleStringAccordionHorizontal(oStyle)
+		WriteToStream(oStyleXML, sStyleString)
+	end if
+
+	oStyleFamilies = ThisComponent.StyleFamilies
+	oStyles = oStyleFamilies.getByName( &quot;ParagraphStyles&quot; )
+	if oStyles.HasByName(&quot;ILIAS Accordion Caption&quot;) then
+		oStyle = oStyles.GetByName(&quot;ILIAS Accordion Caption&quot;)	
+		sStyleString = GetStyleStringAccordionTogglerVertical(oStyle)
+		WriteToStream(oStyleXML, sStyleString)
+		sStyleString = GetStyleStringAccordionTogglerHorizontal(oStyle)
+		WriteToStream(oStyleXML, sStyleString)
+	end if
+	
+	sStyleString = GetStyleStringAccordionTextVertical()
+	WriteToStream(oStyleXML, sStyleString)
+	sStyleString = GetStyleStringAccordionTextHorizontal()
+	WriteToStream(oStyleXML, sStyleString)
+end sub	
+
+
+sub ExportPageStyles(oStyleXML as object)
+dim sStyleString as string
+
+	sStyleString = GetStyleStringPageContainer()
+	WriteToStream(oStyleXML, sStyleString)
+end sub
+
+
+function GetStyleStringOrderedList(oStyle as object) as string
+dim sStyleString as string
+dim sStyleName as string
+dim oProps(8) as new com.sun.star.beans.PropertyValue
+dim i as integer
+
+	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;ol&quot;&quot; Type=&quot;&quot;list_o&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+
+	oProps(0).Name  = &quot;margin-top&quot;
+	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / 30)) &amp; &quot;px&quot;
+	oProps(1).Name  = &quot;margin-right&quot;
+	oProps(1).Value =  CStr(Int(oStyle.ParaRightMargin / 30)) &amp; &quot;px&quot;
+	oProps(2).Name  = &quot;margin-bottom&quot;
+	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / 30)) &amp; &quot;px&quot;
+	oProps(3).Name  = &quot;margin-left&quot;
+	oProps(3).Value =  CStr(Int(oStyle.ParaLeftMargin / 30)) &amp; &quot;px&quot;
+	oProps(4).Name  = &quot;padding-top&quot;
+	oProps(4).Value =  &quot;0px&quot;
+	oProps(5).Name  = &quot;padding-right&quot;
+	oProps(5).Value =  &quot;0px&quot;
+	oProps(6).Name  = &quot;padding-bottom&quot;
+	oProps(6).Value =  &quot;0px&quot;
+	oProps(7).Name  = &quot;padding-left&quot;
+	oProps(7).Value =  &quot;20px&quot;
+	oProps(8).Name  = &quot;font-size&quot;
+	oProps(8).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
+	&apos;oProps(8).Name  = &quot;text-indent&quot;
+	&apos;oProps(8).Value = CStr(Int(oStyle.ParaFirstLineIndent / 30)) &amp; &quot;px&quot;
+
+	for i = 0 to ubound(oProps)
+		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+	next i	
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	
+	GetStyleStringOrderedList = sStyleString
+end function
+
+
+function GetStyleStringUnorderedList(oStyle as object) as string
+dim sStyleString as string
+dim sStyleName as string
+dim oProps(7) as new com.sun.star.beans.PropertyValue
+dim i as integer
+dim oNumStyle as object
+dim oNumRules as object
+dim iNumLevel as integer
+dim iLeftMargin as integer
+dim iFirstLineOffset as integer
+
+
+	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;ul&quot;&quot; Type=&quot;&quot;list_u&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+
+	oProps(0).Name  = &quot;margin-top&quot;
+	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / 30)) &amp; &quot;px&quot;
+	oProps(1).Name  = &quot;margin-right&quot;
+	oProps(1).Value =  CStr(Int(oStyle.ParaRightMargin / 30)) &amp; &quot;px&quot;
+	oProps(2).Name  = &quot;margin-bottom&quot;
+	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / 30)) &amp; &quot;px&quot;
+	oProps(3).Name  = &quot;padding-top&quot;
+	oProps(3).Value =  &quot;0px&quot;
+	oProps(4).Name  = &quot;padding-right&quot;
+	oProps(4).Value =  &quot;0px&quot;
+	oProps(5).Name  = &quot;padding-bottom&quot;
+	oProps(5).Value =  &quot;0px&quot;
+	oProps(6).Name  = &quot;padding-left&quot;
+	oProps(6).Value =  &quot;20px&quot;
+	oProps(7).Name  = &quot;font-size&quot;
+	oProps(7).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
+
+
+	&apos;Get the NumberingLevel of the first fount paragraph with this Stylename
+	iNumLevel = GetNumberingLevelByStyleName(sStyleName)
+	if (iNumLevel &gt;= 0) and (oStyle.NumberingStyleName &lt;&gt; &quot;&quot;) then
+		&apos;Get the left margin from the current level of the joined Numberingstyle  
+		oNumStyle = GetNumberingStyleByName(oStyle.NumberingStyleName)
+		oNumRules = oNumStyle.NumberingRules
+		&apos;Set the left margin
+		iLeftMargin = GetNumRulesProperty(oNumRules, &quot;IndentAt&quot;, iNumLevel)
+		iFirstLineOffset = GetNumRulesProperty(oNumRules, &quot;FirstLineIndent&quot;, iNumLevel)
+		redim preserve oProps(8)
+		oProps(8).Name  = &quot;margin-left&quot;
+		oProps(8).Value =  CStr(Int(iLeftMargin / 30) + Int(iFirstLineOffset / 30)) &amp; &quot;px&quot;
+	end if	
+
+	&apos;if the left margin of this list-style is set manualy
+	&apos;if oStyle.ParaLeftMargin &gt; 0 then
+	&apos;	&apos;only set left margin, if this is the first level
+	&apos;	&apos;if oPara.NumberingLevel = 1 then
+	&apos;		redim preserve oProps(7)
+	&apos;		oProps(7).Name  = &quot;margin-left&quot;
+	&apos;		oProps(7).Value =  CStr(Int(oStyle.ParaLeftMargin / 30) + Int(oStyle.ParaFirstLineIndent / 30)) &amp; &quot;px&quot;
+	&apos;	&apos;end if	
+	&apos;end if	
+
+
+	for i = 0 to ubound(oProps)
+		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+	next i	
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	
+	GetStyleStringUnorderedList = sStyleString
+end function
+
+
+function GetStyleStringMarginaleLeft(oStyle as object) as string
+dim sStyleString as string
+dim sStyleName as string
+dim oProps(8) as new com.sun.star.beans.PropertyValue
+dim i as integer
+
+	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;text_block&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+
+	oProps(0).Name  = &quot;margin-top&quot;
+	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / 30)) &amp; &quot;px&quot;
+	oProps(1).Name  = &quot;margin-right&quot;
+	oProps(1).Value =  CStr(Int(oStyle.ParaRightMargin / 30)) &amp; &quot;px&quot;
+	oProps(2).Name  = &quot;margin-bottom&quot;
+	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / 30)) &amp; &quot;px&quot;
+	oProps(3).Name  = &quot;margin-left&quot;
+	oProps(3).Value =  CStr((giMarginaleLeftWidth * -1) + 5) &amp; &quot;px&quot;
+	oProps(4).Name  = &quot;font-size&quot;
+	oProps(4).Value =  &quot;75%&quot;
+	oProps(5).Name  = &quot;position&quot;
+	oProps(5).Value =  &quot;absolute&quot;
+	oProps(6).Name  = &quot;width&quot;
+	oProps(6).Value =  CStr(giMarginaleLeftWidth - 5) &amp; &quot;px&quot;
+	oProps(7).Name  = &quot;font-weight&quot;
+	if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
+		oProps(7).Value = &quot;bold&quot;
+	else
+		oProps(7).Value = &quot;normal&quot;
+	end if	 	
+ 	oProps(8).Name  = &quot;color&quot;
+	if oStyle.CharColor = -1 then
+		oProps(8).Value = &quot;&quot;
+	else	
+		oProps(8).Value = GetHexColorString(oStyle.CharColor)
+	end if 
+	
+	for i = 0 to ubound(oProps)
+		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+	next i		
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	
+	GetStyleStringMarginaleLeft = sStyleString
+end function
+
+
+function GetStyleStringMarginaleRight(oStyle as object) as string
+dim sStyleString as string
+dim sStyleName as string
+dim oProps(10) as new com.sun.star.beans.PropertyValue
+dim i as integer
+
+	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;text_block&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+
+	oProps(0).Name  = &quot;margin-top&quot;
+	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / 30)) &amp; &quot;px&quot;
+	oProps(1).Name  = &quot;margin-right&quot;
+	oProps(1).Value =  &quot;30px&quot;
+	oProps(2).Name  = &quot;margin-bottom&quot;
+	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / 30)) &amp; &quot;px&quot;
+	oProps(3).Name  = &quot;margin-left&quot;
+	oProps(3).Value = &quot;0px&quot;
+	oProps(4).Name  = &quot;font-size&quot;
+	oProps(4).Value =  &quot;75%&quot;
+	oProps(5).Name  = &quot;position&quot;
+	oProps(5).Value =  &quot;absolute&quot;
+	oProps(6).Name  = &quot;width&quot;
+	oProps(6).Value =  CStr(giMarginaleRightWidth - 30) &amp; &quot;px&quot;
+	oProps(7).Name  = &quot;right&quot;
+	oProps(7).Value = &quot;10px&quot;
+	oProps(8).Name  = &quot;padding&quot;
+	oProps(8).Value = &quot;0px&quot;
+	oProps(9).Name  = &quot;font-weight&quot;
+	if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
+		oProps(9).Value = &quot;bold&quot;
+	else
+		oProps(9).Value = &quot;normal&quot;
+	end if	 	
+ 	oProps(10).Name  = &quot;color&quot;
+	if oStyle.CharColor = -1 then
+		oProps(10).Value = &quot;&quot;
+	else	
+		oProps(10).Value = GetHexColorString(oStyle.CharColor)
+	end if 
+	
+	for i = 0 to ubound(oProps)
+		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+	next i		
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	
+	GetStyleStringMarginaleRight = sStyleString
+end function
+
+
+&apos;******************************************************************************************
+&apos; Building the export strings
+&apos;******************************************************************************************
+
+function GetStyleStringSection(oStyle as object, sGraphicName as string) as string
+dim sStyleString as string
+dim sStyleName as string
+dim oProps(15) as new com.sun.star.beans.PropertyValue
+dim i as integer
+dim iCount as integer
+
+	&apos;xray oStyle
+	&apos;oPara = GetParaByStyleName(sStyleName)
+	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+	if sStylename = &quot;ILIAS_FileList&quot; then
+		sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;flist_cont&quot;&quot; Class=&quot;&quot;FileListContainer&quot;&quot;&gt;&quot;
+
+	elseif left(sStylename, 6) = &quot;ILIAS_&quot; then
+		sStylename = mid(sStylename, 7)
+		sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;section&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+	else
+		sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;section&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+	end if
+	
+	oProps(0).Name  = &quot;margin-top&quot;
+	oProps(0).Value =  CStr(Int(oStyle.TopMargin / 30)) &amp; &quot;px&quot;
+	oProps(1).Name  = &quot;margin-right&quot;
+	oProps(1).Value =  CStr(Int(oStyle.RightMargin / 30)) &amp; &quot;px&quot;
+	oProps(2).Name  = &quot;margin-bottom&quot;
+	oProps(2).Value =  CStr(Int(oStyle.BottomMargin / 30)) &amp; &quot;px&quot;
+	oProps(3).Name  = &quot;margin-left&quot;
+	oProps(3).Value =  CStr(Int(oStyle.LeftMargin / 30)) &amp; &quot;px&quot;
+	oProps(4).Name  = &quot;position&quot;
+	oProps(4).Value =  &quot;relative&quot;	
+	oProps(5).Name  = &quot;color&quot;
+	oProps(5).Value =  &quot;#000000&quot;
+	
+	oProps(6).Name  = &quot;background-color&quot;
+	oProps(6).Value =  GetHexColorString(oStyle.BackColorRGB)
+	oProps(7).Name  = &quot;border-top&quot;
+	oProps(7).Value = GetCSSBorderString(oStyle.TopBorder)
+	oProps(8).Name  = &quot;border-right&quot;
+	oProps(8).Value = GetCSSBorderString(oStyle.RightBorder)
+	oProps(9).Name  = &quot;border-bottom&quot;
+	oProps(9).Value = GetCSSBorderString(oStyle.BottomBorder)
+	oProps(10).Name  = &quot;border-left&quot;
+	oProps(10).Value = GetCSSBorderString(oStyle.LeftBorder)
+	oProps(11).Name  = &quot;padding-top&quot;
+	oProps(11).Value = CStr(Int(oStyle.TopBorderDistance / 30)) &amp; &quot;px&quot;
+	oProps(12).Name  = &quot;padding-right&quot;
+	oProps(12).Value = CStr(Int(oStyle.RightBorderDistance / 30)) &amp; &quot;px&quot;
+	oProps(13).Name  = &quot;padding-bottom&quot;
+	oProps(13).Value = CStr(Int(oStyle.BottomBorderDistance / 30)) &amp; &quot;px&quot;
+	oProps(14).Name  = &quot;padding-left&quot;
+	oProps(14).Value = CStr(Int(oStyle.LeftBorderDistance / 30)) &amp; &quot;px&quot;
+		
+	if sGraphicName &lt;&gt; &quot;&quot; then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount + 2)
+		oProps(iCount).Name  = &quot;background-image&quot;
+		oProps(iCount).Value = sGraphicname
+		iCount = iCount + 1
+		oProps(iCount).Name  = &quot;background-repeat&quot;
+		oProps(iCount).Value = &quot;no-repeat&quot;
+		iCount = iCount + 1
+		oProps(iCount).Name  = &quot;background-position&quot;
+		oProps(iCount).Value = &quot;left top&quot;
+	end if
+	 
+	for i = 0 to ubound(oProps)
+		sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+	next i	
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+		
+	GetStyleStringSection = sStyleString
+end function
+
+
+function GetStyleStringParagraph(oStyle as object, sGraphicName as string) as string
+dim oControl as object
+dim sStyleString as string
+dim sStyleName as string
+dim oPara as object
+dim oProps(2) as new com.sun.star.beans.PropertyValue
+dim oProp as new com.sun.star.beans.PropertyValue
+dim i as integer
+dim iCount as integer
+
+	&apos;xray oStyle
+	&apos;oPara = GetParaByStyleName(sStyleName)
+	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+	
+	if sStyleName = gsPageTitleStyle then
+&apos;	if Left(sStylename, 9) = &quot;Heading&quot; then
+		sStyleString = &quot;&lt;Style Tag=&quot;&quot;h1&quot;&quot; Type=&quot;&quot;page_title&quot;&quot; Class=&quot;&quot;PageTitle&quot;&quot;&gt;&quot;
+		oProps(0).Name  = &quot;margin-top&quot;
+		oProps(0).Value = &quot;0&quot;
+		oProps(1).Name  = &quot;margin-left&quot;
+		oProps(1).Value =  &quot;0&quot;
+		
+	elseif sStylename = &quot;ILIAS_FileList_Caption&quot; then
+		sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;flist_head&quot;&quot; Class=&quot;&quot;FileListHeading&quot;&quot;&gt;&quot;
+		oProps(0).Name  = &quot;margin-top&quot;
+		oProps(0).Value = CStr(Int(oStyle.ParaTopMargin / 30)) &amp; &quot;px&quot;
+		oProps(1).Name  = &quot;margin-left&quot;
+		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / 30)) &amp; &quot;px&quot;
+		
+	elseif sStylename = &quot;ILIAS_FileList_Element&quot; then
+		sStyleString = &quot;&lt;Style Tag=&quot;&quot;li&quot;&quot; Type=&quot;&quot;flist_li&quot;&quot; Class=&quot;&quot;FileListItem&quot;&quot;&gt;&quot;
+		oProps(0).Name  = &quot;margin-top&quot;
+		oProps(0).Value = CStr(Int(oStyle.ParaTopMargin / 30)) &amp; &quot;px&quot;
+		oProps(1).Name  = &quot;margin-left&quot;
+		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / 30)) &amp; &quot;px&quot;
+		
+	else
+		sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;text_block&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+		oProps(0).Name  = &quot;margin-top&quot;
+		oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / 30)) &amp; &quot;px&quot;
+		oProps(1).Name  = &quot;margin-left&quot;
+		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / 30)) &amp; &quot;px&quot;
+	end if
+	
+	oProps(2).Name  = &quot;position&quot;
+	oProps(2).Value =  &quot;relative&quot;	
+	
+	if oStyle.GetPropertyState(&quot;ParaRightMargin&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;margin-right&quot;
+		oProps(iCount).Value = CStr(Int(oStyle.ParaRightMargin / 30)) &amp; &quot;px&quot;
+	end if
+		
+	if oStyle.GetPropertyState(&quot;ParaBottomMargin&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;margin-bottom&quot;
+		oProps(iCount).Value = CStr(Int(oStyle.ParaBottomMargin / 30)) &amp; &quot;px&quot;
+	end if
+		
+	if oStyle.GetPropertyState(&quot;CharColor&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;color&quot;
+		oProps(iCount).Value =  GetHexColorString(oStyle.CharColor)
+	end if
+		
+	if oStyle.GetPropertyState(&quot;CharHeight&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;font-size&quot;
+		oProps(iCount).Value = CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
+	end if
+
+	if oStyle.GetPropertyState(&quot;CharUnderline&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;text-decoration&quot;
+		oProps(iCount).Value = GetCssUnderlineString(oStyle.CharUnderline)
+	end if
+
+	if oStyle.GetPropertyState(&quot;ParaAdjust&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;text-align&quot;
+		oProps(iCount).Value = GetCssAlignString(oStyle.ParaAdjust)
+	end if
+
+	if oStyle.GetPropertyState(&quot;ParaBackColor&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;background-color&quot;
+		oProps(iCount).Value = GetHexColorString(oStyle.ParaBackColor)
+	end if
+
+	if oStyle.GetPropertyState(&quot;TopBorder&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;border-top&quot;
+		oProps(iCount).Value = GetCSSBorderString(oStyle.TopBorder)
+	end if
+
+	if oStyle.GetPropertyState(&quot;RightBorder&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;border-right&quot;
+		oProps(iCount).Value = GetCSSBorderString(oStyle.RightBorder)
+	end if
+
+	if oStyle.GetPropertyState(&quot;BottomBorder&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;border-bottom&quot;
+		oProps(iCount).Value = GetCSSBorderString(oStyle.BottomBorder)
+	end if
+
+	if oStyle.GetPropertyState(&quot;LeftBorder&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;border-left&quot;
+		oProps(iCount).Value = GetCSSBorderString(oStyle.LeftBorder)
+	end if
+
+	if oStyle.GetPropertyState(&quot;TopBorderDistance&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;padding-top&quot;
+		oProps(iCount).Value = CStr(Int(oStyle.TopBorderDistance / 30)) &amp; &quot;px&quot;
+	end if
+
+	if oStyle.GetPropertyState(&quot;RightBorderDistance&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;padding-right&quot;
+		oProps(iCount).Value = CStr(Int(oStyle.RightBorderDistance / 30)) &amp; &quot;px&quot;
+	end if
+
+	if oStyle.GetPropertyState(&quot;BottomBorderDistance&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;padding-bottom&quot;
+		oProps(iCount).Value = CStr(Int(oStyle.BottomBorderDistance / 30)) &amp; &quot;px&quot;
+	end if
+
+	if oStyle.GetPropertyState(&quot;LeftBorderDistance&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;padding-left&quot;
+		oProps(iCount).Value = CStr(Int(oStyle.LeftBorderDistance / 30)) &amp; &quot;px&quot;
+	end if
+
+	if oStyle.GetPropertyState(&quot;CharWeight&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;font-weight&quot;
+		if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
+			oProps(iCount).Value = &quot;bold&quot;
+		else
+			oProps(iCount).Value = &quot;normal&quot;
+		end if	 	
+	end if
+
+	SetMoreParaStyleProperties(oStyle, oProps(), sGraphicName)	
+	 
+	for i = 0 to ubound(oProps)
+		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+	next i	
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+		
+	GetStyleStringParagraph = sStyleString
+end function
+
+
+sub SetMoreParaStyleProperties(oStyle as object, oProps(), sGraphicName as string)
+dim iCount as integer
+dim oProp as new com.sun.star.beans.PropertyValue
+
+	if oStyle.CharShadowed then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;text-shadow&quot;
+		oProp.Value = &quot;#b0b0b0 2px 2px 3px&quot;
+		oProps(iCount) = oProp
+	end if
+	
+	if oStyle.CharPosture = com.sun.star.awt.FontSlant.ITALIC then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;font-style&quot;
+		oProp.Value = &quot;italic&quot;
+		oProps(iCount) = oProp
+	end if
+	 
+	if oStyle.CharFontPitch = com.sun.star.awt.FontPitch.FIXED then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;font-family&quot;
+		oProp.Value = oStyle.CharFontname &amp; &quot;, monospace&quot;
+		oProps(iCount) = oProp
+
+	elseif oStyle.CharFontFamily = com.sun.star.awt.FontFamily.ROMAN then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;font-family&quot;
+		oProp.Value = oStyle.CharFontname &amp; &quot;, Serif&quot;
+		oProps(iCount) = oProp
+
+	else	
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;font-family&quot;
+		oProp.Value = oStyle.CharFontname &amp; &quot;, Sans-serif&quot;
+		oProps(iCount) = oProp
+	end if
+	 
+	if oStyle.CharFlash then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;text-decoration&quot;
+		oProp.Value = &quot;blink&quot;
+		oProps(iCount) = oProp
+	end if
+	 
+	if oStyle.CharUnderline = com.sun.star.awt.FontUnderline.SINGLE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;text-decoration&quot;
+		oProp.Value = &quot;underline&quot;
+		oProps(iCount) = oProp
+	elseif oStyle.CharStrikeout = com.sun.star.awt.FontStrikeout.SINGLE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;text-decoration&quot;
+		oProp.Value = &quot;line-through&quot;
+		oProps(iCount) = oProp
+	end if
+	
+	if oStyle.CharCaseMap = com.sun.star.style.CaseMap.UPPERCASE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;text-transform&quot;
+		oProp.Value = &quot;uppercase&quot;
+		oProps(iCount) = oProp
+	elseif oStyle.CharCaseMap = com.sun.star.style.CaseMap.LOWERCASE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;text-transform&quot;
+		oProp.Value = &quot;lowercase&quot;
+		oProps(iCount) = oProp
+	elseif oStyle.CharCaseMap = com.sun.star.style.CaseMap.SMALLCAPS then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;font-variant&quot;
+		oProp.Value = &quot;small-caps&quot;
+		oProps(iCount) = oProp
+	end if
+
+	if oStyle.CharKerning &gt; 0 then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;letter-spacing&quot;
+		oProp.Value = CStr(Int(oStyle.CharKerning / 30)) &amp; &quot;pt&quot;
+		oProps(iCount) = oProp
+	end if
+	
+	if sGraphicName &lt;&gt; &quot;&quot; then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount + 2)
+		oProp.Name  = &quot;background-image&quot;
+		oProp.Value = sGraphicname
+		oProps(iCount) = oProp
+		iCount = iCount + 1
+		oProp.Name  = &quot;background-repeat&quot;
+		oProp.Value = &quot;no-repeat&quot;
+		oProps(iCount) = oProp
+		iCount = iCount + 1
+		oProp.Name  = &quot;background-position&quot;
+		oProp.Value = &quot;left top&quot;
+		oProps(iCount) = oProp
+	end if
+end sub
+
+
+function GetStyleStringCharacter(oStyle as object) as string
+dim sStyleString as string
+dim sStyleName as string
+dim oPara as object
+dim oProps(0) as new com.sun.star.beans.PropertyValue
+dim i as integer
+dim iCount as integer
+
+	&apos;xray oStyle
+	&apos;oPara = GetParaByStyleName(sStyleName)
+	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;span&quot;&quot; Type=&quot;&quot;text_inline&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+
+	if oStyle.GetPropertyState(&quot;CharColor&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name = &quot;color&quot;
+		oProps(iCount).Value = GetHexColorString(oStyle.CharColor)
+	end if
+
+	if oStyle.GetPropertyState(&quot;CharHeight&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name = &quot;font-size&quot;
+		oProps(iCount).Value = CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
+	end if
+
+	if oStyle.GetPropertyState(&quot;CharUnderline&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name = &quot;text-decoration&quot;
+		oProps(iCount).Value = GetCssUnderlineString(oStyle.CharUnderline)
+	end if
+
+	if oStyle.GetPropertyState(&quot;CharBackColor&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;background-color&quot;
+		oProps(iCount).Value  = GetHexColorString(oStyle.CharBackColor)
+	end if
+
+	if oStyle.GetPropertyState(&quot;CharWeight&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;font-weight&quot;
+		if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
+			oProps(iCount).Value = &quot;bold&quot;
+		else
+			oProps(iCount).Value = &quot;normal&quot;
+		end if	 	
+	end if	
+
+	if oStyle.GetPropertyState(&quot;CharShadowed&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		if oStyle.CharShadowed then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;text-shadow&quot;
+			oProps(iCount).Value = &quot;#b0b0b0 2px 2px 3px&quot;
+		end if
+	end if	
+	
+	if oStyle.GetPropertyState(&quot;CharPosture&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		if oStyle.CharPosture = com.sun.star.awt.FontSlant.ITALIC then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;font-style&quot;
+			oProps(iCount).Value = &quot;italic&quot;
+		end if
+	end if	
+	 
+	if oStyle.GetPropertyState(&quot;CharFontName&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		if oStyle.CharFontPitch = com.sun.star.awt.FontPitch.FIXED then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;font-family&quot;
+			oProps(iCount).Value = oStyle.CharFontname &amp; &quot;, monospace&quot;
+			
+		elseif oStyle.CharFontFamily = com.sun.star.awt.FontFamily.ROMAN then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;font-family&quot;
+			oProps(iCount).Value = oStyle.CharFontname &amp; &quot;, Serif&quot;
+					
+		else	
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;font-family&quot;
+			oProps(iCount).Value = oStyle.CharFontname &amp; &quot;, Sans-serif&quot;
+		end if
+	end if	
+	 
+	if oStyle.GetPropertyState(&quot;CharFlash&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		if oStyle.CharFlash then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;text-decoration&quot;
+			oProps(iCount).Value = &quot;blink&quot;
+		end if
+	end if	
+	 
+	if oStyle.GetPropertyState(&quot;CharUnderline&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		if oStyle.CharUnderline = com.sun.star.awt.FontUnderline.SINGLE then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;text-decoration&quot;
+			oProps(iCount).Value = &quot;underline&quot;
+		elseif oStyle.CharStrikeout = com.sun.star.awt.FontStrikeout.SINGLE then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;text-decoration&quot;
+			oProps(iCount).Value = &quot;line-through&quot;
+		end if
+	end if	
+	
+	if oStyle.GetPropertyState(&quot;CharCaseMap&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		if oStyle.CharCaseMap = com.sun.star.style.CaseMap.UPPERCASE then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;text-transform&quot;
+			oProps(iCount).Value = &quot;uppercase&quot;
+		elseif oStyle.CharCaseMap = com.sun.star.style.CaseMap.LOWERCASE then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;text-transform&quot;
+			oProps(iCount).Value = &quot;lowercase&quot;
+		elseif oStyle.CharCaseMap = com.sun.star.style.CaseMap.SMALLCAPS then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;font-variant&quot;
+			oProps(iCount).Value = &quot;small-caps&quot;
+		end if
+	end if	
+
+	if oStyle.GetPropertyState(&quot;CharKerning&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		if oStyle.CharKerning &gt; 0 then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;letter-spacing&quot;
+			oProps(iCount).Value = CStr(Int(oStyle.CharKerning / 30)) &amp; &quot;pt&quot;
+		end if
+	end if	
+		 
+	for i = 1 to ubound(oProps)
+		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+	next i	
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+		
+	GetStyleStringCharacter = sStyleString
+end function
+
+
+function GetStyleStringAlignment(sAlignment as string) as string
+dim sStyleName as string
+dim sStyleString as string
+	sStyleName = &quot;align&quot; &amp; sAlignment
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;text_block&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+	sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot; text-align&quot;&quot; Value=&quot;&quot;&quot; &amp; sAlignment &amp; &quot;&quot;&quot;/&gt;&quot;
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	GetStyleStringAlignment = sStyleString
+end function
+
+
+function GetStyleStringPageContainer() as string
+dim oStyleFamilies as object
+dim oStyles as object
+dim oStyle as object
+dim sStyleString as string
+dim iMarginaleLeft as integer
+dim iMarginaleRight as integer
+dim sStyleName as string
+dim oPara as object
+dim oProps(15) as new com.sun.star.beans.PropertyValue
+dim i as integer
+
+	&apos;first set default values
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;table&quot;&quot; Type=&quot;&quot;page_cont&quot;&quot; Class=&quot;&quot;PageContainer&quot;&quot;&gt;&quot;
+	if giMarginaleLeftWidth = 0 then 
+		iMarginaleLeft = 20
+	else	
+		iMarginaleLeft = giMarginaleLeftWidth
+	end if	
+	if giMarginaleRightWidth = 0 then 
+		iMarginaleRight = 20
+	else
+		iMarginaleRight = giMarginaleRightWidth
+	end if	
+	oProps(0).Name  = &quot;margin&quot;
+	oProps(0).Value = &quot;0px&quot;
+	oProps(1).Name  = &quot;width&quot;
+	oProps(1).Value =  &quot;100%&quot;	
+	oProps(2).Name  = &quot;padding-top&quot;
+	oProps(2).Value = &quot;20px&quot;
+	oProps(3).Name  = &quot;padding-right&quot;
+	oProps(3).Value = CStr(iMarginaleRight) &amp; &quot;px&quot;
+	oProps(4).Name  = &quot;padding-bottom&quot;
+	oProps(4).Value = &quot;20px&quot;
+	oProps(5).Name  = &quot;padding-left&quot;
+	oProps(5).Value = CStr(iMarginaleLeft) &amp; &quot;px&quot;
+	oProps(6).Name  = &quot;position&quot;
+	oProps(6).Value = &quot;relative&quot;
+	oProps(7).Name  = &quot;border-width&quot;
+	oProps(7).Value = &quot;1px&quot;
+	oProps(8).Name  = &quot;border-color&quot;
+	oProps(8).Value = &quot;#9EADBA&quot;
+	oProps(9).Name  = &quot;border-style&quot;
+	oProps(9).Value = &quot;solid&quot;
+		
+	&apos;then get styles from the standard page style
+	oStyleFamilies = ThisComponent.StyleFamilies
+	oStyles = oStyleFamilies.getByName( &quot;PageStyles&quot; )
+	oStyle = oStyles.GetByName(&quot;Standard&quot;)	
+	
+	oProps(10).Name  = &quot;background-color&quot;
+	if oStyle.GetPropertyState(&quot;BackColor&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		oProps(10).Value =  GetHexColorString(oStyle.BackColor)
+	else
+		oProps(10).Value = &quot;#FFFFFF&quot;
+	end if	
+	&apos;then get styles from the standard paragraph style
+	oStyles = oStyleFamilies.getByName( &quot;ParagraphStyles&quot; )
+	oStyle = oStyles.GetByName(&quot;Standard&quot;)	
+	oProps(11).Name  = &quot;color&quot;
+	oProps(11).Value =  GetHexColorString(oStyle.CharColor)
+	oProps(12).Name  = &quot;font-size&quot;
+	oProps(12).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
+	oProps(13).Name  = &quot;text-decoration&quot;
+	oProps(13).Value =  GetCssUnderlineString(oStyle.CharUnderline)
+	oProps(14).Name  = &quot;text-align&quot;
+	oProps(14).Value =  GetCssAlignString(oStyle.ParaAdjust)
+	oProps(15).Name  = &quot;font-weight&quot;
+	if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
+		oProps(15).Value = &quot;bold&quot;
+	else
+		oProps(15).Value = &quot;normal&quot;
+	end if	 	
+
+	SetMoreParaStyleProperties(oStyle, oProps(), &quot;&quot;)		 
+
+	for i = 0 to ubound(oProps)
+		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+	next i	
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+		
+	GetStyleStringPageContainer = sStyleString
+end function
+
+
+function GetStyleStringListLabel(oStyle as object) as string
+dim sStyleString as string
+dim sStyleName as string
+dim iLeft as integer
+
+	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+	iLeft = Int((oStyle.ParaFirstLineIndent) / 30)
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;span&quot;&quot; Type=&quot;&quot;text_inline&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;Label&quot;&quot;&gt;&quot;
+	sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;position&quot;&quot; Value=&quot;&quot;absolute&quot;&quot;/&gt;&quot;
+	sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;left&quot;&quot; Value=&quot;&quot;&quot; &amp; CStr(iLeft) &amp; &quot;px&quot;&quot;/&gt;&quot;
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	
+	GetStyleStringListLabel = sStyleString
+end function
+
+
+function GetStyleStringAccordionVertical(oStyle as object) as string
+dim sStyleString as string
+dim sStyleName as string
+dim oProps(8) as new com.sun.star.beans.PropertyValue
+dim i as integer
+
+	sStyleName = &quot;VAccordICntr&quot;
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;va_icntr&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+
+	oProps(0).Name  = &quot;margin-top&quot;
+	oProps(0).Value =  CStr(Int(oStyle.TopMargin / 30)) &amp; &quot;px&quot;
+	oProps(1).Name  = &quot;margin-right&quot;
+	oProps(1).Value =  CStr(Int(oStyle.RightMargin / 30)) &amp; &quot;px&quot;
+	oProps(2).Name  = &quot;margin-bottom&quot;
+	oProps(2).Value =  CStr(Int(oStyle.BottomMargin / 30)) &amp; &quot;px&quot;
+	oProps(3).Name  = &quot;margin-left&quot;
+	oProps(3).Value =  CStr(Int(oStyle.LeftMargin / 30)) &amp; &quot;px&quot;
+	oProps(4).Name  = &quot;border-top&quot;
+	oProps(4).Value = GetCSSBorderString(oStyle.TopBorder)
+	oProps(5).Name  = &quot;border-right&quot;
+	oProps(5).Value = GetCSSBorderString(oStyle.RightBorder)
+	oProps(6).Name  = &quot;border-bottom&quot;
+	oProps(6).Value = GetCSSBorderString(oStyle.BottomBorder)
+	oProps(7).Name  = &quot;border-left&quot;
+	oProps(7).Value = GetCSSBorderString(oStyle.LeftBorder)
+	oProps(8).Name  = &quot;background-color&quot;
+	oProps(8).Value = GetHexColorString(oStyle.BackColor)
+
+	for i = 0 to ubound(oProps)
+		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+	next i	
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	
+	GetStyleStringAccordionVertical = sStyleString
+end function
+
+
+function GetStyleStringAccordionHorizontal(oStyle as object) as string
+dim sStyleString as string
+dim sStyleName as string
+dim oProps(8) as new com.sun.star.beans.PropertyValue
+dim i as integer
+
+	sStyleName = &quot;HAccordICntr&quot;
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;ha_icntr&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+
+	oProps(0).Name  = &quot;margin-top&quot;
+	oProps(0).Value =  CStr(Int(oStyle.TopMargin / 30)) &amp; &quot;px&quot;
+	oProps(1).Name  = &quot;margin-right&quot;
+	oProps(1).Value =  CStr(Int(oStyle.RightMargin/30 + 5)) &amp; &quot;px&quot;
+	oProps(2).Name  = &quot;margin-bottom&quot;
+	oProps(2).Value =  CStr(Int(oStyle.BottomMargin / 30)) &amp; &quot;px&quot;
+	oProps(3).Name  = &quot;margin-left&quot;
+	oProps(3).Value =  CStr(Int(oStyle.LeftMargin / 30)) &amp; &quot;px&quot;
+	oProps(4).Name  = &quot;border-top&quot;
+	oProps(4).Value = GetCSSBorderString(oStyle.TopBorder)
+	oProps(5).Name  = &quot;border-right&quot;
+	oProps(5).Value = GetCSSBorderString(oStyle.RightBorder)
+	oProps(6).Name  = &quot;border-bottom&quot;
+	oProps(6).Value = GetCSSBorderString(oStyle.BottomBorder)
+	oProps(7).Name  = &quot;border-left&quot;
+	oProps(7).Value = GetCSSBorderString(oStyle.LeftBorder)
+	oProps(8).Name  = &quot;background-color&quot;
+	oProps(8).Value = GetHexColorString(oStyle.BackColor)
+
+	for i = 0 to ubound(oProps)
+		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+	next i	
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	
+	GetStyleStringAccordionHorizontal = sStyleString
+end function
+
+
+function GetStyleStringAccordionTogglerVertical(oStyle as object) as string
+dim sStyleString as string
+dim sStyleName as string
+dim oProps(7) as new com.sun.star.beans.PropertyValue
+dim i as integer
+
+	sStyleName = &quot;VAccordIHead&quot;
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;va_ihead&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+
+	oProps(0).Name  = &quot;color&quot;
+	oProps(0).Value =  GetHexColorString(oStyle.CharColor)
+	oProps(1).Name  = &quot;font-size&quot;
+	oProps(1).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
+	oProps(2).Name  = &quot;text-decoration&quot;
+	oProps(2).Value =  GetCssUnderlineString(oStyle.CharUnderline)
+	oProps(3).Name  = &quot;background-color&quot;
+	oProps(3).Value =  GetHexColorString(oStyle.ParaBackColor)
+	oProps(4).Name  = &quot;cursor&quot;
+	oProps(4).Value =  &quot;pointer&quot;
+	oProps(5).Name  = &quot;padding&quot;
+	oProps(5).Value =  &quot;3px 8px&quot;
+	oProps(6).Name  = &quot;text-align&quot;
+	oProps(6).Value =  &quot;left&quot;
+	oProps(7).Name  = &quot;font-weight&quot;
+	if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
+		oProps(7).Value = &quot;bold&quot;
+	else
+		oProps(7).Value = &quot;normal&quot;
+	end if	 	
+
+	SetMoreParaStyleProperties(oStyle, oProps(), &quot;&quot;)	
+
+	for i = 0 to ubound(oProps)
+		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+	next i	
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	
+	GetStyleStringAccordionTogglerVertical = sStyleString
+end function
+
+
+function GetStyleStringAccordionTogglerHorizontal(oStyle as object) as string
+dim sStyleString as string
+dim sStyleName as string
+dim oProps(7) as new com.sun.star.beans.PropertyValue
+dim i as integer
+
+	sStyleName = &quot;HAccordIHead&quot;
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;ha_ihead&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+
+	oProps(0).Name  = &quot;color&quot;
+	oProps(0).Value =  GetHexColorString(oStyle.CharColor)
+	oProps(1).Name  = &quot;font-size&quot;
+	oProps(1).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
+	oProps(2).Name  = &quot;text-decoration&quot;
+	oProps(2).Value =  GetCssUnderlineString(oStyle.CharUnderline)
+	oProps(3).Name  = &quot;background-color&quot;
+	oProps(3).Value =  GetHexColorString(oStyle.ParaBackColor)
+	oProps(4).Name  = &quot;cursor&quot;
+	oProps(4).Value =  &quot;pointer&quot;
+	oProps(5).Name  = &quot;padding&quot;
+	oProps(5).Value =  &quot;3px 8px&quot;
+	oProps(6).Name  = &quot;text-align&quot;
+	oProps(6).Value =  &quot;left&quot;
+	oProps(7).Name  = &quot;font-weight&quot;
+	if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
+		oProps(7).Value = &quot;bold&quot;
+	else
+		oProps(7).Value = &quot;normal&quot;
+	end if	 	
+
+	SetMoreParaStyleProperties(oStyle, oProps(), &quot;&quot;)	
+
+	for i = 0 to ubound(oProps)
+		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+	next i	
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	
+	GetStyleStringAccordionTogglerHorizontal = sStyleString
+end function
+
+
+function GetStyleStringAccordionTextVertical() as string
+dim sStyleString as string
+dim sStyleName as string
+dim oProps(0) as new com.sun.star.beans.PropertyValue
+dim i as integer
+
+	sStyleName = &quot;VAccordICont&quot;
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;va_icont&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+
+	oProps(0).Name  = &quot;padding&quot;
+	oProps(0).Value =  &quot;8px&quot;
+
+	for i = 0 to ubound(oProps)
+		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+	next i	
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	
+	GetStyleStringAccordionTextVertical = sStyleString
+end function
+
+
+function GetStyleStringAccordionTextHorizontal() as string
+dim sStyleString as string
+dim sStyleName as string
+dim oProps(0) as new com.sun.star.beans.PropertyValue
+dim i as integer
+
+	sStyleName = &quot;HAccordICont&quot;
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;ha_icont&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+
+	oProps(0).Name  = &quot;padding&quot;
+	oProps(0).Value =  &quot;0px 8px&quot;
+
+	for i = 0 to ubound(oProps)
+		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+	next i	
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	
+	GetStyleStringAccordionTextHorizontal = sStyleString
+end function
+
+
+function GetParaByStyleName(sStyleName as string) as object
+dim i as long
+dim iParaCount as long
+dim oPara as object
+
+	iParaCount = ubound(gaDocParagraph())
+	for i = 1 to iParaCount
+		if gaDocParagraph(i).ParaStyleName = sStyleName then
+			oPara = gaDocParagraph(i)
+			exit for
+		end if
+	next i
+	GetParaByStyleName = oPara
+end function
+
+
+function GetInternalStyleName(sFamily as string, sStylename as string) as string
+dim oStyleFamilies as object
+dim oParaStyles as object
+dim oStyle as object
+dim i as integer
+dim iCount as integer
+
+	oStyleFamilies = ThisComponent.StyleFamilies
+	oParaStyles = oStyleFamilies.getByName(sFamily)
+
+	&apos;get all applied paragraphs
+	iCount = oParaStyles.GetCount
+	for i = 0 to iCount - 1
+		oStyle = oParaStyles.GetByIndex(i)
+		if oStyle.DisplayName = sStylename then
+			exit for
+		end if
+	next i
+	GetInternalStyleName = oStyle.Name
+end function
+
+
+function GetNumberingTypeByStyleName(sStyleName as string) as integer
+dim i as long
+dim iParaCount as long
+dim iNumType as integer
+
+	iParaCount = ubound(gaDocParagraph())
+	iNumType = -1	 
+	for i = 1 to iParaCount
+		if gaDocParagraph(i).ParaStyleName = sStyleName then
+			iNumType = gaDocParagraph(i).NumberingType
+			exit for
+		end if
+	next i
+	GetNumberingTypeByStyleName = iNumType
+end function
+
+
+
+function GetNumberingLevelByStyleName(sStyleName as string) as integer
+dim i as long
+dim iParaCount as long
+dim iNumLevel as integer
+
+	iParaCount = ubound(gaDocParagraph())
+	iNumLevel = -1	 
+	for i = 1 to iParaCount
+		if gaDocParagraph(i).ParaStyleName = sStyleName then
+			iNumLevel = gaDocParagraph(i).NumberingLevel
+			exit for
+		end if
+	next i
+	GetNumberingLevelByStyleName = iNumLevel
+end function
+
+
+function GetHexColorString(lCharColor as long) as string
+dim sColor as string
+dim iNumberOfZero as integer
+dim i as integer
+
+	sColor = CStr(Hex(lCharColor))
+	if Len(sColor) &lt; 6 then
+		iNumberOfZero = 6 - Len(sColor) 
+		for i=1 to iNumberOfZero
+			sColor = &quot;0&quot; &amp; sColor
+		next i
+	end if
+	GetHexColorString = &quot;#&quot; &amp; sColor
+end function
+
+
+function GetCssUnderlineString(iUnderline as integer) as string
+dim sUnderline as string
+
+	if iUnderline = 0 then
+		sUnderline = &quot;none&quot;
+	else 	
+		sUnderline = &quot;underline&quot;
+	end if
+	GetCssUnderlineString = sUnderline
+end function
+
+
+function GetCssAlignString(iAdjust as integer) as string
+dim sAdjust as string
+
+	select case iAdjust
+		case com.sun.star.style.ParagraphAdjust.LEFT : sAdjust = &quot;left&quot;
+		case com.sun.star.style.ParagraphAdjust.RIGHT : sAdjust = &quot;right&quot;
+		case com.sun.star.style.ParagraphAdjust.CENTER : sAdjust = &quot;center&quot;
+		case com.sun.star.style.ParagraphAdjust.BLOCK : sAdjust = &quot;justify&quot;
+		case com.sun.star.style.ParagraphAdjust.STRETCH : sAdjust = &quot;justify&quot;
+		case else sAdjust = &quot;left&quot;
+	end select
+	GetCssAlignString = sAdjust
+end function
+
+
+function GetCssBorderString(oBorder as object) as string
+dim sBorder as string
+dim sColor as string
+dim iWidth as integer
+dim sWidth as string
+
+	&apos;xray oBorder
+	&apos;first check if this paragraph has a border at all
+	if oBorder.OuterLineWidth = 0 then
+		sBorder = &quot;0px&quot;
+	else
+		iWidth = Int(oBorder.OuterLineWidth / 15)
+		if iWidth = 0 then 
+			iWidth = 1
+		end if	
+		sWidth = CStr(iWidth) &amp; &quot;px&quot;		
+		sColor = GetHexColorString(oBorder.Color)
+		sBorder = sWidth &amp; &quot; solid &quot; &amp; sColor
+	end if	
+	GetCssBorderString = sBorder
+end function
+
+
+function GetNumberingStyleByName(sStylename) as object
+dim oFamilies as object
+dim oNumStyles as object
+dim oStyle as object
+
+	&apos;Get all Styles
+	oFamilies = ThisComponent.StyleFamilies
+	&apos;Get only Numbering Styles from all Styles
+	oNumStyles = oFamilies.getByName(&quot;NumberingStyles&quot;)
+	&apos;check if the corresponding NumberingStyle exists
+	oStyle = oNumStyles.getByName(sStylename)
+
+	GetNumberingStyleByName = oStyle
+end function
+
+
+function GetNumRulesProperty(oNumRules as object, sProperty as string, iLevel as integer) as variant
+dim vValue as variant
+dim oRule as object
+dim i as integer
+
+		oRule = oNumRules.getByIndex(iLevel)
+		&apos;search the property &quot;NumberingType&quot; in the Property-Set 
+		
+		for i = LBound(oRule) to UBound(oRule)
+			if oRule(i).Name = sProperty then
+				vValue = oRule(i).Value
+				exit for
+			end if
+		next i
+
+	GetNumRulesProperty = vValue
+end function
+
+
+</script:module>

@@ -429,7 +429,6 @@ dim oRules as object
 					.ParaAdjust = oPara.ParaAdjust
 				end if
 			end with
-			xray oPararec
 			&apos;append oParaRec to the array of paragraphs
 			redim preserve gaDocParagraph(iActParaID)
 			gaDocParagraph(iActParaID) = oParaRec	

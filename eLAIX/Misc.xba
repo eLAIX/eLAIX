@@ -47,41 +47,42 @@ End Function
 
 
 Function GetOpenFileName(FilterNames()) As String
-  Dim oFileDialog as Object
-  Dim iAccept as Integer
-  Dim sPath as String
-  Dim InitPath as String
-  Dim RefControlName as String
-  Dim oUcb as object
-  Dim ListAny(0)
-  &apos;Note: The following services must be called in the following order,
-  &apos; otherwise the FileDialog Service is not removed.
-  oFileDialog = CreateUnoService(&quot;com.sun.star.ui.dialogs.FilePicker&quot;)
-  oUcb = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)
-  ListAny(0) = com.sun.star.ui.dialogs.TemplateDescription.FILEOPEN_LINK_PREVIEW
-  oFileDialog.initialize(ListAny())
-  &apos;oFileDialog.setValue(CHECKBOX_PREVIEW, SET_SELECT_ITEM, true)
-  oFileDialog.setValue(105, 5, true)
-  AddFiltersToDialog(FilterNames(), oFileDialog)
-  If gsOpenFileDir = &quot;&quot; Then
-    InitPath = DirectoryNameOutOfPath(thisComponent.Location, &quot;/&quot;)
-  else
-    InitPath = gsOpenFileDir
-  End If
-  If oUcb.Exists(InitPath) Then
-    oFileDialog.SetDisplayDirectory(InitPath)
-  End If
-  iAccept = oFileDialog.Execute()
-  &apos;xRay oFileDialog
-  If iAccept = 1 Then
-    sPath = oFileDialog.Files(0)
-    GetOpenFileName = ConvertToURL(sPath)
-    gsOpenFileDir = oFileDialog.DisplayDirectory
-    &apos;If oUcb.Exists(sPath) Then
-    &apos; oRefModel.Text = ConvertFromUrl(sPath)
-    &apos;End If
-  End If
-  oFileDialog.Dispose()
+Dim oFileDialog as Object
+Dim iAccept as Integer
+Dim sPath as String
+Dim InitPath as String
+Dim RefControlName as String
+Dim oUcb as object
+Dim ListAny(0)
+
+	&apos;Note: The following services must be called in the following order,
+	&apos; otherwise the FileDialog Service is not removed.
+	oFileDialog = CreateUnoService(&quot;com.sun.star.ui.dialogs.FilePicker&quot;)
+	oUcb = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)
+	ListAny(0) = com.sun.star.ui.dialogs.TemplateDescription.FILEOPEN_LINK_PREVIEW
+	oFileDialog.initialize(ListAny())
+	&apos;oFileDialog.setValue(CHECKBOX_PREVIEW, SET_SELECT_ITEM, true)
+	oFileDialog.setValue(105, 5, true)
+	AddFiltersToDialog(FilterNames(), oFileDialog)
+	If gsOpenFileDir = &quot;&quot; Then
+	  InitPath = DirectoryNameOutOfPath(thisComponent.Location, &quot;/&quot;)
+	else
+	  InitPath = gsOpenFileDir
+	End If
+	If oUcb.Exists(InitPath) Then
+	  oFileDialog.SetDisplayDirectory(InitPath)
+	End If
+	iAccept = oFileDialog.Execute()
+	&apos;xRay oFileDialog
+	If iAccept = 1 Then
+	  sPath = oFileDialog.Files(0)
+	  GetOpenFileName = ConvertToURL(sPath)
+	  gsOpenFileDir = oFileDialog.DisplayDirectory
+	  &apos;If oUcb.Exists(sPath) Then
+	  &apos; oRefModel.Text = ConvertFromUrl(sPath)
+	  &apos;End If
+	End If
+	oFileDialog.Dispose()
 End Function
 
 

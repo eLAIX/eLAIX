@@ -392,23 +392,6 @@ dim sFootnote as string
 end function
 
 
-sub ExportEpubStyles
-dim oStream as object 
-
-	oStream = GetExportFileObject(gsExportZipDir &amp; &quot;/EPUB/css/style.css&quot;)
-	oStream.writeString(&quot;body{margin:2em;font-family:arial;color:#000;}&quot; &amp; gsCR)
-	oStream.writeString(&quot;nav#toc ol{list-style-type:none;}&quot; &amp; gsCR)
-	oStream.writeString(&quot;nav#toc ol li a{text-decoration:none;}&quot; &amp; gsCR)
-	oStream.writeString(&quot;nav#toc ol li a:hover{text-decoration:underline;}&quot; &amp; gsCR)
-	oStream.writeString(&quot;body#titlepage{text-align:center;}&quot; &amp; gsCR)
-	oStream.writeString(&quot;.footnotes{border-top:2px solid #333;margin-top:30;padding-top:15;font-size:0.85em;}&quot;) 
-	oStream.writeString(&quot;a.footnote{vertical-align:4px;font-size:80%;text-decoration:none;}&quot; &amp; gsCR)
-	oStream.writeString(&quot;.footnotes .separator{width:150px;border-top:2px solid #000;margin-top:25px;padding-top:15px}&quot; &amp; gsCR)
-	oStream.writeString(&quot;.footnotes .fn-id{padding-right:20px;}&quot;) 
-	oStream.closeOutput() 
-end sub
-
-
 sub ExportEpubFootnotes
 dim oStream as object 
 
