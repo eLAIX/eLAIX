@@ -1082,7 +1082,7 @@ dim sType as string
 				lCharColor = oPortion.CharColor
 				if (lCharColor &lt;&gt; -1) and (oPortion.HyperLinkURL = &quot;&quot;) and (oPortion.CharStyleName = &quot;&quot;) _
 				and (oPortion.ParaStylename &lt;&gt; gsMarginaleLeftStyle) and (oPortion.ParaStylename &lt;&gt; gsMarginaleRightStyle) then
-					sTextFarbe = GetHexColorString(lCharColor)
+					sTextFarbe = GetEpubHexColorString(lCharColor)
 					sResult = &quot;&amp;lt;font color=&quot;&quot;&quot; &amp; sTextFarbe &amp; &quot;&quot;&quot;&amp;gt;&quot; &amp; sResult &amp; &quot;&amp;lt;/font&amp;gt;&quot;
 				end if
 		
@@ -1189,7 +1189,7 @@ dim iNumberOfNull as integer
       &apos;check textcolor other than black
       lCharColor = oPortionRec.CharColor
       if lCharColor &lt;&gt; -1 AND oPortionRec.HyperLinkURL = &quot;&quot; AND oPortionRec.CharStyleName &lt;&gt; &quot;ILIAS Zitat&quot; then
-        sTextColor = GetHexColorString(lCharColor)
+        sTextColor = GetEpubHexColorString(lCharColor)
         sResult = &quot;&amp;lt;font color=&quot;&quot;&quot; &amp; sTextColor &amp; &quot;&quot;&quot;&amp;gt;&quot; &amp; sResult &amp; &quot;&amp;lt;/font&amp;gt;&quot;
       endif
     

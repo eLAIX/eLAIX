@@ -1372,14 +1372,18 @@ dim sColor as string
 dim iNumberOfZero as integer
 dim i as integer
 
-	sColor = CStr(Hex(lCharColor))
-	if Len(sColor) &lt; 6 then
-		iNumberOfZero = 6 - Len(sColor) 
-		for i=1 to iNumberOfZero
-			sColor = &quot;0&quot; &amp; sColor
-		next i
+	if lCharColor &lt;&gt; -1 then
+		sColor = CStr(Hex(lCharColor))
+		if Len(sColor) &lt; 6 then
+			iNumberOfZero = 6 - Len(sColor) 
+			for i=1 to iNumberOfZero
+				sColor = &quot;0&quot; &amp; sColor
+			next i
+		end if
+		GetHexColorString = &quot;#&quot; &amp; sColor
+	else
+		GetHexColorString = &quot;transparent&quot;
 	end if
-	GetHexColorString = &quot;#&quot; &amp; sColor
 end function
 
 
