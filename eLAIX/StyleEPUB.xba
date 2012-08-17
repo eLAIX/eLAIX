@@ -29,17 +29,8 @@ dim sStyleImageFolder as string
 
 	oStream = GetExportFileObject(gsExportZipDir &amp; &quot;/EPUB/css/style.css&quot;)
 	sStyleImageFolder = gsExportZipDir &amp; &quot;/EPUB/images/&quot;
-	
-	&apos; oStream.writeString(&quot;body{margin:2em;font-family:arial;color:#000;}&quot; &amp; gsCR)
-	&apos; oStream.writeString(&quot;nav#toc ol{list-style-type:none;}&quot; &amp; gsCR)
-	&apos; oStream.writeString(&quot;nav#toc ol li a{text-decoration:none;}&quot; &amp; gsCR)
-	&apos; oStream.writeString(&quot;nav#toc ol li a:hover{text-decoration:underline;}&quot; &amp; gsCR)
-	&apos; oStream.writeString(&quot;body#titlepage{text-align:center;}&quot; &amp; gsCR)
-	&apos; oStream.writeString(&quot;.footnotes{border-top:2px solid #333;margin-top:30;padding-top:15;font-size:0.85em;}&quot;) 
-	&apos; oStream.writeString(&quot;a.footnote{vertical-align:4px;font-size:80%;text-decoration:none;}&quot; &amp; gsCR)
-	&apos; oStream.writeString(&quot;.footnotes .separator{width:150px;border-top:2px solid #000;margin-top:25px;padding-top:15px}&quot; &amp; gsCR)
-	&apos; oStream.writeString(&quot;.footnotes .fn-id{padding-right:20px;}&quot;) 
-	
+
+	ExportEpubStandardStyles(oStream)
 	ExportEpubSectionStyles(oStream, sStyleImageFolder)
 	ExportEpubParagraphStyles(oStream, sStyleImageFolder)
 	ExportEpubCharacterStyles(oStream, sStyleImageFolder)
@@ -49,7 +40,21 @@ dim sStyleImageFolder as string
 	oStream.closeOutput() 
 end sub
 
+
+sub ExportEpubStandardStyles(oStream as object)
 	
+	oStream.writeString(&quot;body{margin:2em;font-family:arial;color:#000;}&quot; &amp; gsCR)
+	oStream.writeString(&quot;nav#toc ol{list-style-type:none;}&quot; &amp; gsCR)
+	oStream.writeString(&quot;nav#toc ol li a{text-decoration:none;}&quot; &amp; gsCR)
+	oStream.writeString(&quot;nav#toc ol li a:hover{text-decoration:underline;}&quot; &amp; gsCR)
+	oStream.writeString(&quot;body#titlepage{text-align:center;}&quot; &amp; gsCR)
+	oStream.writeString(&quot;.footnotes{border-top:2px solid #333;margin-top:30;padding-top:15;font-size:0.85em;}&quot;) 
+	oStream.writeString(&quot;a.footnote{vertical-align:4px;font-size:80%;text-decoration:none;}&quot; &amp; gsCR)
+	oStream.writeString(&quot;.footnotes .separator{width:150px;border-top:2px solid #000;margin-top:25px;padding-top:15px}&quot; &amp; gsCR)
+	oStream.writeString(&quot;.footnotes .fn-id{padding-right:20px;}&quot; &amp; gsCR)
+end sub
+
+
 sub ExportEpubSectionStyles(oStream as object, sStyleImageFolder as string)
 dim oDocument as object
 dim oStyleFamilies as object
@@ -86,7 +91,7 @@ dim sLocation as string
 				end if
 			end if
 			sStyleString = GetEpubStyleStringSection(oStyle, sGraphicName)
-			WriteToStream(oStream, sStyleString)			
+			oStream.writeString(sStyleString &amp; gsCR)
 		end if			
 	next i
 end sub
@@ -123,22 +128,22 @@ dim sLocation as string
 			&apos;check if this style is an ordered list
 			if iNumType = 4 then
 				sStyleString = GetEpubStyleStringOrderedList(oStyle) 
-				WriteToStream(oStream, sStyleString)
+				oStream.writeString(sStyleString &amp; gsCR)
 			
 			&apos;check if this style is an unordered list
 			elseif iNumType = 6 then
 				sStyleString = GetEpubStyleStringUnorderedList(oStyle) 
-				WriteToStream(oStream, sStyleString)
+				oStream.writeString(sStyleString &amp; gsCR)
 
 			&apos;check if this style is a marginale right style
 			elseif oStyle.Name = gsMarginaleRightStyle then
 				sStyleString = GetEpubStyleStringMarginaleRight(oStyle)
-				WriteToStream(oStream, sStyleString)
+				oStream.writeString(sStyleString &amp; gsCR)
 							
 			&apos;check if this style is the standard style
 			elseif oStyle.Name = gsMarginaleRightStyle then
-				sStyleString = GetEpubStyleStringMarginaleRight(oStyle)
-				WriteToStream(oStream, sStyleString)
+				sStyleString = GetEpubStyleStringMarginaleRight(oStyle
+				oStream.writeString(sStyleString &amp; gsCR)
 
 			elseif oStyle.Name = &quot;Standard&quot; then
 				&apos;do nothing, this paragraph is handled in the page container
@@ -155,24 +160,24 @@ dim sLocation as string
 					end if
 				end if				
 				sStyleString = GetEpubStyleStringParagraph(oStyle, sGraphicName)
-				WriteToStream(oStream, sStyleString)
+				oStream.writeString(sStyleString &amp; gsCR)
 			end if	
 			
 			&apos;always create a ListLabel Class, if there&apos;s a negative FirstLineIndent
 			if oStyle.ParaFirstLineIndent &lt; 0 then
 				sStyleString = GetEpubStyleStringListLabel(oStyle)
-				WriteToStream(oStream, sStyleString)
+				oStream.writeString(sStyleString &amp; gsCR)
 			end if			
 		end if			
 	next i
 	
 	&apos;step 2: set extra alignment styles for hard aligned paragraphs
 	sStyleString = GetEpubStyleStringAlignment(&quot;center&quot;)
-	WriteToStream(oStream, sStyleString)
+	oStream.writeString(sStyleString &amp; gsCR)
 	sStyleString = GetEpubStyleStringAlignment(&quot;right&quot;)
-	WriteToStream(oStream, sStyleString)
+	oStream.writeString(sStyleString &amp; gsCR)
 	sStyleString = GetEpubStyleStringAlignment(&quot;justify&quot;)
-	WriteToStream(oStream, sStyleString)
+	oStream.writeString(sStyleString &amp; gsCR)
 end sub
 
 
@@ -203,7 +208,7 @@ dim sLocation as string
 			&apos;xray oStyle
 			sStylename = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
 			sStyleString = GetEpubStyleStringCharacter(oStyle)
-			WriteToStream(oStream, sStyleString)			
+			oStream.writeString(sStyleString &amp; gsCR)
 		end if			
 	next i
 end sub
@@ -220,9 +225,9 @@ dim oStyle as object
 	if oStyles.HasByName(&quot;ILIAS Accordion Element&quot;) then
 		oStyle = oStyles.GetByName(&quot;ILIAS Accordion Element&quot;)
 		sStyleString = GetEpubStyleStringAccordionVertical(oStyle)
-		WriteToStream(oStream, sStyleString)
+		oStream.writeString(sStyleString &amp; gsCR)
 		sStyleString = GetEpubStyleStringAccordionHorizontal(oStyle)
-		WriteToStream(oStream, sStyleString)
+		oStream.writeString(sStyleString &amp; gsCR)
 	end if
 
 	oStyleFamilies = ThisComponent.StyleFamilies
@@ -230,15 +235,15 @@ dim oStyle as object
 	if oStyles.HasByName(&quot;ILIAS Accordion Caption&quot;) then
 		oStyle = oStyles.GetByName(&quot;ILIAS Accordion Caption&quot;)	
 		sStyleString = GetEpubStyleStringAccordionTogglerVertical(oStyle)
-		WriteToStream(oStream, sStyleString)
+		oStream.writeString(sStyleString &amp; gsCR)
 		sStyleString = GetEpubStyleStringAccordionTogglerHorizontal(oStyle)
-		WriteToStream(oStream, sStyleString)
+		oStream.writeString(sStyleString &amp; gsCR)
 	end if
 	
 	sStyleString = GetEpubStyleStringAccordionTextVertical()
-	WriteToStream(oStream, sStyleString)
+	oStream.writeString(sStyleString &amp; gsCR)
 	sStyleString = GetEpubStyleStringAccordionTextHorizontal()
-	WriteToStream(oStream, sStyleString)
+	oStream.writeString(sStyleString &amp; gsCR)
 end sub	
 
 
@@ -246,7 +251,7 @@ sub ExportEpubPageStyles(oStream as object)
 dim sStyleString as string
 
 	sStyleString = GetEpubStyleStringPageContainer()
-	WriteToStream(oStream, sStyleString)
+	oStream.writeString(sStyleString &amp; gsCR)
 end sub
 
 
@@ -260,21 +265,21 @@ dim i as integer
 	sStyleString = &quot;&lt;Style Tag=&quot;&quot;ol&quot;&quot; Type=&quot;&quot;list_o&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
 
 	oProps(0).Name  = &quot;margin-top&quot;
-	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / 30)) &amp; &quot;px&quot;
+	oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / 30))
 	oProps(1).Name  = &quot;margin-right&quot;
-	oProps(1).Value =  CStr(Int(oStyle.ParaRightMargin / 30)) &amp; &quot;px&quot;
+	oProps(1).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaRightMargin / 30))
 	oProps(2).Name  = &quot;margin-bottom&quot;
-	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / 30)) &amp; &quot;px&quot;
+	oProps(2).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaBottomMargin / 30))
 	oProps(3).Name  = &quot;margin-left&quot;
-	oProps(3).Value =  CStr(Int(oStyle.ParaLeftMargin / 30)) &amp; &quot;px&quot;
+	oProps(3).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaLeftMargin / 30))
 	oProps(4).Name  = &quot;padding-top&quot;
-	oProps(4).Value =  &quot;0px&quot;
+	oProps(4).Value =  GetEpubFormattedPixelString(0)
 	oProps(5).Name  = &quot;padding-right&quot;
-	oProps(5).Value =  &quot;0px&quot;
+	oProps(5).Value =  GetEpubFormattedPixelString(0)
 	oProps(6).Name  = &quot;padding-bottom&quot;
-	oProps(6).Value =  &quot;0px&quot;
+	oProps(6).Value =  GetEpubFormattedPixelString(0)
 	oProps(7).Name  = &quot;padding-left&quot;
-	oProps(7).Value =  &quot;20px&quot;
+	oProps(7).Value =  GetEpubFormattedPixelString(20)
 	oProps(8).Name  = &quot;font-size&quot;
 	oProps(8).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
 	&apos;oProps(8).Name  = &quot;text-indent&quot;
@@ -305,19 +310,19 @@ dim iFirstLineOffset as integer
 	sStyleString = &quot;&lt;Style Tag=&quot;&quot;ul&quot;&quot; Type=&quot;&quot;list_u&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
 
 	oProps(0).Name  = &quot;margin-top&quot;
-	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / 30)) &amp; &quot;px&quot;
+	oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / 30))
 	oProps(1).Name  = &quot;margin-right&quot;
-	oProps(1).Value =  CStr(Int(oStyle.ParaRightMargin / 30)) &amp; &quot;px&quot;
+	oProps(1).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaRightMargin / 30))
 	oProps(2).Name  = &quot;margin-bottom&quot;
-	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / 30)) &amp; &quot;px&quot;
+	oProps(2).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaBottomMargin / 30))
 	oProps(3).Name  = &quot;padding-top&quot;
-	oProps(3).Value =  &quot;0px&quot;
+	oProps(3).Value =  GetEpubFormattedPixelString(0)
 	oProps(4).Name  = &quot;padding-right&quot;
-	oProps(4).Value =  &quot;0px&quot;
+	oProps(3).Value =  GetEpubFormattedPixelString(0)
 	oProps(5).Name  = &quot;padding-bottom&quot;
-	oProps(5).Value =  &quot;0px&quot;
+	oProps(3).Value =  GetEpubFormattedPixelString(0)
 	oProps(6).Name  = &quot;padding-left&quot;
-	oProps(6).Value =  &quot;20px&quot;
+	oProps(3).Value =  GetEpubFormattedPixelString(20)
 	oProps(7).Name  = &quot;font-size&quot;
 	oProps(7).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
 
@@ -333,7 +338,7 @@ dim iFirstLineOffset as integer
 		iFirstLineOffset = GetEpubNumRulesProperty(oNumRules, &quot;FirstLineIndent&quot;, iNumLevel)
 		redim preserve oProps(8)
 		oProps(8).Name  = &quot;margin-left&quot;
-		oProps(8).Value =  CStr(Int(iLeftMargin / 30) + Int(iFirstLineOffset / 30)) &amp; &quot;px&quot;
+		oProps(8).Value =  GetEpubFormattedPixelString(Int(iLeftMargin / 30) + Int(iFirstLineOffset / 30))
 	end if	
 
 	&apos;if the left margin of this list-style is set manualy
@@ -366,19 +371,19 @@ dim i as integer
 	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;text_block&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
 
 	oProps(0).Name  = &quot;margin-top&quot;
-	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / 30)) &amp; &quot;px&quot;
+	oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / 30))
 	oProps(1).Name  = &quot;margin-right&quot;
-	oProps(1).Value =  CStr(Int(oStyle.ParaRightMargin / 30)) &amp; &quot;px&quot;
+	oProps(1).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaRightMargin / 30))
 	oProps(2).Name  = &quot;margin-bottom&quot;
-	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / 30)) &amp; &quot;px&quot;
+	oProps(2).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaBottomMargin / 30))
 	oProps(3).Name  = &quot;margin-left&quot;
-	oProps(3).Value =  CStr((giMarginaleLeftWidth * -1) + 5) &amp; &quot;px&quot;
+	oProps(3).Value =  GetEpubFormattedPixelString((giMarginaleLeftWidth * -1) + 5)
 	oProps(4).Name  = &quot;font-size&quot;
 	oProps(4).Value =  &quot;75%&quot;
 	oProps(5).Name  = &quot;position&quot;
 	oProps(5).Value =  &quot;absolute&quot;
 	oProps(6).Name  = &quot;width&quot;
-	oProps(6).Value =  CStr(giMarginaleLeftWidth - 5) &amp; &quot;px&quot;
+	oProps(6).Value =  GetEpubFormattedPixelString(giMarginaleLeftWidth - 5)
 	oProps(7).Name  = &quot;font-weight&quot;
 	if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
 		oProps(7).Value = &quot;bold&quot;
@@ -411,23 +416,23 @@ dim i as integer
 	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;text_block&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
 
 	oProps(0).Name  = &quot;margin-top&quot;
-	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / 30)) &amp; &quot;px&quot;
+	oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / 30))
 	oProps(1).Name  = &quot;margin-right&quot;
-	oProps(1).Value =  &quot;30px&quot;
+	oProps(1).Value =  GetEpubFormattedPixelString(30)
 	oProps(2).Name  = &quot;margin-bottom&quot;
-	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / 30)) &amp; &quot;px&quot;
+	oProps(2).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaBottomMargin / 30))
 	oProps(3).Name  = &quot;margin-left&quot;
-	oProps(3).Value = &quot;0px&quot;
+	oProps(3).Value =  GetEpubFormattedPixelString(0)
 	oProps(4).Name  = &quot;font-size&quot;
 	oProps(4).Value =  &quot;75%&quot;
 	oProps(5).Name  = &quot;position&quot;
 	oProps(5).Value =  &quot;absolute&quot;
 	oProps(6).Name  = &quot;width&quot;
-	oProps(6).Value =  CStr(giMarginaleRightWidth - 30) &amp; &quot;px&quot;
+	oProps(6).Value =  GetEpubFormattedPixelString(giMarginaleRightWidth - 30)
 	oProps(7).Name  = &quot;right&quot;
-	oProps(7).Value = &quot;10px&quot;
+	oProps(7).Value =  GetEpubFormattedPixelString(10)
 	oProps(8).Name  = &quot;padding&quot;
-	oProps(8).Value = &quot;0px&quot;
+	oProps(8).Value =  GetEpubFormattedPixelString(0)
 	oProps(9).Name  = &quot;font-weight&quot;
 	if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
 		oProps(9).Value = &quot;bold&quot;
@@ -465,23 +470,23 @@ dim iCount as integer
 	&apos;oPara = GetEpubParaByStyleName(sStyleName)
 	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
 	if sStylename = &quot;ILIAS_FileList&quot; then
-		sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;flist_cont&quot;&quot; Class=&quot;&quot;FileListContainer&quot;&quot;&gt;&quot;
+		sStyleString = &quot;div.FileListContainer {&quot; &amp; gsCR
 
 	elseif left(sStylename, 6) = &quot;ILIAS_&quot; then
 		sStylename = mid(sStylename, 7)
-		sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;section&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+		sStyleString = &quot;div.&quot; &amp; sStyleName &amp; &quot; {&quot; &amp; gsCR
 	else
-		sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;section&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+		sStyleString = &quot;div.&quot; &amp; sStyleName &amp; &quot; {&quot; &amp; gsCR
 	end if
 	
 	oProps(0).Name  = &quot;margin-top&quot;
-	oProps(0).Value =  CStr(Int(oStyle.TopMargin / 30)) &amp; &quot;px&quot;
+	oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.TopMargin / 30))
 	oProps(1).Name  = &quot;margin-right&quot;
-	oProps(1).Value =  CStr(Int(oStyle.RightMargin / 30)) &amp; &quot;px&quot;
+	oProps(1).Value =  GetEpubFormattedPixelString(Int(oStyle.RightMargin / 30))
 	oProps(2).Name  = &quot;margin-bottom&quot;
-	oProps(2).Value =  CStr(Int(oStyle.BottomMargin / 30)) &amp; &quot;px&quot;
+	oProps(2).Value =  GetEpubFormattedPixelString(Int(oStyle.BottomMargin / 30))
 	oProps(3).Name  = &quot;margin-left&quot;
-	oProps(3).Value =  CStr(Int(oStyle.LeftMargin / 30)) &amp; &quot;px&quot;
+	oProps(3).Value =  GetEpubFormattedPixelString(Int(oStyle.LeftMargin / 30))
 	oProps(4).Name  = &quot;position&quot;
 	oProps(4).Value =  &quot;relative&quot;	
 	oProps(5).Name  = &quot;color&quot;
@@ -490,21 +495,21 @@ dim iCount as integer
 	oProps(6).Name  = &quot;background-color&quot;
 	oProps(6).Value =  GetEpubHexColorString(oStyle.BackColorRGB)
 	oProps(7).Name  = &quot;border-top&quot;
-	oProps(7).Value = GetCSSBorderString(oStyle.TopBorder)
+	oProps(7).Value = GetEpubCSSBorderString(oStyle.TopBorder)
 	oProps(8).Name  = &quot;border-right&quot;
-	oProps(8).Value = GetCSSBorderString(oStyle.RightBorder)
+	oProps(8).Value = GetEpubCSSBorderString(oStyle.RightBorder)
 	oProps(9).Name  = &quot;border-bottom&quot;
-	oProps(9).Value = GetCSSBorderString(oStyle.BottomBorder)
+	oProps(9).Value = GetEpubCSSBorderString(oStyle.BottomBorder)
 	oProps(10).Name  = &quot;border-left&quot;
-	oProps(10).Value = GetCSSBorderString(oStyle.LeftBorder)
+	oProps(10).Value = GetEpubCSSBorderString(oStyle.LeftBorder)
 	oProps(11).Name  = &quot;padding-top&quot;
-	oProps(11).Value = CStr(Int(oStyle.TopBorderDistance / 30)) &amp; &quot;px&quot;
+	oProps(11).Value = GetEpubFormattedPixelString(Int(oStyle.TopBorderDistance / 30))
 	oProps(12).Name  = &quot;padding-right&quot;
-	oProps(12).Value = CStr(Int(oStyle.RightBorderDistance / 30)) &amp; &quot;px&quot;
+	oProps(12).Value = GetEpubFormattedPixelString(Int(oStyle.RightBorderDistance / 30))
 	oProps(13).Name  = &quot;padding-bottom&quot;
-	oProps(13).Value = CStr(Int(oStyle.BottomBorderDistance / 30)) &amp; &quot;px&quot;
+	oProps(13).Value = GetEpubFormattedPixelString(Int(oStyle.BottomBorderDistance / 30))
 	oProps(14).Name  = &quot;padding-left&quot;
-	oProps(14).Value = CStr(Int(oStyle.LeftBorderDistance / 30)) &amp; &quot;px&quot;
+	oProps(14).Value = GetEpubFormattedPixelString(Int(oStyle.LeftBorderDistance / 30))
 		
 	if sGraphicName &lt;&gt; &quot;&quot; then
 		iCount = uBound(oProps) + 1
@@ -546,30 +551,30 @@ dim iCount as integer
 &apos;	if Left(sStylename, 9) = &quot;Heading&quot; then
 		sStyleString = &quot;&lt;Style Tag=&quot;&quot;h1&quot;&quot; Type=&quot;&quot;page_title&quot;&quot; Class=&quot;&quot;PageTitle&quot;&quot;&gt;&quot;
 		oProps(0).Name  = &quot;margin-top&quot;
-		oProps(0).Value = &quot;0&quot;
+		oProps(0).Value =  GetEpubFormattedPixelString(0)
 		oProps(1).Name  = &quot;margin-left&quot;
-		oProps(1).Value =  &quot;0&quot;
+		oProps(1).Value =  GetEpubFormattedPixelString(0)
 		
 	elseif sStylename = &quot;ILIAS_FileList_Caption&quot; then
 		sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;flist_head&quot;&quot; Class=&quot;&quot;FileListHeading&quot;&quot;&gt;&quot;
 		oProps(0).Name  = &quot;margin-top&quot;
-		oProps(0).Value = CStr(Int(oStyle.ParaTopMargin / 30)) &amp; &quot;px&quot;
+		oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / 30))
 		oProps(1).Name  = &quot;margin-left&quot;
-		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / 30)) &amp; &quot;px&quot;
+		oProps(1).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaLeftMargin / 30))
 		
 	elseif sStylename = &quot;ILIAS_FileList_Element&quot; then
 		sStyleString = &quot;&lt;Style Tag=&quot;&quot;li&quot;&quot; Type=&quot;&quot;flist_li&quot;&quot; Class=&quot;&quot;FileListItem&quot;&quot;&gt;&quot;
 		oProps(0).Name  = &quot;margin-top&quot;
-		oProps(0).Value = CStr(Int(oStyle.ParaTopMargin / 30)) &amp; &quot;px&quot;
+		oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / 30))
 		oProps(1).Name  = &quot;margin-left&quot;
-		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / 30)) &amp; &quot;px&quot;
+		oProps(1).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaLeftMargin / 30))
 		
 	else
 		sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;text_block&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
 		oProps(0).Name  = &quot;margin-top&quot;
-		oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / 30)) &amp; &quot;px&quot;
+		oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / 30))
 		oProps(1).Name  = &quot;margin-left&quot;
-		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / 30)) &amp; &quot;px&quot;
+		oProps(1).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaLeftMargin / 30))
 	end if
 	
 	oProps(2).Name  = &quot;position&quot;
@@ -579,14 +584,14 @@ dim iCount as integer
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;margin-right&quot;
-		oProps(iCount).Value = CStr(Int(oStyle.ParaRightMargin / 30)) &amp; &quot;px&quot;
+		oProps(iCount).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaRightMargin / 30))
 	end if
 		
 	if oStyle.GetPropertyState(&quot;ParaBottomMargin&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;margin-bottom&quot;
-		oProps(iCount).Value = CStr(Int(oStyle.ParaBottomMargin / 30)) &amp; &quot;px&quot;
+		oProps(iCount).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaBottomMargin / 30))
 	end if
 		
 	if oStyle.GetPropertyState(&quot;CharColor&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
@@ -600,84 +605,84 @@ dim iCount as integer
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;font-size&quot;
-		oProps(iCount).Value = CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
+		oProps(iCount).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
 	end if
 
 	if oStyle.GetPropertyState(&quot;CharUnderline&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;text-decoration&quot;
-		oProps(iCount).Value = GetEpubCssUnderlineString(oStyle.CharUnderline)
+		oProps(iCount).Value =  GetEpubCssUnderlineString(oStyle.CharUnderline)
 	end if
 
 	if oStyle.GetPropertyState(&quot;ParaAdjust&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;text-align&quot;
-		oProps(iCount).Value = GetEpubCssAlignString(oStyle.ParaAdjust)
+		oProps(iCount).Value =  GetEpubCssAlignString(oStyle.ParaAdjust)
 	end if
 
 	if oStyle.GetPropertyState(&quot;ParaBackColor&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;background-color&quot;
-		oProps(iCount).Value = GetEpubHexColorString(oStyle.ParaBackColor)
+		oProps(iCount).Value =  GetEpubHexColorString(oStyle.ParaBackColor)
 	end if
 
 	if oStyle.GetPropertyState(&quot;TopBorder&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;border-top&quot;
-		oProps(iCount).Value = GetCSSBorderString(oStyle.TopBorder)
+		oProps(iCount).Value =  GetEpubCSSBorderString(oStyle.TopBorder)
 	end if
 
 	if oStyle.GetPropertyState(&quot;RightBorder&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;border-right&quot;
-		oProps(iCount).Value = GetCSSBorderString(oStyle.RightBorder)
+		oProps(iCount).Value =  GetEpubCSSBorderString(oStyle.RightBorder)
 	end if
 
 	if oStyle.GetPropertyState(&quot;BottomBorder&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;border-bottom&quot;
-		oProps(iCount).Value = GetCSSBorderString(oStyle.BottomBorder)
+		oProps(iCount).Value =  GetEpubCSSBorderString(oStyle.BottomBorder)
 	end if
 
 	if oStyle.GetPropertyState(&quot;LeftBorder&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;border-left&quot;
-		oProps(iCount).Value = GetCSSBorderString(oStyle.LeftBorder)
+		oProps(iCount).Value =  GetEpubCSSBorderString(oStyle.LeftBorder)
 	end if
 
 	if oStyle.GetPropertyState(&quot;TopBorderDistance&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;padding-top&quot;
-		oProps(iCount).Value = CStr(Int(oStyle.TopBorderDistance / 30)) &amp; &quot;px&quot;
+		oProps(iCount).Value =  GetEpubFormattedPixelString(Int(oStyle.TopBorderDistance / 30))
 	end if
 
 	if oStyle.GetPropertyState(&quot;RightBorderDistance&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;padding-right&quot;
-		oProps(iCount).Value = CStr(Int(oStyle.RightBorderDistance / 30)) &amp; &quot;px&quot;
+		oProps(iCount).Value =  GetEpubFormattedPixelString(Int(oStyle.RightBorderDistance / 30))
 	end if
 
 	if oStyle.GetPropertyState(&quot;BottomBorderDistance&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;padding-bottom&quot;
-		oProps(iCount).Value = CStr(Int(oStyle.BottomBorderDistance / 30)) &amp; &quot;px&quot;
+		oProps(iCount).Value =  GetEpubFormattedPixelString(Int(oStyle.BottomBorderDistance / 30))
 	end if
 
 	if oStyle.GetPropertyState(&quot;LeftBorderDistance&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;padding-left&quot;
-		oProps(iCount).Value = CStr(Int(oStyle.LeftBorderDistance / 30)) &amp; &quot;px&quot;
+		oProps(iCount).Value =  GetEpubFormattedPixelString(Int(oStyle.LeftBorderDistance / 30))
 	end if
 
 	if oStyle.GetPropertyState(&quot;CharWeight&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
@@ -999,21 +1004,21 @@ dim i as integer
 		iMarginaleRight = giMarginaleRightWidth
 	end if	
 	oProps(0).Name  = &quot;margin&quot;
-	oProps(0).Value = &quot;0px&quot;
+	oProps(0).Value =  GetEpubFormattedPixelString(0)
 	oProps(1).Name  = &quot;width&quot;
 	oProps(1).Value =  &quot;100%&quot;	
 	oProps(2).Name  = &quot;padding-top&quot;
-	oProps(2).Value = &quot;20px&quot;
+	oProps(2).Value =  GetEpubFormattedPixelString(20)
 	oProps(3).Name  = &quot;padding-right&quot;
-	oProps(3).Value = CStr(iMarginaleRight) &amp; &quot;px&quot;
+	oProps(3).Value =  GetEpubFormattedPixelString(iMarginaleRight)
 	oProps(4).Name  = &quot;padding-bottom&quot;
-	oProps(4).Value = &quot;20px&quot;
+	oProps(4).Value =  GetEpubFormattedPixelString(20)
 	oProps(5).Name  = &quot;padding-left&quot;
-	oProps(5).Value = CStr(iMarginaleLeft) &amp; &quot;px&quot;
+	oProps(5).Value =  GetEpubFormattedPixelString(iMarginaleLeft)
 	oProps(6).Name  = &quot;position&quot;
-	oProps(6).Value = &quot;relative&quot;
+	oProps(6).Value =  &quot;relative&quot;
 	oProps(7).Name  = &quot;border-width&quot;
-	oProps(7).Value = &quot;1px&quot;
+	oProps(7).Value =  GetEpubFormattedPixelString(1)
 	oProps(8).Name  = &quot;border-color&quot;
 	oProps(8).Value = &quot;#9EADBA&quot;
 	oProps(9).Name  = &quot;border-style&quot;
@@ -1068,7 +1073,7 @@ dim iLeft as integer
 	iLeft = Int((oStyle.ParaFirstLineIndent) / 30)
 	sStyleString = &quot;&lt;Style Tag=&quot;&quot;span&quot;&quot; Type=&quot;&quot;text_inline&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;Label&quot;&quot;&gt;&quot;
 	sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;position&quot;&quot; Value=&quot;&quot;absolute&quot;&quot;/&gt;&quot;
-	sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;left&quot;&quot; Value=&quot;&quot;&quot; &amp; CStr(iLeft) &amp; &quot;px&quot;&quot;/&gt;&quot;
+	sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;left&quot;&quot; Value=&quot;&quot;&quot; &amp; GetEpubFormattedPixelString(iLeft) &amp; &quot;/&gt;&quot;
 	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
 	
 	GetEpubStyleStringListLabel = sStyleString
@@ -1085,21 +1090,21 @@ dim i as integer
 	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;va_icntr&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
 
 	oProps(0).Name  = &quot;margin-top&quot;
-	oProps(0).Value =  CStr(Int(oStyle.TopMargin / 30)) &amp; &quot;px&quot;
+	oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.TopMargin / 30))
 	oProps(1).Name  = &quot;margin-right&quot;
-	oProps(1).Value =  CStr(Int(oStyle.RightMargin / 30)) &amp; &quot;px&quot;
+	oProps(1).Value =  GetEpubFormattedPixelString(Int(oStyle.RightMargin / 30))
 	oProps(2).Name  = &quot;margin-bottom&quot;
-	oProps(2).Value =  CStr(Int(oStyle.BottomMargin / 30)) &amp; &quot;px&quot;
+	oProps(2).Value =  GetEpubFormattedPixelString(Int(oStyle.BottomMargin / 30))
 	oProps(3).Name  = &quot;margin-left&quot;
-	oProps(3).Value =  CStr(Int(oStyle.LeftMargin / 30)) &amp; &quot;px&quot;
+	oProps(3).Value =  GetEpubFormattedPixelString(Int(oStyle.LeftMargin / 30))
 	oProps(4).Name  = &quot;border-top&quot;
-	oProps(4).Value = GetCSSBorderString(oStyle.TopBorder)
+	oProps(4).Value = GetEpubCSSBorderString(oStyle.TopBorder)
 	oProps(5).Name  = &quot;border-right&quot;
-	oProps(5).Value = GetCSSBorderString(oStyle.RightBorder)
+	oProps(5).Value = GetEpubCSSBorderString(oStyle.RightBorder)
 	oProps(6).Name  = &quot;border-bottom&quot;
-	oProps(6).Value = GetCSSBorderString(oStyle.BottomBorder)
+	oProps(6).Value = GetEpubCSSBorderString(oStyle.BottomBorder)
 	oProps(7).Name  = &quot;border-left&quot;
-	oProps(7).Value = GetCSSBorderString(oStyle.LeftBorder)
+	oProps(7).Value = GetEpubCSSBorderString(oStyle.LeftBorder)
 	oProps(8).Name  = &quot;background-color&quot;
 	oProps(8).Value = GetEpubHexColorString(oStyle.BackColor)
 
@@ -1122,21 +1127,21 @@ dim i as integer
 	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;ha_icntr&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
 
 	oProps(0).Name  = &quot;margin-top&quot;
-	oProps(0).Value =  CStr(Int(oStyle.TopMargin / 30)) &amp; &quot;px&quot;
+	oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.TopMargin / 30))
 	oProps(1).Name  = &quot;margin-right&quot;
-	oProps(1).Value =  CStr(Int(oStyle.RightMargin/30 + 5)) &amp; &quot;px&quot;
+	oProps(1).Value =  GetEpubFormattedPixelString(Int(oStyle.RightMargin/30 + 5))
 	oProps(2).Name  = &quot;margin-bottom&quot;
-	oProps(2).Value =  CStr(Int(oStyle.BottomMargin / 30)) &amp; &quot;px&quot;
+	oProps(2).Value =  GetEpubFormattedPixelString(Int(oStyle.BottomMargin / 30))
 	oProps(3).Name  = &quot;margin-left&quot;
-	oProps(3).Value =  CStr(Int(oStyle.LeftMargin / 30)) &amp; &quot;px&quot;
+	oProps(3).Value =  GetEpubFormattedPixelString(Int(oStyle.LeftMargin / 30))
 	oProps(4).Name  = &quot;border-top&quot;
-	oProps(4).Value = GetCSSBorderString(oStyle.TopBorder)
+	oProps(4).Value = GetEpubCSSBorderString(oStyle.TopBorder)
 	oProps(5).Name  = &quot;border-right&quot;
-	oProps(5).Value = GetCSSBorderString(oStyle.RightBorder)
+	oProps(5).Value = GetEpubCSSBorderString(oStyle.RightBorder)
 	oProps(6).Name  = &quot;border-bottom&quot;
-	oProps(6).Value = GetCSSBorderString(oStyle.BottomBorder)
+	oProps(6).Value = GetEpubCSSBorderString(oStyle.BottomBorder)
 	oProps(7).Name  = &quot;border-left&quot;
-	oProps(7).Value = GetCSSBorderString(oStyle.LeftBorder)
+	oProps(7).Value = GetEpubCSSBorderString(oStyle.LeftBorder)
 	oProps(8).Name  = &quot;background-color&quot;
 	oProps(8).Value = GetEpubHexColorString(oStyle.BackColor)
 
@@ -1262,7 +1267,7 @@ dim i as integer
 	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;ha_icont&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
 
 	oProps(0).Name  = &quot;padding&quot;
-	oProps(0).Value =  &quot;0px 8px&quot;
+	oProps(0).Value =  &quot;0 8px&quot;
 
 	for i = 0 to ubound(oProps)
 		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
@@ -1402,13 +1407,13 @@ dim sWidth as string
 	&apos;xray oBorder
 	&apos;first check if this paragraph has a border at all
 	if oBorder.OuterLineWidth = 0 then
-		sBorder = &quot;0px&quot;
+		sBorder = GetEpubFormattedPixelString(0)
 	else
 		iWidth = Int(oBorder.OuterLineWidth / 15)
 		if iWidth = 0 then 
 			iWidth = 1
 		end if	
-		sWidth = CStr(iWidth) &amp; &quot;px&quot;		
+		sWidth = GetEpubFormattedPixelString(iWidth)		
 		sColor = GetEpubHexColorString(oBorder.Color)
 		sBorder = sWidth &amp; &quot; solid &quot; &amp; sColor
 	end if	
@@ -1451,4 +1456,11 @@ dim i as integer
 end function
 
 
+function GetEpubFormattedPixelString(iPixelValue as integer) as string
+	if iPixelValue = 0 then
+		GetEpubFormattedPixelString = &quot;0&quot;
+	else
+		GetEpubFormattedPixelString = CStr(iPixelValue)
+	end if
+end function
 </script:module>
