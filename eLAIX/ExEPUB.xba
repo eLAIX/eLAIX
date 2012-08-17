@@ -374,19 +374,20 @@ dim sFootnote as string
 		if (left(aList(i),4) = &quot;http&quot;) or (left(aList(i),3) = &quot;www&quot;) then  &apos;this portion is a hyperlink
 			sURL = ReplaceString(aList(i), &quot;&amp;amp;amp;&quot;, &quot;&amp;&quot;  )
 			sLink = ReplaceSymbolsFootnote(aList(i))
-			sResult = sResult &amp; &quot;&amp;lt;a href=&quot;&quot;&quot; &amp; sURL &amp; &quot;&quot;&quot; target=&quot;&quot;_blank&quot;&quot;&amp;gt;&quot; &amp; sLink &amp; &quot;&amp;lt;/a&amp;gt;&quot; &amp; &quot; &quot;
+			sResult = sResult &amp; &quot;&lt;a href=&quot;&quot;&quot; &amp; sURL &amp; &quot;&quot;&quot; target=&quot;&quot;_blank&quot;&quot;&gt;&quot; &amp; sLink &amp; &quot;&lt;/a&gt;&quot; &amp; &quot; &quot;
 		else
 			sResult = sResult &amp; ReplaceSymbols(aList(i)) &amp; &quot; &quot;
 		end if  
 	next i
 	sId = lTrim(rTrim(oPortionRec.GetString))
 	sRef =  &quot;&lt;a class=&quot;&quot;footnote&quot;&quot; epub:type=&quot;&quot;noteref&quot;&quot; id=&quot;&quot;noteref&quot; &amp; sID &amp; &quot;&quot;&quot; href=&quot;&quot;#fn&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;&quot; &amp; sID &amp; &quot;&lt;/a&gt;&quot;
-	&apos;when readers will be able to show aside elements as tooltip
+	&apos;&apos;when readers will be able to show aside elements as tooltip
 	&apos;sFootnote = &quot;&lt;aside epub:type=&quot;&quot;footnote&quot;&quot; id=&quot;&quot;fn&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/aside&gt;&quot;
 	&apos;GetEpubFootnoteExportString = sRef &amp; sFootnote
+
 	&apos;meanwhile:
 	gsFootnotes = gsFootnotes &amp; &quot;&lt;aside epub:type=&quot;&quot;footnote&quot;&quot; id=&quot;&quot;fn&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;&lt;p&gt;&lt;span class=&quot;&quot;fn-id&quot;&quot;&gt;&quot; &amp; sId &amp; &quot;&lt;/span&gt;&quot;_
-							 &amp; sResult &amp; &quot;&lt;a href=&quot;&quot;#noteref&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;↑&lt;/a&gt;&lt;/p&gt;&lt;/aside&gt;&quot;
+							 &amp; sResult &amp; &quot;&lt;a class=&quot;&quot;back&quot;&quot; href=&quot;&quot;#noteref&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;↑&lt;/a&gt;&lt;/p&gt;&lt;/aside&gt;&quot;
 	GetEpubFootnoteExportString = sRef
 
 end function
@@ -494,24 +495,24 @@ dim iNoTextWrap as long
 							sExportString = sExportString &amp; &quot; &quot; 
 						end if
 					end if	
-					sExportString = sExportString &amp; GetTextPortionExportString(oPortion)
+					sExportString = sExportString &amp; GetEpubTextPortionExportString(oPortion)
 					
 				Case &quot;_TextField&quot; &apos;this portion is a reference
-					sExportString = sExportString &amp; GetTextFieldExportString(oPortion)
+					sExportString = sExportString &amp; GetEpubTextFieldExportString(oPortion)
 					
 				Case &quot;_Bookmark&quot; &apos;this portion is a bookmark
-					sExportString = sExportString &amp; GetBookmarkExportString(oPortion)
+					sExportString = sExportString &amp; GetEpubBookmarkExportString(oPortion)
 
 				Case &quot;Footnote&quot; &apos;this portion is a footnote
 					sExportString = sExportString &amp; GetEpubFootnoteExportString(oPortion)
 
 				Case &quot;_Marginale&quot; &apos;this portion is a marginale
-					sExportString = sExportString &amp; GetMarginaleExportString(oPortion)
+					sExportString = sExportString &amp; GetEpubMarginaleExportString(oPortion)
 
 				Case &quot;_Frame&quot; &apos;this portion is a frame
 					&apos;it could be a formula
 					if oPortion.FrameStyleName = &quot;Formula&quot; then
-						sLaTeX = &quot;[tex]&quot; &amp; ReplaceTexString(oPortion.FormulaTeX) &amp; &quot;[/tex]&quot;
+						sLaTeX = &quot;&lt;tex&gt;&quot; &amp; ReplaceTexString(oPortion.FormulaTeX) &amp; &quot;&lt;/tex&gt;&quot;
 						&apos;set a blank before formula if there is text before
 						iLen = len(sExportString)
 						if iLen &gt; 0 then
@@ -1003,23 +1004,15 @@ dim sType as string
 		elseif oPortion.HyperLinkURL &lt;&gt; &quot;&quot; then
 			&apos;it could be an external Link
 			if left(oPortion.HyperLinkURL, 4) = &quot;http&quot; then
-				dim sTarget as string
-				&apos;the target should be something that does not start with &quot;_&quot;
-				if oPortion.HyperLinkTarget &lt;&gt; &quot;&quot; then
-					if left(oPortion.HyperLinkTarget, 1) &lt;&gt; &quot;_&quot; then
-						sTarget = &quot; TargetFrame=&quot;&quot;&quot; &amp; oPortion.HyperLinkTarget &amp; &quot;&quot;&quot;&quot; 
-					end if	
-				end if
-				vURL = &quot; Href=&quot;&quot;&quot; &amp; ReplaceSymbols(oPortion.HyperLinkURL) &amp; &quot;&quot;&quot;&quot;
+				vURL = ReplaceSymbols(oPortion.HyperLinkURL)
 				vLink = ReplaceSymbols(sResult)
-				sResult = &quot;&lt;ExtLink&quot; &amp; vURL &amp; sTarget &amp; &quot;&gt;&quot; &amp; vLink &amp; &quot;&lt;/ExtLink&gt;&quot;
+				sResult = &quot;&lt;a class=&quot;&quot;extern&quot;&quot; href=&quot;&quot;&quot; &amp; vURL &amp; &quot;&quot;&quot;&gt;&quot; &amp; vLink &amp; &quot;&lt;/a&gt;&quot;
 			&apos;it could be an internal link	
 			elseif left(oPortion.CharStyleName, 10) = &quot;ILIAS Link&quot; then
 				dim sLink as string
 				sLink = mid(oPortion.HyperLinkURL, 2)
 				sType = mid(oPortion.CharStyleName, 12)
-				sResult = &quot;&lt;IntLink Target=&quot;&quot;&quot; &amp; sLink &amp; &quot;&quot;&quot; Type=&quot;&quot;&quot; &amp; sType &amp; &quot;&quot;&quot; TargetFrame=&quot;&quot;&quot; &amp; oPortion.HyperLinkTarget &amp;_
-						 &quot;&quot;&quot;&gt;&quot; &amp; oPortion.GetString &amp; &quot;&lt;/IntLink&gt;&quot;
+				sResult = &quot;&lt;a class=&quot;&quot;intern&quot;&quot; href=&quot;&quot;&quot; &amp; sLink &amp; &quot;&quot;&quot;&gt;&quot; &amp; oPortion.GetString &amp; &quot;&lt;/a&gt;&quot;
 			&apos;it could be an internal link to a bookmark
 			elseif left(oPortion.HyperLinkURL, 1) = &quot;#&quot; then
 				dim sBookmark as string
@@ -1029,7 +1022,7 @@ dim sType as string
 				oBookmarkPortion = GetTextPortionByBookmark(sBookmark)
 				if not isnull (oBookmarkPortion) then
 					iChapterId = gaDocParagraph(oBookmarkPortion.ParaID).ChapterID
-					sResult = &quot;&lt;IntLink Target=&quot;&quot;il_0_pg_&quot; &amp; CStr(iChapterID) &amp; &quot;&quot;&quot; Type=&quot;&quot;PageObject&quot;&quot; Anchor=&quot;&quot;&quot; &amp; sBookmark &amp; &quot;&quot;&quot;&gt;&quot; &amp; oPortion.Getstring &amp; &quot;&lt;/IntLink&gt;&quot;
+					sResult = &quot;&lt;a class=&quot;&quot;bookmark&quot;&quot; Anchor=&quot;&quot;&quot; &amp; sBookmark &amp; &quot;&quot;&quot;&gt;&quot; &amp; oPortion.Getstring &amp; &quot;&lt;/a&gt;&quot;
 				end if    
 			end if    
 		else
@@ -1049,7 +1042,7 @@ dim sType as string
 				if uBound(aList()) &gt; 0 then
 					if len(aList(0)) &lt;= 4 then
 						sClass = oPortion.ParaStyleName &amp; &quot;Label&quot;
-						sResult = &quot;&amp;lt;span class=&quot;&quot;ilc_text_inline_&quot; &amp; sClass &amp; &quot;&quot;&quot;&amp;gt;&quot; &amp; aList(0) &amp; &quot;&amp;lt;/span&amp;gt;&quot;
+						sResult = &quot;&lt;span class=&quot;&quot;&quot; &amp; sClass &amp; &quot;&quot;&quot;&gt;&quot; &amp; aList(0) &amp; &quot;&lt;/span&gt;&quot;
 						for i = 1 to ubound(aList)
 							sResult = sResult &amp; aList(i)
 						next i
@@ -1083,15 +1076,15 @@ dim sType as string
 				if (lCharColor &lt;&gt; -1) and (oPortion.HyperLinkURL = &quot;&quot;) and (oPortion.CharStyleName = &quot;&quot;) _
 				and (oPortion.ParaStylename &lt;&gt; gsMarginaleLeftStyle) and (oPortion.ParaStylename &lt;&gt; gsMarginaleRightStyle) then
 					sTextFarbe = GetEpubHexColorString(lCharColor)
-					sResult = &quot;&amp;lt;font color=&quot;&quot;&quot; &amp; sTextFarbe &amp; &quot;&quot;&quot;&amp;gt;&quot; &amp; sResult &amp; &quot;&amp;lt;/font&amp;gt;&quot;
+					sResult = &quot;&lt;font color=&quot;&quot;&quot; &amp; sTextFarbe &amp; &quot;&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/font&gt;&quot;
 				end if
 		
 				&apos;check subscript and superscript formatting
 				vEsc = oPortion.CharEscapement
 				if oPortion.CharEscapement &lt; 0 then  &apos;this portion is formatted in subscript
-					sResult = &quot;&amp;lt;sub&amp;gt;&amp;lt;font size=&quot;&quot;-2&quot;&quot;&amp;gt;&quot; &amp; sResult &amp; &quot;&amp;lt;/sub&amp;gt;&amp;lt;/font&amp;gt;&quot; 
+					sResult = &quot;&lt;sub&gt;&lt;font size=&quot;&quot;-2&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/sub&gt;&lt;/font&gt;&quot; 
 				elseif oPortion.CharEscapement &gt; 0 then  &apos;this portion is formatted in superscript
-					sResult = &quot;&amp;lt;sup&amp;gt;&amp;lt;font size=&quot;&quot;-2&quot;&quot;&amp;gt;&quot; &amp; sResult &amp; &quot;&amp;lt;/sup&amp;gt;&amp;lt;/font&amp;gt;&quot; 
+					sResult = &quot;&lt;sup&gt;&lt;font size=&quot;&quot;-2&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/sup&gt;&lt;/font&gt;&quot; 
 				end if
 		
 				if (oPortion.CharPosture = com.sun.star.awt.FontSlant.ITALIC) then  &apos;this portion is formatted in italic
@@ -1100,7 +1093,7 @@ dim sType as string
 		
 				&apos;check if the textportion is underlined
 				if (oPortion.CharUnderline &gt; 0) then
-					sResult = &quot;&amp;lt;u&amp;gt;&quot; &amp; sResult &amp; &quot;&amp;lt;/u&amp;gt;&quot;	
+					sResult = &quot;&lt;u&gt;&quot; &amp; sResult &amp; &quot;&lt;/u&gt;&quot;	
 				end if         	
 
 				if oPortion.CharFontPitch =  com.sun.star.awt.FontPitch.FIXED then
@@ -1115,10 +1108,10 @@ dim sType as string
 					case  &quot;ILIAS_Accent&quot;    : sResult = &quot;&lt;Accent&gt;&quot; &amp; sResult &amp; &quot;&lt;/Accent&gt;&quot;
 					case  &quot;ILIAS_Keyword&quot;   : sResult = &quot;&lt;Keyw&gt;&quot; &amp; sResult &amp; &quot;&lt;/Keyw&gt;&quot;
 					&apos;case  &quot;ILIAS Code&quot;      : sResult = &quot;&lt;Code&gt;&quot; &amp; sResult &amp; &quot;&lt;/Code&gt;&quot;
-					case  &quot;ILIAS_LaTeX&quot;     : sResult = &quot;[tex]&quot; &amp; sResult &amp; &quot;[/tex]&quot;
+					case  &quot;ILIAS_LaTeX&quot;     : sResult = &quot;&lt;tex&gt;&quot; &amp; sResult &amp; &quot;&lt;/tex&gt;&quot;
 					case  &quot;Standard&quot;     	
 				end select	        
-				sResult = &quot;&amp;lt;span class=&quot;&quot;ilc_text_inline_&quot; &amp; vCharStyle &amp; &quot;&quot;&quot;&amp;gt;&quot; &amp; sResult &amp; &quot;&amp;lt;/span&amp;gt;&quot;
+				sResult = &quot;&lt;span class=&quot;&quot;&quot; &amp; vCharStyle &amp; &quot;&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/span&gt;&quot;
 			end if  
 
 			if (oPortion.ParaStyleName = gsMarginaleLeftStyle) or (oPortion.ParaStyleName = gsMarginaleRightStyle) then
@@ -1166,19 +1159,19 @@ dim iNumberOfNull as integer
 		&apos;first get the Paragraph to which is referenced
 		for i = 1 to ubound(gaDocChapter())
 			if gaDocChapter(i).ReferenceMark = oPortionRec.TextField then
-				sTarget = &quot;il_0_st_&quot; &amp; gaDocParagraph(i).ID
+				sTarget = &quot;page-&quot; &amp; gaDocParagraph(i).ID
 				exit for
 			end if
 		next i
   		
   		if sTarget &lt;&gt; &quot;&quot; then
 			sText = ReplaceSymbols(oPortionRec.GetString)
-			sResult = &quot;&lt;IntLink Target=&quot;&quot;&quot; &amp; sTarget &amp; &quot;&quot;&quot; Type=&quot;&quot;StructureObject&quot;&quot;&gt;&quot; &amp; sText &amp; &quot;&lt;/IntLink&gt;&quot;
+			sResult = &quot;&lt;a class=&quot;&quot;intern href=&quot;&quot;&quot; &amp; sTarget &amp; &quot;&quot;&quot;&gt;&quot; &amp; sText &amp; &quot;&lt;/a&gt;&quot;
 		else	
 			sResult = oPortionRec.GetString
 		end if
 
-		if oPortionRec.CharWeight = com.sun.star.awt.FontWeight.BOLD THEN  &apos;this portion is formatted in bold
+		if oPortionRec.CharWeight = com.sun.star.awt.FontWeight.BOLD then  &apos;this portion is formatted in bold
 			if len(sResult) &gt; 1 then
 		        sResult = &quot;&lt;Strong&gt;&quot; &amp; sResult &amp; &quot;&lt;/Strong&gt;&quot; 
 		    elseif asc(sResult) &lt;&gt; 9 and sResult &lt;&gt; &quot; &quot; then
@@ -1190,20 +1183,15 @@ dim iNumberOfNull as integer
       lCharColor = oPortionRec.CharColor
       if lCharColor &lt;&gt; -1 AND oPortionRec.HyperLinkURL = &quot;&quot; AND oPortionRec.CharStyleName &lt;&gt; &quot;ILIAS Zitat&quot; then
         sTextColor = GetEpubHexColorString(lCharColor)
-        sResult = &quot;&amp;lt;font color=&quot;&quot;&quot; &amp; sTextColor &amp; &quot;&quot;&quot;&amp;gt;&quot; &amp; sResult &amp; &quot;&amp;lt;/font&amp;gt;&quot;
+        sResult = &quot;&lt;font color=&quot;&quot;&quot; &amp; sTextColor &amp; &quot;&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/font&gt;&quot;
       endif
     
       &apos;check subscript and superscript formatting
       if oPortionRec.CharEscapement &lt; 0 THEN  &apos;this portion is formatted in subscript
-        sResult = &quot;&amp;lt;sub&amp;gt;&amp;lt;font size=&quot;&quot;-2&quot;&quot;&amp;gt;&quot; &amp; sResult &amp; &quot;&amp;lt;/sub&amp;gt;&amp;lt;/font&amp;gt;&quot; 
+        sResult = &quot;&lt;sub&gt;&lt;font size=&quot;&quot;-2&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/sub&gt;&lt;/font&gt;&quot; 
       elseif oPortionRec.CharEscapement &gt; 0 THEN  &apos;this portion is formatted in superscript
-        sResult = &quot;&amp;lt;sup&amp;gt;&amp;lt;font size=&quot;&quot;-2&quot;&quot;&amp;gt;&quot; &amp; sResult &amp; &quot;&amp;lt;/sup&amp;gt;&amp;lt;/font&amp;gt;&quot; 
+        sResult = &quot;&lt;sup&gt;&lt;font size=&quot;&quot;-2&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/sup&gt;&lt;/font&gt;&quot; 
       endif
-
-      &apos;check citation: only format citation if paragraph isn&apos;t already citation
-      if (oPortionRec.CharStyleName = &quot;ILIAS Citation&quot;) and (oPortionRec.ParaStyleName &lt;&gt; &quot;ILIAS Citation&quot;) then
-        sResult = &quot;&lt;Quotation Language=&quot; &amp; gsLang &amp; &quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/Quotation&gt;&quot; 
-      end if  
 
 		if oPortionRec.CharFontPitch =  com.sun.star.awt.FontPitch.FIXED then
 	        sResult = &quot;&lt;Code&gt;&quot; &amp; sResult &amp; &quot;&lt;/Code&gt;&quot; 
@@ -1286,7 +1274,7 @@ function GetEpubPageAlias(piPos as integer) as string
 dim vStr as string
 
 	vStr = CStr(Ubound(gaHeadIdent()))
-	vStr = &quot;&quot;&quot;il_0_pg_&quot; &amp; CStr(piPos) &amp; &quot;&quot;&quot;&quot;
+	vStr = &quot;&quot;&quot;page-&quot; &amp; CStr(piPos) &amp; &quot;&quot;&quot;&quot;
 	GetPageAlias = vStr
 end function
 
@@ -1327,7 +1315,7 @@ dim aKeywords(0)
 dim sLayout as string
 dim sAlign as string
 dim sExtension as string
-dim sImageTyp as string
+dim sImageType as string
 dim iMediaType as integer
 dim iPos as integer
 
@@ -1350,23 +1338,18 @@ dim iPos as integer
 					sLayout = GetMediaLayoutString(gaDocMedia(i))
 				end if  
 				sAlign = &quot;HorizontalAlign=&quot; &amp; GetIliasAlignString(gaDocMedia(i))
-				sExtension = GetFileNameExtension(sFileName)
-				if sExtension &lt;&gt; &quot;jpg&quot; then
-					sImageTyp = &quot;image/&quot; &amp; sExtension
-				else
-					sImageTyp = &quot;image/jpeg&quot;
-				end if
+				sImageType = GetMediaTypeFromFilename(sFilename) 
 
 				WriteToStream(goExportXML, &quot;&lt;MediaObject&gt;&quot;)
 				ExportMetadata(sIdent, sTitle, sDescription, aKeywords(), true)			
 				WriteToStream(goExportXML, &quot;&lt;MediaItem Purpose=&quot;&quot;Standard&quot;&quot;&gt;&quot;)
 				WriteToStream(goExportXML, GetTag(&quot;Location&quot;,&quot;Type=&quot;&quot;LocalFile&quot;&quot;&quot;, sFileName, true))
-				WriteToStream(goExportXML, &quot;&lt;Format&gt;&quot; &amp; sImageTyp &amp; &quot;&lt;/Format&gt;&quot;)
+				WriteToStream(goExportXML, &quot;&lt;Format&gt;&quot; &amp; sImageType &amp; &quot;&lt;/Format&gt;&quot;)
 				WriteToStream(goExportXML, GetTag(&quot;Layout&quot;, sLayout &amp; &quot; &quot; &amp; sAlign, &quot;&quot;, true))
 				WriteToStream(goExportXML, &quot;&lt;/MediaItem&gt;&quot;)
 				WriteToStream(goExportXML, &quot;&lt;MediaItem Purpose=&quot;&quot;Fullscreen&quot;&quot;&gt;&quot;)
 				WriteToStream(goExportXML, GetTag(&quot;Location&quot;,&quot;Type=&quot;&quot;LocalFile&quot;&quot;&quot;, sFileName, true))
-				WriteToStream(goExportXML, &quot;&lt;Format&gt;&quot; &amp; sImageTyp &amp; &quot;&lt;/Format&gt;&quot;)
+				WriteToStream(goExportXML, &quot;&lt;Format&gt;&quot; &amp; sImageType &amp; &quot;&lt;/Format&gt;&quot;)
 				WriteToStream(goExportXML, GetTag(&quot;Layout &quot;, sAlign, &quot;&quot;, true))
 				WriteToStream(goExportXML, &quot;&lt;/MediaItem&gt;&quot;)
 				WriteToStream(goExportXML, &quot;&lt;/MediaObject&gt;&quot;)  
@@ -1441,11 +1424,6 @@ Dim vString as String
   end if
   GetEpubTag = vString
 end function
-
-
-sub WriteEpubToStream(pStream as object, pString as string)
-  pStream.writeString(pString &amp; gsCR)
-end sub  
 
 
 sub SetEpubTableCaptions
@@ -1704,95 +1682,6 @@ dim sType as string
 	end select
 	GetILIASListType = sType
 end function
-
-
-function GetIliasParagraphStyleString(sParaStyle as string) as string
-dim sStyle as string
-
-	select case sParaStyle
-		case &quot;ILIAS Additional&quot;: sStyle = &quot;Additional&quot;
-        case &quot;ILIAS Citation&quot;: sStyle = &quot;Citation&quot;
-        case &quot;ILIAS Example&quot;: sStyle = &quot;Example&quot;
-        case &quot;ILIAS Mnemonic&quot;: sStyle = &quot;Mnemonic&quot;
-        case &quot;ILIAS Remark&quot;: sStyle = &quot;Remark&quot;
-        case &quot;ILIAS Code other&quot;: sStyle = &quot;Code&quot;
-        case &quot;ILIAS Code C&quot;: sStyle = &quot;Code&quot;
-        case &quot;ILIAS Code C++&quot;: sStyle = &quot;Code&quot;
-        case &quot;ILIAS Code Java&quot;: sStyle = &quot;Code&quot;
-        case &quot;ILIAS Code PHP&quot;: sStyle = &quot;Code&quot;
-        case &quot;ILIAS Code HTML&quot;: sStyle = &quot;Code&quot;
-        case &quot;ILIAS Code XML&quot;: sStyle = &quot;Code&quot;
-        case &quot;ILIAS Code VB&quot;: sStyle = &quot;Code&quot;
-        case &quot;ILIAS Code Latex&quot;: sStyle = &quot;Code&quot;
-        case &quot;ILIAS Code Delphi&quot;: sStyle = &quot;Code&quot;
-        case else 
-          sStyle = &quot;&quot;
-	end select
-	GetIliasParagraphStyleString = sStyle
-end function
-
-
-function GetEpubParagraphSubStyleString(sParaStyle as string) as string
-dim sSubStyle as string
-
-      select case sParaStyle
-        case &quot;ILIAS Additional&quot;: sSubStyle = &quot;&quot;
-        case &quot;ILIAS Citation&quot;: sSubStyle = &quot;&quot;
-        case &quot;ILIAS Example&quot;: sSubStyle = &quot;&quot;
-        case &quot;ILIAS Mnemonic&quot;: sSubStyle = &quot;&quot;
-        case &quot;ILIAS Remark&quot;: sSubStyle = &quot;&quot;
-        case &quot;ILIAS Code other&quot;: sSubStyle = &quot;n&quot;
-        case &quot;ILIAS Code C&quot;: sSubStyle = &quot;c&quot;
-        case &quot;ILIAS Code C++&quot;: sSubStyle = &quot;cpp&quot;
-        case &quot;ILIAS Code Java&quot;: sSubStyle = &quot;java122&quot;
-        case &quot;ILIAS Code PHP&quot;: sSubStyle = &quot;php3&quot;
-        case &quot;ILIAS Code HTML&quot;: sSubStyle = &quot;html&quot;
-        case &quot;ILIAS Code XML&quot;: sSubStyle = &quot;xml&quot;
-        case &quot;ILIAS Code VB&quot;: sSubStyle = &quot;vb&quot;
-        case &quot;ILIAS Code Latex&quot;: sSubStyle = &quot;latex&quot;
-        case &quot;ILIAS Code Delphi&quot;: sSubStyle = &quot;delphi&quot;
-        case else 
-          sSubStyle = &quot;&quot;
-      end select
-      GetEpubParagraphSubstyleString = sSubstyle
-end function
-
-
-sub ExportEpubDocProperties
-dim sOutlineNumbering as string
-dim sValue as string
-
-	sOutlineNumbering = GetInternalDocString(&quot;elaixPropOutlineNumbering&quot;)
-	if sOutlineNumbering = &quot;1&quot; then 
-		sOutlineNumbering = &quot;y&quot;
-	else
-		sOutlineNumbering = &quot;n&quot;
-	end if	
-	
-	WriteToStream(goExportXML, &quot;&lt;Properties&gt;&quot;) 
-	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;Layout&quot;&quot; Value=&quot;&quot;toc2windyn&quot;&quot;/&gt;&quot;
-	&apos;WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;Layout&quot;&quot; Value=&quot;&quot;toc2win&quot;&quot;/&gt;&quot;
-	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;PageHeader&quot;&quot; Value=&quot;&quot;pg_title&quot;&quot;/&gt;&quot;
-	&apos;WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;PageHeader&quot;&quot; Value=&quot;&quot;st_title&quot;&quot;/&gt;&quot;
-	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;TOCMode&quot;&quot; Value=&quot;&quot;pages&quot;&quot;/&gt;&quot;
-	&apos;WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;TOCMode&quot;&quot; Value=&quot;&quot;chapters&quot;&quot;/&gt;&quot;
-	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;ActiveLMMenu&quot;&quot; Value=&quot;&quot;y&quot;&quot;/&gt;&quot;
-	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;ActiveNumbering&quot;&quot; Value=&quot;&quot;&quot; &amp; sOutlineNumbering &amp; &quot;&quot;&quot;/&gt;&quot;
-	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;ActiveTOC&quot;&quot; Value=&quot;&quot;y&quot;&quot;/&gt;&quot;
-	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;ActivePrintView&quot;&quot; Value=&quot;&quot;y&quot;&quot;/&gt;&quot;
-	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;CleanFrames&quot;&quot; Value=&quot;&quot;y&quot;&quot;/&gt;&quot;
-	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;PublicNotes&quot;&quot; Value=&quot;&quot;n&quot;&quot;/&gt;&quot;
-	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;HistoryUserComments&quot;&quot; Value=&quot;&quot;n&quot;&quot;/&gt;&quot;
-	if gbOptIncludeHeader then
-		sValue = &quot;il_0_pg_&quot; &amp; CStr(giHeaderPageID)
-		WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;HeaderPage&quot;&quot; Value=&quot;&quot;&quot; &amp; sValue &amp; &quot;&quot;&quot;/&gt;&quot;
-	end if	
-	if gbOptIncludeFooter then
-		sValue = &quot;il_0_pg_&quot; &amp; CStr(giFooterPageID)
-		WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;FooterPage&quot;&quot; Value=&quot;&quot;&quot; &amp; sValue &amp; &quot;&quot;&quot;/&gt;&quot;
-	end if	
-	WriteToStream(goExportXML, &quot;&lt;/Properties&gt;&quot;) 
-end sub
 
 
 function GetFirstDocMediaRecByExtMediaID(iExtMediaID as long) as object
