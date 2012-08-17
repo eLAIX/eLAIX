@@ -695,6 +695,7 @@ dim sImageDir as string
 dim iPos as integer
 dim sStyle as string
 dim sTempFolder as string
+dim iMsg as integer
 
 	&apos;Deactivate OK-Button
 	oStartButton = goDlgExport.getControl(&quot;butOK&quot;)
@@ -705,7 +706,7 @@ dim sTempFolder as string
 	if oDlgFilename.Label &lt;&gt; &quot;&quot; then
 	  if FileExists(oDlgFilename.Label) and (gbAskForOverwrite) then
 	    vStr = &quot;The file you selected already exists.&quot; &amp; Chr(13) &amp; &quot;Do you really want to overwrite it?&quot;
-	    if msgbox(vStr, 164, &quot;Document Export&quot;) = 7 then
+	    if msgbox(vStr, 164, &quot;Document Export&quot;) = 7 then 
 	      exit sub
 	    end if
 	  end if
@@ -811,6 +812,9 @@ dim sTempFolder as string
 	&apos;MoveMediaToAliasFolder
 	&apos;MoveFilesToAliasFolder
 	&apos;MoveStyleToAliasFolder	
+	if FileExists(oDlgFilename.Label) then
+	   	kill oDlgFilename.Label
+	end if   	
 	ZipFolderToFile(ConvertFromURL(gsExportZipDir), ConvertFromURL(gsExportZIP), &quot;application/epub+zip&quot;)
 
 	if gbOptDelTmpFiles then
