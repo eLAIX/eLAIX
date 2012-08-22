@@ -611,7 +611,7 @@ dim sStyle as string
 	if oOptIncludeHeader.State = 1 then ReadDocStandardHeader
 	if oOptIncludeFooter.State = 1 then ReadDocStandardFooter
 	ReadDocument
-	&apos;PrintEnumArrays  &apos;&apos;&apos;for debugging purposes
+	PrintEnumArrays  &apos;&apos;&apos;for debugging purposes
 	
 	&apos;Export the document
 	oDlgLabel4.Label = gsCheckString
@@ -800,7 +800,7 @@ dim iMsg as integer
 	oDlgLabel3.Label = gsCheckString
 	ReadDocument
 	&apos;if goDlgExport.Model.optWriteDebugFiles.State = 1 then
-	&apos;	PrintEnumArrays  &apos;&apos;&apos;for debugging purposes
+		PrintEnumArrays  &apos;&apos;&apos;for debugging purposes
 	&apos;end if
 	
 	&apos;Export the document

@@ -22,6 +22,8 @@
 
 Option Explicit
 
+private const cFactor = 25
+
 sub ExportStyles
 dim oFileAccessService as object
 dim oOutputStream as object
@@ -281,13 +283,13 @@ dim i as integer
 	sStyleString = &quot;&lt;Style Tag=&quot;&quot;ol&quot;&quot; Type=&quot;&quot;list_o&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
 
 	oProps(0).Name  = &quot;margin-top&quot;
-	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / 30)) &amp; &quot;px&quot;
+	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(1).Name  = &quot;margin-right&quot;
-	oProps(1).Value =  CStr(Int(oStyle.ParaRightMargin / 30)) &amp; &quot;px&quot;
+	oProps(1).Value =  CStr(Int(oStyle.ParaRightMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(2).Name  = &quot;margin-bottom&quot;
-	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / 30)) &amp; &quot;px&quot;
+	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(3).Name  = &quot;margin-left&quot;
-	oProps(3).Value =  CStr(Int(oStyle.ParaLeftMargin / 30)) &amp; &quot;px&quot;
+	oProps(3).Value =  CStr(Int(oStyle.ParaLeftMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(4).Name  = &quot;padding-top&quot;
 	oProps(4).Value =  &quot;0px&quot;
 	oProps(5).Name  = &quot;padding-right&quot;
@@ -299,7 +301,7 @@ dim i as integer
 	oProps(8).Name  = &quot;font-size&quot;
 	oProps(8).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
 	&apos;oProps(8).Name  = &quot;text-indent&quot;
-	&apos;oProps(8).Value = CStr(Int(oStyle.ParaFirstLineIndent / 30)) &amp; &quot;px&quot;
+	&apos;oProps(8).Value = CStr(Int(oStyle.ParaFirstLineIndent / cFactor)) &amp; &quot;px&quot;
 
 	for i = 0 to ubound(oProps)
 		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
@@ -326,11 +328,11 @@ dim iFirstLineOffset as integer
 	sStyleString = &quot;&lt;Style Tag=&quot;&quot;ul&quot;&quot; Type=&quot;&quot;list_u&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
 
 	oProps(0).Name  = &quot;margin-top&quot;
-	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / 30)) &amp; &quot;px&quot;
+	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(1).Name  = &quot;margin-right&quot;
-	oProps(1).Value =  CStr(Int(oStyle.ParaRightMargin / 30)) &amp; &quot;px&quot;
+	oProps(1).Value =  CStr(Int(oStyle.ParaRightMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(2).Name  = &quot;margin-bottom&quot;
-	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / 30)) &amp; &quot;px&quot;
+	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(3).Name  = &quot;padding-top&quot;
 	oProps(3).Value =  &quot;0px&quot;
 	oProps(4).Name  = &quot;padding-right&quot;
@@ -354,7 +356,7 @@ dim iFirstLineOffset as integer
 		iFirstLineOffset = GetNumRulesProperty(oNumRules, &quot;FirstLineIndent&quot;, iNumLevel)
 		redim preserve oProps(8)
 		oProps(8).Name  = &quot;margin-left&quot;
-		oProps(8).Value =  CStr(Int(iLeftMargin / 30) + Int(iFirstLineOffset / 30)) &amp; &quot;px&quot;
+		oProps(8).Value =  CStr(Int(iLeftMargin / cFactor) + Int(iFirstLineOffset / cFactor)) &amp; &quot;px&quot;
 	end if	
 
 	&apos;if the left margin of this list-style is set manualy
@@ -363,7 +365,7 @@ dim iFirstLineOffset as integer
 	&apos;	&apos;if oPara.NumberingLevel = 1 then
 	&apos;		redim preserve oProps(7)
 	&apos;		oProps(7).Name  = &quot;margin-left&quot;
-	&apos;		oProps(7).Value =  CStr(Int(oStyle.ParaLeftMargin / 30) + Int(oStyle.ParaFirstLineIndent / 30)) &amp; &quot;px&quot;
+	&apos;		oProps(7).Value =  CStr(Int(oStyle.ParaLeftMargin / cFactor) + Int(oStyle.ParaFirstLineIndent / cFactor)) &amp; &quot;px&quot;
 	&apos;	&apos;end if	
 	&apos;end if	
 
@@ -387,11 +389,11 @@ dim i as integer
 	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;text_block&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
 
 	oProps(0).Name  = &quot;margin-top&quot;
-	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / 30)) &amp; &quot;px&quot;
+	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(1).Name  = &quot;margin-right&quot;
-	oProps(1).Value =  CStr(Int(oStyle.ParaRightMargin / 30)) &amp; &quot;px&quot;
+	oProps(1).Value =  CStr(Int(oStyle.ParaRightMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(2).Name  = &quot;margin-bottom&quot;
-	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / 30)) &amp; &quot;px&quot;
+	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(3).Name  = &quot;margin-left&quot;
 	oProps(3).Value =  CStr((giMarginaleLeftWidth * -1) + 5) &amp; &quot;px&quot;
 	oProps(4).Name  = &quot;font-size&quot;
@@ -432,11 +434,11 @@ dim i as integer
 	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;text_block&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
 
 	oProps(0).Name  = &quot;margin-top&quot;
-	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / 30)) &amp; &quot;px&quot;
+	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(1).Name  = &quot;margin-right&quot;
 	oProps(1).Value =  &quot;30px&quot;
 	oProps(2).Name  = &quot;margin-bottom&quot;
-	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / 30)) &amp; &quot;px&quot;
+	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(3).Name  = &quot;margin-left&quot;
 	oProps(3).Value = &quot;0px&quot;
 	oProps(4).Name  = &quot;font-size&quot;
@@ -444,7 +446,7 @@ dim i as integer
 	oProps(5).Name  = &quot;position&quot;
 	oProps(5).Value =  &quot;absolute&quot;
 	oProps(6).Name  = &quot;width&quot;
-	oProps(6).Value =  CStr(giMarginaleRightWidth - 30) &amp; &quot;px&quot;
+	oProps(6).Value =  CStr(giMarginaleRightWidth - cFactor) &amp; &quot;px&quot;
 	oProps(7).Name  = &quot;right&quot;
 	oProps(7).Value = &quot;10px&quot;
 	oProps(8).Name  = &quot;padding&quot;
@@ -496,13 +498,13 @@ dim iCount as integer
 	end if
 	
 	oProps(0).Name  = &quot;margin-top&quot;
-	oProps(0).Value =  CStr(Int(oStyle.TopMargin / 30)) &amp; &quot;px&quot;
+	oProps(0).Value =  CStr(Int(oStyle.TopMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(1).Name  = &quot;margin-right&quot;
-	oProps(1).Value =  CStr(Int(oStyle.RightMargin / 30)) &amp; &quot;px&quot;
+	oProps(1).Value =  CStr(Int(oStyle.RightMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(2).Name  = &quot;margin-bottom&quot;
-	oProps(2).Value =  CStr(Int(oStyle.BottomMargin / 30)) &amp; &quot;px&quot;
+	oProps(2).Value =  CStr(Int(oStyle.BottomMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(3).Name  = &quot;margin-left&quot;
-	oProps(3).Value =  CStr(Int(oStyle.LeftMargin / 30)) &amp; &quot;px&quot;
+	oProps(3).Value =  CStr(Int(oStyle.LeftMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(4).Name  = &quot;position&quot;
 	oProps(4).Value =  &quot;relative&quot;	
 	oProps(5).Name  = &quot;color&quot;
@@ -519,13 +521,13 @@ dim iCount as integer
 	oProps(10).Name  = &quot;border-left&quot;
 	oProps(10).Value = GetCSSBorderString(oStyle.LeftBorder)
 	oProps(11).Name  = &quot;padding-top&quot;
-	oProps(11).Value = CStr(Int(oStyle.TopBorderDistance / 30)) &amp; &quot;px&quot;
+	oProps(11).Value = CStr(Int(oStyle.TopBorderDistance / cFactor)) &amp; &quot;px&quot;
 	oProps(12).Name  = &quot;padding-right&quot;
-	oProps(12).Value = CStr(Int(oStyle.RightBorderDistance / 30)) &amp; &quot;px&quot;
+	oProps(12).Value = CStr(Int(oStyle.RightBorderDistance / cFactor)) &amp; &quot;px&quot;
 	oProps(13).Name  = &quot;padding-bottom&quot;
-	oProps(13).Value = CStr(Int(oStyle.BottomBorderDistance / 30)) &amp; &quot;px&quot;
+	oProps(13).Value = CStr(Int(oStyle.BottomBorderDistance / cFactor)) &amp; &quot;px&quot;
 	oProps(14).Name  = &quot;padding-left&quot;
-	oProps(14).Value = CStr(Int(oStyle.LeftBorderDistance / 30)) &amp; &quot;px&quot;
+	oProps(14).Value = CStr(Int(oStyle.LeftBorderDistance / cFactor)) &amp; &quot;px&quot;
 		
 	if sGraphicName &lt;&gt; &quot;&quot; then
 		iCount = uBound(oProps) + 1
@@ -574,23 +576,23 @@ dim iCount as integer
 	elseif sStylename = &quot;ILIAS_FileList_Caption&quot; then
 		sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;flist_head&quot;&quot; Class=&quot;&quot;FileListHeading&quot;&quot;&gt;&quot;
 		oProps(0).Name  = &quot;margin-top&quot;
-		oProps(0).Value = CStr(Int(oStyle.ParaTopMargin / 30)) &amp; &quot;px&quot;
+		oProps(0).Value = CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
 		oProps(1).Name  = &quot;margin-left&quot;
-		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / 30)) &amp; &quot;px&quot;
+		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / cFactor)) &amp; &quot;px&quot;
 		
 	elseif sStylename = &quot;ILIAS_FileList_Element&quot; then
 		sStyleString = &quot;&lt;Style Tag=&quot;&quot;li&quot;&quot; Type=&quot;&quot;flist_li&quot;&quot; Class=&quot;&quot;FileListItem&quot;&quot;&gt;&quot;
 		oProps(0).Name  = &quot;margin-top&quot;
-		oProps(0).Value = CStr(Int(oStyle.ParaTopMargin / 30)) &amp; &quot;px&quot;
+		oProps(0).Value = CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
 		oProps(1).Name  = &quot;margin-left&quot;
-		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / 30)) &amp; &quot;px&quot;
+		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / cFactor)) &amp; &quot;px&quot;
 		
 	else
 		sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;text_block&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
 		oProps(0).Name  = &quot;margin-top&quot;
-		oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / 30)) &amp; &quot;px&quot;
+		oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
 		oProps(1).Name  = &quot;margin-left&quot;
-		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / 30)) &amp; &quot;px&quot;
+		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / cFactor)) &amp; &quot;px&quot;
 	end if
 	
 	oProps(2).Name  = &quot;position&quot;
@@ -600,14 +602,14 @@ dim iCount as integer
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;margin-right&quot;
-		oProps(iCount).Value = CStr(Int(oStyle.ParaRightMargin / 30)) &amp; &quot;px&quot;
+		oProps(iCount).Value = CStr(Int(oStyle.ParaRightMargin / cFactor)) &amp; &quot;px&quot;
 	end if
 		
 	if oStyle.GetPropertyState(&quot;ParaBottomMargin&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;margin-bottom&quot;
-		oProps(iCount).Value = CStr(Int(oStyle.ParaBottomMargin / 30)) &amp; &quot;px&quot;
+		oProps(iCount).Value = CStr(Int(oStyle.ParaBottomMargin / cFactor)) &amp; &quot;px&quot;
 	end if
 		
 	if oStyle.GetPropertyState(&quot;CharColor&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
@@ -677,28 +679,28 @@ dim iCount as integer
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;padding-top&quot;
-		oProps(iCount).Value = CStr(Int(oStyle.TopBorderDistance / 30)) &amp; &quot;px&quot;
+		oProps(iCount).Value = CStr(Int(oStyle.TopBorderDistance / cFactor)) &amp; &quot;px&quot;
 	end if
 
 	if oStyle.GetPropertyState(&quot;RightBorderDistance&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;padding-right&quot;
-		oProps(iCount).Value = CStr(Int(oStyle.RightBorderDistance / 30)) &amp; &quot;px&quot;
+		oProps(iCount).Value = CStr(Int(oStyle.RightBorderDistance / cFactor)) &amp; &quot;px&quot;
 	end if
 
 	if oStyle.GetPropertyState(&quot;BottomBorderDistance&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;padding-bottom&quot;
-		oProps(iCount).Value = CStr(Int(oStyle.BottomBorderDistance / 30)) &amp; &quot;px&quot;
+		oProps(iCount).Value = CStr(Int(oStyle.BottomBorderDistance / cFactor)) &amp; &quot;px&quot;
 	end if
 
 	if oStyle.GetPropertyState(&quot;LeftBorderDistance&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;padding-left&quot;
-		oProps(iCount).Value = CStr(Int(oStyle.LeftBorderDistance / 30)) &amp; &quot;px&quot;
+		oProps(iCount).Value = CStr(Int(oStyle.LeftBorderDistance / cFactor)) &amp; &quot;px&quot;
 	end if
 
 	if oStyle.GetPropertyState(&quot;CharWeight&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
@@ -811,7 +813,7 @@ dim oProp as new com.sun.star.beans.PropertyValue
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProp.Name  = &quot;letter-spacing&quot;
-		oProp.Value = CStr(Int(oStyle.CharKerning / 30)) &amp; &quot;pt&quot;
+		oProp.Value = CStr(Int(oStyle.CharKerning / cFactor)) &amp; &quot;pt&quot;
 		oProps(iCount) = oProp
 	end if
 	
@@ -971,7 +973,7 @@ dim iCount as integer
 			iCount = uBound(oProps) + 1
 			redim preserve oProps(iCount)
 			oProps(iCount).Name  = &quot;letter-spacing&quot;
-			oProps(iCount).Value = CStr(Int(oStyle.CharKerning / 30)) &amp; &quot;pt&quot;
+			oProps(iCount).Value = CStr(Int(oStyle.CharKerning / cFactor)) &amp; &quot;pt&quot;
 		end if
 	end if	
 		 
@@ -1086,7 +1088,7 @@ dim sStyleName as string
 dim iLeft as integer
 
 	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
-	iLeft = Int((oStyle.ParaFirstLineIndent) / 30)
+	iLeft = Int((oStyle.ParaFirstLineIndent) / cFactor)
 	sStyleString = &quot;&lt;Style Tag=&quot;&quot;span&quot;&quot; Type=&quot;&quot;text_inline&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;Label&quot;&quot;&gt;&quot;
 	sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;position&quot;&quot; Value=&quot;&quot;absolute&quot;&quot;/&gt;&quot;
 	sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;left&quot;&quot; Value=&quot;&quot;&quot; &amp; CStr(iLeft) &amp; &quot;px&quot;&quot;/&gt;&quot;
@@ -1106,13 +1108,13 @@ dim i as integer
 	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;va_icntr&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
 
 	oProps(0).Name  = &quot;margin-top&quot;
-	oProps(0).Value =  CStr(Int(oStyle.TopMargin / 30)) &amp; &quot;px&quot;
+	oProps(0).Value =  CStr(Int(oStyle.TopMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(1).Name  = &quot;margin-right&quot;
-	oProps(1).Value =  CStr(Int(oStyle.RightMargin / 30)) &amp; &quot;px&quot;
+	oProps(1).Value =  CStr(Int(oStyle.RightMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(2).Name  = &quot;margin-bottom&quot;
-	oProps(2).Value =  CStr(Int(oStyle.BottomMargin / 30)) &amp; &quot;px&quot;
+	oProps(2).Value =  CStr(Int(oStyle.BottomMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(3).Name  = &quot;margin-left&quot;
-	oProps(3).Value =  CStr(Int(oStyle.LeftMargin / 30)) &amp; &quot;px&quot;
+	oProps(3).Value =  CStr(Int(oStyle.LeftMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(4).Name  = &quot;border-top&quot;
 	oProps(4).Value = GetCSSBorderString(oStyle.TopBorder)
 	oProps(5).Name  = &quot;border-right&quot;
@@ -1143,13 +1145,13 @@ dim i as integer
 	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;ha_icntr&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
 
 	oProps(0).Name  = &quot;margin-top&quot;
-	oProps(0).Value =  CStr(Int(oStyle.TopMargin / 30)) &amp; &quot;px&quot;
+	oProps(0).Value =  CStr(Int(oStyle.TopMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(1).Name  = &quot;margin-right&quot;
-	oProps(1).Value =  CStr(Int(oStyle.RightMargin/30 + 5)) &amp; &quot;px&quot;
+	oProps(1).Value =  CStr(Int(oStyle.RightMargin/cFactor + 5)) &amp; &quot;px&quot;
 	oProps(2).Name  = &quot;margin-bottom&quot;
-	oProps(2).Value =  CStr(Int(oStyle.BottomMargin / 30)) &amp; &quot;px&quot;
+	oProps(2).Value =  CStr(Int(oStyle.BottomMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(3).Name  = &quot;margin-left&quot;
-	oProps(3).Value =  CStr(Int(oStyle.LeftMargin / 30)) &amp; &quot;px&quot;
+	oProps(3).Value =  CStr(Int(oStyle.LeftMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(4).Name  = &quot;border-top&quot;
 	oProps(4).Value = GetCSSBorderString(oStyle.TopBorder)
 	oProps(5).Name  = &quot;border-right&quot;

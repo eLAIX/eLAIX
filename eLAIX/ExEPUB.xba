@@ -356,70 +356,6 @@ dim iActPageID as long
 end sub	
 
 
-function GetEpubFootnoteExportString(oPortionRec as object) as string
-dim aList()
-dim sResult as string
-dim iPos as integer
-dim sURL as string
-dim sLink as string
-dim i as integer
-dim sId as string
-dim sRef as string
-dim sFootnote as string
-
-	aList = ArrayOutOfString(oPortionRec.Footnote, &quot; &quot;)
-	sResult = &quot;&quot;
-	for i = 0 to ubound(aList())    
-		if (left(aList(i),4) = &quot;http&quot;) or (left(aList(i),3) = &quot;www&quot;) then  &apos;this portion is a hyperlink
-			sURL = ReplaceString(aList(i), &quot;&amp;amp;amp;&quot;, &quot;&amp;&quot;  )
-			sLink = ReplaceSymbolsFootnote(aList(i))
-			sResult = sResult &amp; &quot;&lt;a href=&quot;&quot;&quot; &amp; sURL &amp; &quot;&quot;&quot; target=&quot;&quot;_blank&quot;&quot;&gt;&quot; &amp; sLink &amp; &quot;&lt;/a&gt;&quot; &amp; &quot; &quot;
-		else
-			sResult = sResult &amp; ReplaceSymbols(aList(i)) &amp; &quot; &quot;
-		end if  
-	next i
-	sId = lTrim(rTrim(oPortionRec.GetString))
-	sRef =  &quot;&lt;a class=&quot;&quot;footnote&quot;&quot; epub:type=&quot;&quot;noteref&quot;&quot; id=&quot;&quot;noteref&quot; &amp; sID &amp; &quot;&quot;&quot; href=&quot;&quot;#fn&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;&quot; &amp; sID &amp; &quot;&lt;/a&gt;&quot;
-	&apos;&apos;when readers will be able to show aside elements as tooltip
-	&apos;sFootnote = &quot;&lt;aside epub:type=&quot;&quot;footnote&quot;&quot; id=&quot;&quot;fn&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/aside&gt;&quot;
-	&apos;GetEpubFootnoteExportString = sRef &amp; sFootnote
-
-	&apos;meanwhile:
-	gsFootnotes = gsFootnotes &amp; &quot;&lt;aside epub:type=&quot;&quot;footnote&quot;&quot; id=&quot;&quot;fn&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;&lt;p&gt;&lt;span class=&quot;&quot;fn-id&quot;&quot;&gt;&quot; &amp; sId &amp; &quot;&lt;/span&gt;&quot;_
-							 &amp; sResult &amp; &quot;&lt;a class=&quot;&quot;back&quot;&quot; href=&quot;&quot;#noteref&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;↑&lt;/a&gt;&lt;/p&gt;&lt;/aside&gt;&quot;
-	GetEpubFootnoteExportString = sRef
-
-end function
-
-
-sub ExportEpubFootnotes
-dim oStream as object 
-
-	&apos;Export footnotes in a separate file if there are any
-	if gsFootnotes &lt;&gt; &quot;&quot; then
-		oStream = GetExportFileObject(gsExportZipDir &amp; &quot;/EPUB/xhtml/footnotes.xhtml&quot;)
-		oStream.writeString(&quot;&lt;?xml version=&quot;&quot;1.0&quot;&quot; encoding=&quot;&quot;utf-8&quot;&quot;?&gt;&quot; &amp; gsCR)
-		oStream.writeString(&quot;&lt;html xml:lang=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot; lang=&quot;&quot;&quot; &amp; gsLang &amp; _
-		 &quot;&quot;&quot; xmlns=&quot;&quot;http://www.w3.org/1999/xhtml&quot;&quot; xmlns:epub=&quot;&quot;http://www.idpf.org/2007/ops&quot;&quot;&gt;&quot; &amp; gsCR)
-		oStream.writeString(&quot;&lt;head&gt;&quot; &amp; gsCR)
-		oStream.writeString(&quot;&lt;title&gt;Footnotes&lt;/title&gt;&quot; &amp; gsCR)
-		oStream.writeString(&quot;&lt;link rel=&quot;&quot;stylesheet&quot;&quot; type=&quot;&quot;text/css&quot;&quot; href=&quot;&quot;../css/style.css&quot;&quot;/&gt;&quot; &amp; gsCR)
-		oStream.writeString(&quot;&lt;meta charset=&quot;&quot;utf-8&quot;&quot;/&gt;&quot; &amp; gsCR)
-		oStream.writeString(&quot;&lt;/head&gt;&quot; &amp; gsCR)
-		oStream.writeString(&quot;&lt;body id=&quot;&quot;footnotes&quot;&quot; epub:type=&quot;&quot;frontmatter&quot;&quot;&gt;&quot; &amp; gsCR)
-
-		&apos;Export the footnotes
-		oStream.writeString(gsFootnotes)
-
-		&apos;Export the body and html closing tags
-		oStream.writeString(&quot;&lt;/body&gt;&quot; &amp; gsCR)
-		oStream.writeString(&quot;&lt;/html&gt;&quot; &amp; gsCR)
-		&apos;Close the document
-		oStream.closeOutput() 
-	end if 						
-end sub
-
-
 sub ExportEpubParagraph(oPara as object)
 dim iParaType as integer
 dim aParaSet() as long
@@ -440,10 +376,10 @@ dim iLevel as integer
 			&apos;ExportEpubTable(oPara)
 
 		case PARA_TYPE_FRAMESTART
-			&apos;ExportEpubFrameStart(oPara)
+			ExportEpubFrameStart(oPara)
 
 		case PARA_TYPE_FRAMESTOP
-			&apos;ExportEpubFrameStop(oPara)
+			ExportEpubFrameStop(oPara)
 
 		case PARA_TYPE_FILELIST
 			&apos;ExportEpubFileList(oPara)
@@ -472,10 +408,15 @@ dim iLen as integer
 dim sLaTeX as string
 dim sIdent as long
 dim iNoTextWrap as long
+dim sImgFilename as string
+dim sImgAltTag as string
+dim sMediaTag as string
+dim bGraphicIsFloated as boolean
 
 
+	bGraphicIsFloated = false
+	
 	&apos;step 1: get the text portions of the paragraph
-	sExportString = &quot;&quot; 
 	aPortionSet() = GetTextPortionSet(oPara.ID)
 
 	&apos;step 2: concatenate all text portions and handle media export of textportions
@@ -508,7 +449,7 @@ dim iNoTextWrap as long
 				Case &quot;_Marginale&quot; &apos;this portion is a marginale
 					sExportString = sExportString &amp; GetEpubMarginaleExportString(oPortion)
 
-				Case &quot;_Frame&quot; &apos;this portion is a frame
+				Case &quot;Frame&quot; &apos;this portion is a frame
 					&apos;it could be a formula
 					if oPortion.FrameStyleName = &quot;Formula&quot; then
 						sLaTeX = &quot;&lt;tex&gt;&quot; &amp; ReplaceTexString(oPortion.FormulaTeX) &amp; &quot;&lt;/tex&gt;&quot;
@@ -529,19 +470,33 @@ dim iNoTextWrap as long
 		if not isNull(oMedia) then
 			&apos;graphics with surrounding portions should be exported as IntLink	
 			if (oMedia.TextWrap = iNoTextWrap) and (oMedia.AnchorType = 1) and (oMedia.HoriOrient = 3) and (iPortionCount &gt; 1) then
-				&apos;sExportString = sExportString &amp; &quot;&lt;IntLink Target=&quot;&quot;il_0_mob_&quot; &amp; oMedia.ID &amp; &quot;&quot;&quot; Type=&quot;&quot;MediaObject&quot;&quot;/&gt;&quot;
+				sImgFilename = &quot;../images/&quot; &amp; FileNameOutOfPath(gaExtMedia(oMedia.ExtMediaID).FileName)
+				if oMedia.Caption &lt;&gt; &quot;&quot; then
+					sImgAltTag = oMedia.Caption
+				else
+					sImgAltTag = oMedia.MediaName
+				end if	
+				sExportString = sExportString &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; sImgAltTag &amp; &quot;&quot;&quot; /&gt;&quot;
+				&apos;poPageStream.writeString(&quot;&lt;p class=&quot;&quot;&quot; &amp; oPara.ParaStyleName &amp; &quot;&quot;&quot;&gt;&quot; &amp; sExportString &amp; &quot;&lt;/p&gt;&quot; &amp; gsCR)
 			else
-				&apos;a single graphic should be exported as a MediaTag
-				&apos;ExportMediaTag(oMedia)
+				&apos;a single graphic should be exported as a MediaTag and should be placed before the text
+				sMediaTag = GetEpubMediaTag(oMedia)
+				sExportString =  sMediaTag &amp; sExportString &amp; gsCR
+				&apos;check wether the graphic is left or right floated
+				bGraphicIsFloated = oMedia.HoriOrient = 1 or oMedia.HoriOrient = 3
 			end if	
 		end if		
 
 	next i
-	 
-	&apos;step 3: export the concatenated text
-	if sExportString &lt;&gt; &quot;&quot; then 
-	    ExportEpubParagraphTag (oPara, sExportString)
-	endif
+
+	&apos;step 3: export the concatenated text as a paragraph
+	&apos;ExportEpubParagraphTag (oPara, sExportString)
+	poPageStream.writeString(&quot;&lt;p class=&quot;&quot;para &quot; &amp; oPara.ParaStyleName &amp; &quot;&quot;&quot;&gt;&quot; &amp; sExportString &amp; &quot;&lt;/p&gt;&quot; &amp; gsCR)
+	
+	&apos;step 4: export a clear div, if a graphic is left or right floated
+	if bGraphicIsFloated then
+		poPageStream.writeString(&quot;&lt;div class=&quot;&quot;clear&quot;&quot;&gt;&lt;/div&gt;&quot; &amp; gsCR)
+	end if
 end sub
 
 
@@ -591,28 +546,11 @@ dim sAlign as string
 		&apos;                           &quot;&quot;&quot; ShowLineNumbers=&quot;&quot;&quot; &amp; gsOptShowLineNo &amp;  &quot;&quot;&quot; AutoIndent=&quot;&quot;y&quot;&quot; &quot;
 		&apos;end if
 		                            
-		poPageStream.writeString(&quot;&lt;p&gt;&quot; &amp; sExportString &amp; &quot;&lt;/p&gt;&quot; &amp; gsCR)
+		poPageStream.writeString(&quot;&lt;p class=&quot;&quot;&quot; &amp; oPara.ParaStyleName &amp; &quot;&quot;&quot;&gt;&quot; &amp; sExportString &amp; &quot;&lt;/p&gt;&quot; &amp; gsCR)
 
 	end if
 end sub
 
-
-function GetExportFileObject(sFilename as string) as object
-dim oFileAccessService as object
-dim oOutput as object
-dim oStream as object
-
-	if FileExists(sFilename) then
-	  Kill sFilename
-	end if
-	oFileAccessService = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)
-	oOutput = createUnoService(&quot;com.sun.star.io.TextOutputStream&quot;)
-	oOutput.SetEncoding(&quot;utf-8&quot;) &apos;not explicitely needed, since this is the standard
-	oStream = oFileAccessService.openFileWrite(sFilename)
-	oStream.truncate()
-	oOutput.setOutputStream(oStream)
-	GetExportFileObject = oOutput
-End function
 
 
 function ExportEpubList(oPara as object, bSetClass as boolean) as object
@@ -832,29 +770,19 @@ dim IsFirstAccordion as boolean
 
 
 	if oPara.FrameStyleName = &quot;ILIAS_FileList&quot; then
-		WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;
-		WriteToStream(goExportXML, &quot;&lt;FileList&gt;&quot;
+		poPageStream.writeString(&quot;&lt;section class=&quot;&quot;file_list&quot;&quot;&gt;&quot; &amp; gsCR)
 
 	elseif oPara.FrameStyleName = &quot;ILIAS_Accordion_Vertical&quot; then
-		WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;
-		WriteToStream(goExportXML, &quot;&lt;Tabs Type=&quot;&quot;VerticalAccordion&quot;&quot; HorizontalAlign=&quot;&quot;Center&quot;&quot; Behavior=&quot;&quot;AllClosed&quot;&quot; Template=&quot;&quot;VerticalAccordion&quot;&quot;&gt;&quot;)
+		poPageStream.writeString(&quot;&lt;section class=&quot;&quot;accordion vertical&quot;&quot;&gt;&quot; &amp; gsCR)
 
 	elseif oPara.FrameStyleName = &quot;ILIAS_Accordion_Horizontal&quot; then
-		WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;
-		WriteToStream(goExportXML, &quot;&lt;Tabs Type=&quot;&quot;HorizontalAccordion&quot;&quot; HorizontalAlign=&quot;&quot;Center&quot;&quot; Behavior=&quot;&quot;AllClosed&quot;&quot; Template=&quot;&quot;HorizontalAccordion&quot;&quot;&gt;&quot;)
+		poPageStream.writeString(&quot;&lt;section class=&quot;&quot;accordion horizontal&quot;&quot;&gt;&quot; &amp; gsCR)
 
 	elseif oPara.FrameStyleName = &quot;ILIAS_Accordion_Element&quot; then
-		psFrameCaption = GetParagraphString(oPara.ID + 1) 
-		WriteToStream(goExportXML, &quot;&lt;Tab PCID=&quot;&quot;&quot; &amp; oPara.ID &amp; &quot;&quot;&quot;&gt;&quot;)
-		&apos;WriteToStream(goExportXML, &quot;&lt;TabCaption&gt;&quot; &amp; sFrameCaption &amp; &quot;&lt;/TabCaption&gt;&quot;)
+		poPageStream.writeString(&quot;&lt;section class=&quot;&quot;accordion element&quot;&quot;&gt;&quot; &amp; gsCR)
 		
-	elseif left(oPara.FrameStylename, 5) = &quot;ILIAS&quot; then
-		sFrameStylename	= Mid(oPara.FrameStylename, 7)
-		WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;
-		WriteToStream(goExportXML, &quot;&lt;Section Characteristic=&quot;&quot;&quot; &amp; sFrameStylename  &amp; &quot;&quot;&quot; PCID=&quot;&quot;&quot; &amp; oPara.ID &amp; &quot;&quot;&quot;&gt;&quot;)
 	else
-		WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;
-		WriteToStream(goExportXML, &quot;&lt;Section Characteristic=&quot;&quot;&quot; &amp; oPara.FrameStylename &amp; &quot;&quot;&quot; PCID=&quot;&quot;&quot; &amp; oPara.ID &amp; &quot;&quot;&quot;&gt;&quot;)
+		poPageStream.writeString(&quot;&lt;section class=&quot;&quot;&quot; &amp; oPara.FrameStylename &amp; &quot;&quot;&quot;&gt;&quot; &amp; gsCR)
 	end if
 end sub
 
@@ -866,25 +794,7 @@ dim IsLastAccordion as boolean
 dim iParaCount as long
 dim sFrameCaption as string
 
-	if oPara.FrameStyleName = &quot;ILIAS_FileList&quot; then
-		WriteToStream(goExportXML, &quot;&lt;/FileList&gt;&quot;
-		WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;
-
-	elseif oPara.FrameStyleName = &quot;ILIAS_Accordion_Vertical&quot; then
-		WriteToStream(goExportXML, &quot;&lt;/Tabs&gt;&quot;)
-		WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;
-		
-	elseif oPara.FrameStyleName = &quot;ILIAS_Accordion_Horizontal&quot; then
-		WriteToStream(goExportXML, &quot;&lt;/Tabs&gt;&quot;)
-		WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;
-
-	elseif oPara.FrameStyleName = &quot;ILIAS_Accordion_Element&quot; then
-		WriteToStream(goExportXML, &quot;&lt;TabCaption&gt;&quot; &amp; psFrameCaption &amp; &quot;&lt;/TabCaption&gt;&quot;)
-		WriteToStream(goExportXML, &quot;&lt;/Tab&gt;&quot;)
-	else
-		WriteToStream(goExportXML, &quot;&lt;/Section&gt;&quot;)
-		WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;)
-	end if
+	poPageStream.writeString(&quot;&lt;/section&gt;&quot; &amp; gsCR)
 end sub
 
 
@@ -922,6 +832,70 @@ dim i as integer
 end sub
 
 
+sub ExportEpubFootnotes
+dim oStream as object 
+
+	&apos;Export footnotes in a separate file if there are any
+	if gsFootnotes &lt;&gt; &quot;&quot; then
+		oStream = GetExportFileObject(gsExportZipDir &amp; &quot;/EPUB/xhtml/footnotes.xhtml&quot;)
+		oStream.writeString(&quot;&lt;?xml version=&quot;&quot;1.0&quot;&quot; encoding=&quot;&quot;utf-8&quot;&quot;?&gt;&quot; &amp; gsCR)
+		oStream.writeString(&quot;&lt;html xml:lang=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot; lang=&quot;&quot;&quot; &amp; gsLang &amp; _
+		 &quot;&quot;&quot; xmlns=&quot;&quot;http://www.w3.org/1999/xhtml&quot;&quot; xmlns:epub=&quot;&quot;http://www.idpf.org/2007/ops&quot;&quot;&gt;&quot; &amp; gsCR)
+		oStream.writeString(&quot;&lt;head&gt;&quot; &amp; gsCR)
+		oStream.writeString(&quot;&lt;title&gt;Footnotes&lt;/title&gt;&quot; &amp; gsCR)
+		oStream.writeString(&quot;&lt;link rel=&quot;&quot;stylesheet&quot;&quot; type=&quot;&quot;text/css&quot;&quot; href=&quot;&quot;../css/style.css&quot;&quot;/&gt;&quot; &amp; gsCR)
+		oStream.writeString(&quot;&lt;meta charset=&quot;&quot;utf-8&quot;&quot;/&gt;&quot; &amp; gsCR)
+		oStream.writeString(&quot;&lt;/head&gt;&quot; &amp; gsCR)
+		oStream.writeString(&quot;&lt;body id=&quot;&quot;footnotes&quot;&quot; epub:type=&quot;&quot;frontmatter&quot;&quot;&gt;&quot; &amp; gsCR)
+
+		&apos;Export the footnotes
+		oStream.writeString(gsFootnotes)
+
+		&apos;Export the body and html closing tags
+		oStream.writeString(&quot;&lt;/body&gt;&quot; &amp; gsCR)
+		oStream.writeString(&quot;&lt;/html&gt;&quot; &amp; gsCR)
+		&apos;Close the document
+		oStream.closeOutput() 
+	end if 						
+end sub
+
+
+function GetEpubFootnoteExportString(oPortionRec as object) as string
+dim aList()
+dim sResult as string
+dim iPos as integer
+dim sURL as string
+dim sLink as string
+dim i as integer
+dim sId as string
+dim sRef as string
+dim sFootnote as string
+
+	aList = ArrayOutOfString(oPortionRec.Footnote, &quot; &quot;)
+	sResult = &quot;&quot;
+	for i = 0 to ubound(aList())    
+		if (left(aList(i),4) = &quot;http&quot;) or (left(aList(i),3) = &quot;www&quot;) then  &apos;this portion is a hyperlink
+			sURL = ReplaceString(aList(i), &quot;&amp;amp;amp;&quot;, &quot;&amp;&quot;  )
+			sLink = ReplaceSymbolsFootnote(aList(i))
+			sResult = sResult &amp; &quot;&lt;a href=&quot;&quot;&quot; &amp; sURL &amp; &quot;&quot;&quot; target=&quot;&quot;_blank&quot;&quot;&gt;&quot; &amp; sLink &amp; &quot;&lt;/a&gt;&quot; &amp; &quot; &quot;
+		else
+			sResult = sResult &amp; ReplaceSymbols(aList(i)) &amp; &quot; &quot;
+		end if  
+	next i
+	sId = lTrim(rTrim(oPortionRec.GetString))
+	sRef =  &quot;&lt;a class=&quot;&quot;footnote&quot;&quot; epub:type=&quot;&quot;noteref&quot;&quot; id=&quot;&quot;noteref&quot; &amp; sID &amp; &quot;&quot;&quot; href=&quot;&quot;#fn&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;&quot; &amp; sID &amp; &quot;&lt;/a&gt;&quot;
+	&apos;&apos;when readers will be able to show aside elements as tooltip
+	&apos;sFootnote = &quot;&lt;aside epub:type=&quot;&quot;footnote&quot;&quot; id=&quot;&quot;fn&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/aside&gt;&quot;
+	&apos;GetEpubFootnoteExportString = sRef &amp; sFootnote
+
+	&apos;meanwhile:
+	gsFootnotes = gsFootnotes &amp; &quot;&lt;aside epub:type=&quot;&quot;footnote&quot;&quot; id=&quot;&quot;fn&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;&lt;p&gt;&lt;span class=&quot;&quot;fn-id&quot;&quot;&gt;&quot; &amp; sId &amp; &quot;&lt;/span&gt;&quot;_
+							 &amp; sResult &amp; &quot;&lt;a class=&quot;&quot;back&quot;&quot; href=&quot;&quot;#noteref&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;↑&lt;/a&gt;&lt;/p&gt;&lt;/aside&gt;&quot;
+	GetEpubFootnoteExportString = sRef
+
+end function
+
+
 function GetEpubParagraphString(iParaID as long) as string
 dim i as long
 dim iPortionCount as long
@@ -941,36 +915,25 @@ dim oPara as object
 end function
 
 
-sub ExportEpubMediaTag(oMedia as object)
-dim sIdent as string
-dim sPurpose as string
-dim sLayout as string
-dim sAlign as string
+function GetEpubMediaTag(oMedia as object) as string
+dim sTag as string
+dim sImgFilename as string
+dim sWidth as string
+dim sHeight as string
 
-	sIdent = &quot;il_0_mob_&quot; &amp; CStr(oMedia.ID) &amp; &quot;&quot;&quot;&quot;
-	sPurpose = &quot;&quot;&quot;Standard&quot;&quot;&quot;	
-	if gbOptNoScaleGraphics then
-		sLayout = &quot;&quot;
-	else
-		sLayout = GetMediaLayoutString(oMedia)
-	end if  
-	sAlign = &quot;HorizontalAlign=&quot; &amp; GetIliasAlignString(oMedia)
-
-	WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;)
-	WriteToStream(goExportXML, &quot;&lt;MediaObject&gt;&quot;)
-	WriteToStream(goExportXML, GetTag(&quot;MediaAlias&quot;, &quot;OriginId=&quot;&quot;&quot; &amp; sIdent, &quot;&quot;, true))
-	WriteToStream(goExportXML, GetTag(&quot;MediaAliasItem&quot;, &quot;Purpose=&quot; &amp; sPurpose, &quot;&quot;, false))
-	WriteToStream(goExportXML, GetTag(&quot;Layout&quot;, sLayout &amp; &quot; &quot; &amp; sAlign, &quot;&quot;, true))
+	sImgFilename = &quot;../images/&quot; &amp; FileNameOutOfPath(gaExtMedia(oMedia.ExtMediaID).FileName)
+	sWidth = CStr(Int(oMedia.Width / 26.459))
+	sHeight = CStr(Int(oMedia.Height / 26.459))
+	sTag = &quot;&lt;figure class=&quot;&quot;image_container &quot; &amp; GetEpubAlignString(oMedia) &amp; &quot;&quot;&quot; width=&quot;&quot;&quot; &amp; sWidth &amp; &quot;&quot;&quot; height=&quot;&quot;&quot; &amp; sHeight &amp; &quot;&quot;&quot;&gt;&quot;
 	if oMedia.Caption &lt;&gt; &quot;&quot; then
-		WriteToStream(goExportXML, GetTag(&quot;Caption&quot;, &quot;Align=&quot;&quot;bottom&quot;&quot;&quot;, oMedia.Caption, true))
-	end if
-	WriteToStream(goExportXML, &quot;&lt;/MediaAliasItem&gt;&quot;)
-	if not gbOptNoScaleGraphics and oMedia.IsScaled then
-		WriteToStream(goExportXML, GetTag(&quot;MediaAliasItem&quot;, &quot;Purpose=&quot;&quot;&quot; &amp; &quot;Fullscreen&quot;&quot;&quot;, &quot;&quot;, true))
-	end if
-	WriteToStream(goExportXML, &quot;&lt;/MediaObject&gt;&quot;)
-	WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;)
-end sub
+		sTag = sTag &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; oMedia.Caption &amp; &quot;&quot;&quot; /&gt;&quot; 
+		sTag = sTag &amp; &quot;&lt;figcaption class=&quot;&quot;para Illustration&quot;&quot;&gt;&quot; &amp; oMedia.Caption &amp; &quot;&lt;/figcaption&gt;&quot;
+	else	
+		sTag = sTag &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; oMedia.MediaName &amp; &quot;&quot;&quot; /&gt;&quot; 
+	end if	
+	sTag = sTag &amp; &quot;&lt;/figure&gt;&quot;
+	GetEpubMediaTag = sTag
+end function
 
 
 function GetEpubTextPortionExportString(oPortion as object) as string   
@@ -993,14 +956,11 @@ dim iAsc as integer
 dim sType as string
 
 	sResult = oPortion.GetString
+	sResult= ReplaceString(sResult, &quot;&lt;br/&gt;&lt;br/&gt;&quot;, gsLF)
 	if sResult &lt;&gt; &quot;&quot; then
 		&apos;first check if paragraph is ILIAS Code formatted
 		vParaStyle = left(oPortion.ParaStyleName, 10)
-		if vParaStyle = &quot;ILIAS Code&quot; then
-			sResult = ReplaceSymbolsCode(sResult)
-			
-		&apos;then check if textportion is a hyperlink
-		elseif oPortion.HyperLinkURL &lt;&gt; &quot;&quot; then
+		if oPortion.HyperLinkURL &lt;&gt; &quot;&quot; then
 			&apos;it could be an external Link
 			if left(oPortion.HyperLinkURL, 4) = &quot;http&quot; then
 				vURL = ReplaceSymbols(oPortion.HyperLinkURL)
@@ -1025,7 +985,6 @@ dim sType as string
 				end if    
 			end if    
 		else
-			sResult = ReplaceSymbols(sResult) 	
 			&apos;check if textportion is a list
 			sNumberingStyleName = oPortion.NumberingStyleName
 			if sNumberingStyleName &lt;&gt; &quot;&quot; then  &apos;the paragraph is a list
@@ -1055,11 +1014,7 @@ dim sType as string
 			&apos;else	
 				vCharStyle = oPortion.CharStyleName
 			&apos;end if   
-			
-			if oPortion.Id = 11 then
-				vCharStyle = vCharStyle
-			end if
-	
+				
 			if vCharStyle = &quot;&quot; then
 				&apos;only reflect hard formatted text portions, if the character style is standard
 				if oPortion.CharWeight = com.sun.star.awt.FontWeight.BOLD then  &apos;this portion is formatted in bold
@@ -1100,16 +1055,6 @@ dim sType as string
 				end if
 			else	
 				vCharStyle = ReplaceString(vCharStyle, &quot;_&quot;, &quot; &quot;)
-				select case vCharStyle
-					case  &quot;ILIAS_Important&quot; : sResult = &quot;&lt;Important&gt;&quot; &amp; sResult &amp; &quot;&lt;/Important&gt;&quot;
-					case  &quot;ILIAS_Comment&quot;   : sResult = &quot;&lt;Comment Language=&quot; &amp; gsLang &amp; &quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/Comment&gt;&quot;
-					case  &quot;ILIAS_Quotation&quot; : sResult = &quot;&lt;Quotation Language=&quot; &amp; gsLang &amp; &quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/Quotation&gt;&quot;
-					case  &quot;ILIAS_Accent&quot;    : sResult = &quot;&lt;Accent&gt;&quot; &amp; sResult &amp; &quot;&lt;/Accent&gt;&quot;
-					case  &quot;ILIAS_Keyword&quot;   : sResult = &quot;&lt;Keyw&gt;&quot; &amp; sResult &amp; &quot;&lt;/Keyw&gt;&quot;
-					&apos;case  &quot;ILIAS Code&quot;      : sResult = &quot;&lt;Code&gt;&quot; &amp; sResult &amp; &quot;&lt;/Code&gt;&quot;
-					case  &quot;ILIAS_LaTeX&quot;     : sResult = &quot;&lt;tex&gt;&quot; &amp; sResult &amp; &quot;&lt;/tex&gt;&quot;
-					case  &quot;Standard&quot;     	
-				end select	        
 				sResult = &quot;&lt;span class=&quot;&quot;&quot; &amp; vCharStyle &amp; &quot;&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/span&gt;&quot;
 			end if  
 
@@ -1121,13 +1066,7 @@ dim sType as string
 
 		end if	
 	else  &apos;the paragraph is only a return
-		&apos;check if paragraph is ILIAS Code formatted
-		vParaStyle = left(oPortion.ParaStyleName, 10)
-		if vParaStyle = &quot;ILIAS Code&quot; then
-			sResult = &quot;&lt;br/&gt;&quot;
-		else
-			sResult = &quot;&lt;br/&gt;&lt;br/&gt;&quot;
-		end if  
+		sResult = &quot;&lt;br/&gt;&lt;br/&gt;&quot;
 	end if
 	GetEpubTextPortionExportString = sResult
 end function
@@ -1251,19 +1190,20 @@ function GetEpubAlignString(oMedia as object)
 	&apos;check the horizontal orientation and wrap mode
 	if (oMedia.HoriOrient = com.sun.star.text.HoriOrientation.RIGHT) or _
 		(oMedia.TextWrap = com.sun.star.text.WrapTextMode.LEFT) then
-		GetILIASAlignString = &quot;&quot;&quot;RightFloat&quot;&quot;&quot;
+		GetEpubAlignString = &quot;right-float&quot;
 		
 	elseif (oMedia.HoriOrient = com.sun.star.text.HoriOrientation.LEFT) or _
 		(oMedia.TextWrap = com.sun.star.text.WrapTextMode.RIGHT) then
-		GetILIASAlignString = &quot;&quot;&quot;LeftFloat&quot;&quot;&quot;
+		GetEpubAlignString = &quot;left-float&quot;
 	
 	&apos;nothing of that, so the graphic is aligned according ParaAdjust
 	elseif oMedia.ParaAdjust = com.sun.star.style.ParagraphAdjust.LEFT then
-		GetILIASAlignString = &quot;&quot;&quot;Left&quot;&quot;&quot;
+		GetEpubAlignString = &quot;left-align&quot;
+		
 	elseif oMedia.ParaAdjust = com.sun.star.style.ParagraphAdjust.RIGHT then
-		GetILIASAlignString = &quot;&quot;&quot;Right&quot;&quot;&quot;
+		GetEpubAlignString = &quot;right-align&quot;
 	else
-		GetEpubAlignString = &quot;&quot;&quot;Center&quot;&quot;&quot;
+		GetEpubAlignString = &quot;center&quot;
 	end if
 		
 end function
@@ -1693,6 +1633,24 @@ dim i as long
 		end if
 	next i
 end function
+
+function GetExportFileObject(sFilename as string) as object
+dim oFileAccessService as object
+dim oOutput as object
+dim oStream as object
+
+	if FileExists(sFilename) then
+	  Kill sFilename
+	end if
+	oFileAccessService = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)
+	oOutput = createUnoService(&quot;com.sun.star.io.TextOutputStream&quot;)
+	oOutput.SetEncoding(&quot;utf-8&quot;) &apos;not explicitely needed, since this is the standard
+	oStream = oFileAccessService.openFileWrite(sFilename)
+	oStream.truncate()
+	oOutput.setOutputStream(oStream)
+	GetExportFileObject = oOutput
+End function
+
 
 
 </script:module>
