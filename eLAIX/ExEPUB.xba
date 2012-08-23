@@ -389,10 +389,7 @@ end sub
 
 
 sub ExportEpubTextPortions(oPara As Object) 
-  &apos; oParagraph : the paragraph to be exported
-  &apos; pAlign     : if set, use the frame alignment instead of object alignment
-  &apos; pCaption   : if set, this is the caption of a graphic
-  &apos; pLocation  : indicates where the paragraph is located, values: C_CONTENT, C_HEADER, C_FOOTER
+  &apos; oPara : the paragraph to be exported
   
 dim sExportString as string 
 dim aPortionSet()
@@ -476,14 +473,18 @@ dim bGraphicIsFloated as boolean
 				else
 					sImgAltTag = oMedia.MediaName
 				end if	
-				sExportString = sExportString &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; sImgAltTag &amp; &quot;&quot;&quot; /&gt;&quot;
+				if oMedia.Width &gt; 8000 then
+					sExportString = sExportString &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; sImgAltTag &amp; &quot;&quot;&quot; width=&quot;&quot;100%&quot;&quot; /&gt;&quot;
+				else			
+					sExportString = sExportString &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; sImgAltTag &amp; &quot;&quot;&quot; /&gt;&quot;
+				end if
 				&apos;poPageStream.writeString(&quot;&lt;p class=&quot;&quot;&quot; &amp; oPara.ParaStyleName &amp; &quot;&quot;&quot;&gt;&quot; &amp; sExportString &amp; &quot;&lt;/p&gt;&quot; &amp; gsCR)
 			else
 				&apos;a single graphic should be exported as a MediaTag and should be placed before the text
 				sMediaTag = GetEpubMediaTag(oMedia)
 				sExportString =  sMediaTag &amp; sExportString &amp; gsCR
 				&apos;check wether the graphic is left or right floated
-				bGraphicIsFloated = oMedia.HoriOrient = 1 or oMedia.HoriOrient = 3
+				bGraphicIsFloated = oMedia.HoriOrient = com.sun.star.text.HoriOrientation.LEFT or oMedia.HoriOrient = com.sun.star.text.HoriOrientation.RIGHT
 			end if	
 		end if		
 
@@ -918,18 +919,25 @@ end function
 function GetEpubMediaTag(oMedia as object) as string
 dim sTag as string
 dim sImgFilename as string
+dim iWidth as integer
 dim sWidth as string
 dim sHeight as string
 
 	sImgFilename = &quot;../images/&quot; &amp; FileNameOutOfPath(gaExtMedia(oMedia.ExtMediaID).FileName)
-	sWidth = CStr(Int(oMedia.Width / 26.459))
-	sHeight = CStr(Int(oMedia.Height / 26.459))
-	sTag = &quot;&lt;figure class=&quot;&quot;image_container &quot; &amp; GetEpubAlignString(oMedia) &amp; &quot;&quot;&quot; width=&quot;&quot;&quot; &amp; sWidth &amp; &quot;&quot;&quot; height=&quot;&quot;&quot; &amp; sHeight &amp; &quot;&quot;&quot;&gt;&quot;
+	iWidth = Int(oMedia.Width / 26.459)
+	if iWidth &gt; 600 then
+		sWidth = &quot;100%&quot;
+	else	
+		sWidth = CStr(iWidth)
+	end if	
+	&apos;sHeight = CStr(Int(oMedia.Height / 26.459))
+	&apos;sTag = &quot;&lt;figure class=&quot;&quot;image_container &quot; &amp; GetEpubAlignString(oMedia) &amp; &quot;&quot;&quot; width=&quot;&quot;&quot; &amp; sWidth &amp; &quot;&quot;&quot; height=&quot;&quot;&quot; &amp; sHeight &amp; &quot;&quot;&quot;&gt;&quot;
+	sTag = &quot;&lt;figure class=&quot;&quot;image_container &quot; &amp; GetEpubAlignString(oMedia) &amp; &quot;&quot;&quot; width=&quot;&quot;&quot; &amp; sWidth &amp; &quot;&quot;&quot;&gt;&quot;
 	if oMedia.Caption &lt;&gt; &quot;&quot; then
-		sTag = sTag &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; oMedia.Caption &amp; &quot;&quot;&quot; /&gt;&quot; 
+		sTag = sTag &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; oMedia.Caption &amp; &quot;&quot;&quot; width=&quot;&quot;&quot; &amp; sWidth &amp; &quot;&quot;&quot; /&gt;&quot; 
 		sTag = sTag &amp; &quot;&lt;figcaption class=&quot;&quot;para Illustration&quot;&quot;&gt;&quot; &amp; oMedia.Caption &amp; &quot;&lt;/figcaption&gt;&quot;
 	else	
-		sTag = sTag &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; oMedia.MediaName &amp; &quot;&quot;&quot; /&gt;&quot; 
+		sTag = sTag &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; oMedia.MediaName &amp; &quot;&quot;&quot; width=&quot;&quot;&quot; &amp; sWidth &amp; &quot;&quot;&quot; /&gt;&quot; 
 	end if	
 	sTag = sTag &amp; &quot;&lt;/figure&gt;&quot;
 	GetEpubMediaTag = sTag
