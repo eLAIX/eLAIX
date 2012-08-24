@@ -370,10 +370,10 @@ dim iLevel as integer
 			ExportEpubTextPortions(oPara)
 
 		case PARA_TYPE_LIST
-			&apos;ExportEpubList(oPara, true)
+			ExportEpubList(oPara, true)
 			
 		case PARA_TYPE_TABLE
-			&apos;ExportEpubTable(oPara)
+			ExportEpubTable(oPara)
 
 		case PARA_TYPE_FRAMESTART
 			ExportEpubFrameStart(oPara)
@@ -560,6 +560,7 @@ dim iListLevel as integer
 dim iListType as integer
 dim iNumberingLevel as integer
 dim iNumberingType as integer
+dim sNumberingType as string
 dim oNextPara as object
 dim sStylename as string
 dim iRow as integer
@@ -567,22 +568,25 @@ dim iCol as integer
 dim iChapter as integer
 
 	iParaCount = UBound(gaDocParagraph())
-	ExportListHeader(oPara, bSetClass)
 	iListLevel = oPara.NumberingLevel
 	iListType = oPara.NumberingType
 	sStyleName = oPara.ParaStyleName
 	iRow = oPara.TableRow
 	iCol = oPara.TableCol
 	iChapter = oPara.ChapterID
+    sNumberingType = GetEpubListType(oPara.NumberingType)
 	
+	&apos;export the list opening tag (&lt;ul&gt; or &lt;ol&gt;)
+	ExportEpubListHeader(sStyleName, sNumberingType, bSetClass)
+
     &apos;enumerate paragraphs that are list items (NumberingType ist not an empty string)
 	do while (oPara.NumberingType &lt;&gt; &quot;&quot;) and (oPara.NumberingLevel = iListLevel) and _
 			(oPara.NumberingType = iListType) and (oPara.ParaStylename = sStylename) and _
 			(oPara.TableRow = iRow) and (oPara.TableCol = iCol) and _
 			(oPara.ChapterID = iChapter)
 	
-		WriteToStream(goExportXML, &quot;&lt;ListItem&gt;&quot;)
-		ExportTextPortions(oPara)
+		poPageStream.writeString(&quot;&lt;li&gt;&quot;)
+		ExportEpubTextPortions(oPara)
 		gaDocParagraph(oPara.ID).State = PARA_STATE_EXPORTED
 		
 		&apos;check next item to decide wether it has to be handeled within this item
@@ -596,7 +600,7 @@ dim iChapter as integer
 
 			&apos;the item has a higher level (is a new list)
 			elseif oNextPara.NumberingLevel &gt; oPara.NumberingLevel then
-				oPara = ExportList(oNextPara, false)
+				oPara = ExportEpubList(oNextPara, false)
 				&apos;gaDocParagraph(oPara.ID).State = PARA_STATE_PENDING
 				
 			&apos;the item has the same level and could be a bullet list or an unnumbered paragraph)	
@@ -608,11 +612,11 @@ dim iChapter as integer
 				do while oPara.NumberingLevel = iNumberingLevel
 					&apos;the item could be an unnumbered paragraph
 					if not oPara.NumberingIsNumber then 
-						ExportTextPortions(oPara)
+						ExportEpubTextPortions(oPara)
 						gaDocParagraph(oNextPara.ID).State = PARA_STATE_EXPORTED
 					&apos;the item could be a bullet list	
 					elseif (oPara.NumberingType = 6) and (iNumberingType &lt;&gt; 6) then	
-						oPara = ExportList(oPara, true)
+						oPara = ExportEpubList(oPara, true)
 						&apos;gaDocParagraph(oPara.ID).State = PARA_STATE_PENDING
 					else
 						exit do	
@@ -630,7 +634,7 @@ dim iChapter as integer
 			end if
 			
 		end if
-		WriteToStream(goExportXML, &quot;&lt;/ListItem&gt;&quot;)	
+		poPageStream.writeString(&quot;&lt;/li&gt;&quot;)
 		
 		if oPara.State = PARA_STATE_EXPORTED then
 			if (oPara.ID &lt; iParaCount) then
@@ -641,53 +645,39 @@ dim iChapter as integer
 		end if	
 	
 	loop
-	ExportListFooter
-	ExportList = oPara
+	&apos;export the list closing tag (&lt;/ul&gt; or &lt;ol&gt;)
+	ExportEpubListFooter(sNumberingType)
+	ExportEpubList = oPara
 end function
 
 
-sub ExportEpubListHeader(oPara as object, bSetClass as boolean)
-dim sNumberingType as string
-dim sStylestring as string
+sub ExportEpubListHeader(sStyle as string, sNumberingType as string, bSetClass as boolean)
 
-	WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;)
-    sNumberingType = GetILIASListType(oPara.NumberingType)
-	sStyleString = oPara.ParaStyleName
     if sNumberingType = &quot;Unordered&quot; then
     	if bSetClass then
-			WriteToStream(goExportXML, &quot;&lt;List Type=&quot;&quot;Unordered&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleString &amp; &quot;&quot;&quot;&gt;&quot;)
+			poPageStream.writeString(&quot;&lt;ul class=&quot;&quot;&quot; &amp; sStyle &amp; &quot;&quot;&quot; style=&quot;&quot;margin-left: 0.6em; padding-left: 0.6em;&quot;&quot;&gt;&quot;)
 		else
-			WriteToStream(goExportXML, &quot;&lt;List Type=&quot;&quot;Unordered&quot;&quot;&gt;&quot;)
+			poPageStream.writeString(&quot;&lt;ul style=&quot;&quot;margin-left: 0.6em; padding-left: 0.6em;&quot;&quot;&gt;&quot;)
 		end if	
     else
     	if bSetClass then
-			WriteToStream(goExportXML, &quot;&lt;List Type=&quot;&quot;Ordered&quot;&quot; NumberingType=&quot;&quot;&quot; &amp; sNumberingType &amp; &quot;&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleString &amp; &quot;&quot;&quot;&gt;&quot;)
+			poPageStream.writeString(&quot;&lt;ol class=&quot;&quot;&quot; &amp; sStyle &amp; &quot;&quot;&quot; style=&quot;&quot;margin-left: 0.6em; padding-left: 0.6em; list-style-type:&quot; &amp; sNumberingType &amp; &quot;;&quot;&quot;&gt;&quot;)
 		else
-			WriteToStream(goExportXML, &quot;&lt;List Type=&quot;&quot;Ordered&quot;&quot; NumberingType=&quot;&quot;&quot; &amp; sNumberingType &amp; &quot;&quot;&quot;&gt;&quot;)
+			poPageStream.writeString(&quot;&lt;ol style=&quot;&quot;margin-left: 0.6em; padding-left: 0.6em;&quot;&quot;&gt;&quot;)
 		end if	
     end if  	
 
 end sub
 
-sub ExportEpubListFooter
-	WriteToStream(goExportXML, &quot;&lt;/List&gt;&quot;)
-	WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;)
+
+sub ExportEpubListFooter(sNumberingType as string)
+
+    if sNumberingType = &quot;Unordered&quot; then
+		poPageStream.writeString(&quot;&lt;/ul&gt;&quot;)
+	else	
+		poPageStream.writeString(&quot;&lt;/ol&gt;&quot;)
+	end if	
 end sub
-
-
-function GetLastNumberingTypeByLevel(oPara as object)
-dim iPos as long
-
-	iPos = oPara.ID - 1
-	do while iPos &gt; 0
-		if gaDocParagraph(iPos).NumberingLevel = oPara.NumberingLevel then
-			exit do
-		end if
-		iPos = iPos - 1
-	loop
-
-	GetLastNumberingType = gaDocParagraph(iPos).NumberingType
-end function
 
 
 sub ExportEpubTable(oPara as object)
@@ -699,9 +689,9 @@ dim iActCol as long
 dim iParaCount as long
 dim aParaSet() as long
 dim i as long
-
-
-	WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;)
+dim sBorder as string
+dim sColTag as string
+dim sColStyle as string
 
 	if oPara.TableIsWidthRelative then 
 		iTableRelativeWidth = oPara.TableRelativeWidth
@@ -713,36 +703,43 @@ dim i as long
 	
 	if oPara.TableBorderWidth &gt; 0 then 
 		iTableBorderWidth = 1
+		sBorder = &quot;border-top:1px solid #000000; border-left:1px solid #000000;&quot;
+		sColStyle = &quot; style=&quot;&quot;border-right:1px solid #000000; border-bottom:1px solid #000000;&quot;&quot;&quot;
 	else
 		iTableBorderWidth = 0
+		sBorder = &quot;border: 0;&quot;
+		sColStyle = &quot;&quot;
 	end if
 
 	aParaSet() = GetParaSetTable(oPara.ID)		
 	iParaCount = ubound(aParaSet())
 	i = 1
-	WriteToStream(goExportXML, &quot;&lt;Table Language=&quot; &amp; gsLang &amp; &quot; Border=&quot;&quot;&quot; &amp; iTableBorderWidth &amp;_
-					&quot;&quot;&quot; Width=&quot;&quot;&quot; &amp; iTableRelativeWidth &amp; &quot;%&quot;&quot;&quot; &amp; &quot; CellSpacing=&quot;&quot;1&quot;&quot; CellPadding=&quot;&quot;4&quot;&quot;&gt;&quot;)
+	
+	poPageStream.writeString(&quot;&lt;table style=&quot;&quot;&quot; &amp; sBorder &amp; &quot; width:&quot; &amp; iTableRelativeWidth &amp; &quot;%;&quot;&quot;&gt;&quot;
 	if oPara.TableCaption &lt;&gt; &quot;&quot; then
-		WriteToStream(goExportXML, &quot;&lt;Caption Align=&quot;&quot;bottom&quot;&quot;&gt;&quot; &amp; oPara.TableCaption &amp; &quot;&lt;/Caption&gt;&quot;
+		poPageStream.writeString(&quot;&lt;caption&gt;&quot; &amp; oPara.TableCaption &amp; &quot;&lt;/caption&gt;&quot;)
 	end if	
+
 	do while i &lt;= iParaCount
-		WriteToStream(goExportXML, &quot;&lt;TableRow&gt;&quot;)
+		oTablePara = gaDocParagraph(aParaSet(i))
+		if oTablePara.ParaStyleName = &quot;Table Heading&quot; then
+			poPageStream.writeString(&quot;&lt;thead&gt;&lt;tr&gt;&quot;
+			sColTag = &quot;th&quot;
+		elseif oTablePara.ParaStyleName = &quot;Table Footer&quot; then
+			poPageStream.writeString(&quot;&lt;tfoot&gt;&lt;tr&gt;&quot;
+			sColTag = &quot;td&quot;
+		else 	
+			poPageStream.writeString(&quot;&lt;tr&gt;&quot;)
+			sColTag = &quot;td&quot;
+		end if	
 		oTablePara = gaDocParagraph(aParaSet(i))
 		iActRow = oTablePara.TableRow
 		do while (i &lt;= iParaCount) and (oTablePara.TableRow = iActRow)
 			iActCol = oTablePara.TableCol
-						
-			if iTableBorderWidth = 0 then 
-				WriteToStream(goExportXML, &quot;&lt;TableData&gt;&quot;)
-			elseif oTablePara.ParaStyleName = &quot;Table Heading&quot; then
-				WriteToStream(goExportXML, &quot;&lt;TableData Class=&quot;&quot;ilc_Cell1&quot;&quot;&gt;&quot;)
-			else
-				WriteToStream(goExportXML, &quot;&lt;TableData Class=&quot;&quot;ilc_Cell2&quot;&quot;&gt;&quot;)
-			end if
-			
+			poPageStream.writeString(&quot;&lt;&quot; &amp; sColTag &amp; sColStyle &amp; &quot;&gt;&quot;)
 			do while (oTablePara.TableRow = iActRow) and (oTablePara.TableCol = iActCol)
 				if gaDocParagraph(aParaSet(i)).State &lt;&gt; PARA_STATE_EXPORTED then
-					ExportParagraph(oTablePara)
+					ExportEpubParagraph(oTablePara)
 					gaDocParagraph(aParaSet(i)).State = PARA_STATE_EXPORTED
 				end if	
 				i = i + 1
@@ -752,12 +749,15 @@ dim i as long
 					exit do
 				end if
 			loop	
-			WriteToStream(goExportXML, &quot;&lt;/TableData&gt;&quot;)			
+			poPageStream.writeString(&quot;&lt;/&quot; &amp; sColTag &amp; &quot;&gt;&quot;)
 		loop
-		WriteToStream(goExportXML, &quot;&lt;/TableRow&gt;&quot;)
+		if oTablePara.ParaStyleName = &quot;Table Heading&quot; then
+			poPageStream.writeString(&quot;&lt;/tr&gt;&lt;/thead&gt;&quot;
+		else
+			poPageStream.writeString(&quot;&lt;/tr&gt;&quot;
+		end if
 	loop				
-	WriteToStream(goExportXML, &quot;&lt;/Table&gt;&quot;)
-	WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;)
+	poPageStream.writeString(&quot;&lt;/table&gt;&quot;)
 End sub
 
 
@@ -1616,18 +1616,18 @@ dim i as long
 end function
 
 
-function GetILIASListType(iType as integer)
+function GetEpubListType(iType as integer)
 dim sType as string
 
 	select case iType
-		case 0: sType = &quot;Alphabetic&quot;
-		case 1: sType = &quot;alphabetic&quot;
-		case 2: sType = &quot;Roman&quot;
-		case 3: sType = &quot;roman&quot;
-		case 4: sType = &quot;Number&quot;
+		case 0: sType = &quot;upper-latin&quot;
+		case 1: sType = &quot;lower-latin&quot;
+		case 2: sType = &quot;upper-roman&quot;
+		case 3: sType = &quot;lower-roman&quot;
+		case 4: sType = &quot;decimal&quot;
 		case 6: sType = &quot;Unordered&quot;
 	end select
-	GetILIASListType = sType
+	GetEpubListType = sType
 end function
 
 

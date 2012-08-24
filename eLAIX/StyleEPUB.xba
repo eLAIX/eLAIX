@@ -59,6 +59,7 @@ sub ExportEpubStandardStyles(oStream as object)
 	oStream.writeString(&quot;figure.right-float{float:right; margin-left:15px;}&quot; &amp; gsCR) 
 	oStream.writeString(&quot;figure.center{text-align:center;}&quot; &amp; gsCR) 
 	oStream.writeString(&quot;.clear{clear:both;}&quot; &amp; gsCR  &amp; gsCR) 
+	oStream.writeString(&quot;table{border-spacing:0;}&quot; &amp; gsCR  &amp; gsCR) 
 end sub
 
 
