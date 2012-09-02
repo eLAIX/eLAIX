@@ -18,7 +18,7 @@
   <dlg:checkbox dlg:style-id="0" dlg:id="optDelTmpFiles" dlg:tab-index="1" dlg:left="12" dlg:top="53" dlg:width="125" dlg:height="11" dlg:value="Delete temporary files after export" dlg:checked="true"/>
   <dlg:button dlg:style-id="0" dlg:id="butCancel" dlg:tab-index="14" dlg:left="161" dlg:top="268" dlg:width="60" dlg:height="15" dlg:value="Close" dlg:button-type="cancel"/>
   <dlg:button dlg:style-id="1" dlg:id="butOK" dlg:tab-index="13" dlg:left="97" dlg:top="268" dlg:width="60" dlg:height="15" dlg:default="true" dlg:value="Start Export">
-   <script:event script:event-name="on-performaction" script:macro-name="vnd.sun.star.script:eLAIX.Main.DlgIliasExportClick?language=Basic&amp;location=application" script:language="Script"/>
+   <script:event script:event-name="on-performaction" script:macro-name="vnd.sun.star.script:eLAIX.DlgILIAS.DlgIliasExportClick?language=Basic&amp;location=application" script:language="Script"/>
   </dlg:button>
   <dlg:titledbox dlg:id="FrameControl4" dlg:tab-index="16" dlg:left="6" dlg:top="4" dlg:width="306" dlg:height="32">
    <dlg:title dlg:value="Export filename"/>

@@ -42,8 +42,6 @@ dim oSFA as object
 	  oSFA.setReadOnly(gsExportZipDir, false) &apos; gsExportZipDir is then not readonly
 	  RmDir(gsExportZipDir)
 	end if
-	poMetadata = GetDocMetadata()
-	gsLang = GetLanguageCode(poMetadata.docLanguage)
 end sub
 
 
@@ -68,9 +66,8 @@ dim oStream as object
 
 	&apos;Write file &quot;mimetype&quot;
 	oStream = GetExportFileObject(gsExportZipDir &amp; &quot;/mimetype&quot;)
-	&apos;xray oStream
 	oStream.writeString(&quot;application/epub+zip&quot;)
-	oStream.closeOutput() 
+	oStream.closeOutput()
 end sub
 
 
@@ -79,147 +76,260 @@ dim oStream as object
 
 	&apos;Write file &quot;mimetype&quot;
 	oStream = GetExportFileObject(gsExportZipDir &amp; &quot;/META-INF/container.xml&quot;)
-	&apos;xray oStream
 	oStream.writeString(&quot;&lt;?xml version=&quot;&quot;1.0&quot;&quot; encoding=&quot;&quot;utf-8&quot;&quot;?&gt;&quot; &amp; gsCR)
 	oStream.writeString(&quot;&lt;container xmlns=&quot;&quot;urn:oasis:names:tc:opendocument:xmlns:container&quot;&quot; version=&quot;&quot;1.0&quot;&quot;&gt;&quot; &amp; gsCR)
 	oStream.writeString(&quot;&lt;rootfiles&gt;&quot; &amp; gsCR)
 	oStream.writeString(&quot;&lt;rootfile full-path=&quot;&quot;EPUB/package.opf&quot;&quot; media-type=&quot;&quot;application/oebps-package+xml&quot;&quot; /&gt;&quot; &amp; gsCR)
 	oStream.writeString(&quot;&lt;/rootfiles&gt;&quot; &amp; gsCR)
 	oStream.writeString(&quot;&lt;/container&gt;&quot;)
-	oStream.closeOutput() 
+	oStream.closeOutput
 end sub
 
 
 sub ExportEpubPackage
 dim oStream as object
-dim sID as string
-dim sTitle as string
-dim sDescription as string
-dim aKeywords()
-dim aAuthors()
-dim iCount as integer
-dim i as integer
-dim sAuthor as string
-dim sLastModified as string
-dim iChapter as integer
-dim iChapterCount as long 
-dim iMedia as integer
-dim iMediaCount as long 
-dim oMedia as object
-dim sFilename as string
-dim bHasCover as boolean
-
-	bHasCover = false
 	
 	&apos;Create file &quot;EPUB/package.opf&quot;
 	oStream = GetExportFileObject(gsExportZipDir &amp; &quot;/EPUB/package.opf&quot;)
-	oStream.writeString(&quot;&lt;?xml version=&quot;&quot;1.0&quot;&quot; encoding=&quot;&quot;utf-8&quot;&quot;?&gt;&quot; &amp; gsCR)
+	oStream.writeString(&quot;&lt;?xml version=&quot;&quot;1.0&quot;&quot; encoding=&quot;&quot;utf-8&quot;&quot; standalone=&quot;&quot;no&quot;&quot;?&gt;&quot; &amp; gsCR)
 	oStream.writeString(&quot;&lt;package xmlns=&quot;&quot;http://www.idpf.org/2007/opf&quot;&quot; version=&quot;&quot;3.0&quot;&quot; unique-identifier=&quot;&quot;uid&quot;&quot;&gt;&quot; &amp; gsCR)
 
 	&apos;METADATA: Write metadata of the book
+	ExportEpubPackageMetadata(oStream)
+	
+	&apos;MANIFEST: Write information of all files within the book
+	ExportEpubPackageManifest(oStream)
+	
+	&apos;SPINE: Write information about the order of the elements within the book
+	ExportEpubPackageSpine(oStream)
+	
+	oStream.writeString(&quot;&lt;/package&gt;&quot; &amp; gsCR)
+	oStream.closeOutput 
+end sub
+
+
+sub ExportEpubPackageMetadata(oStream as object)
+dim sID as string
+dim sTitle as string
+dim aAuthors()
+dim sAuthor as string
+dim sDate as string
+dim sTime as string
+dim i as integer
+dim sLastModified as string
+dim sText as string
+
 	oStream.writeString(&quot;&lt;metadata xmlns:dc=&quot;&quot;http://purl.org/dc/elements/1.1/&quot;&quot;&gt;&quot; &amp; gsCR)
-    sID = GetRandomString(&quot;UID-&quot;, 24) &apos;&apos;&apos; Get real Identifier (later)
+	
+    &apos;ID/ISBN
+    if goDlgExport.Model.txtMetaID.Text &lt;&gt; &quot;&quot; then
+	    sID = goDlgExport.Model.txtMetaID.Text
+    else
+	    sID = GetRandomString(&quot;UID-&quot;, 24) 
+	    goDlgExport.Model.txtMetaID.Text = sID
+	    SetInternalDocString(&quot;epubMetaID&quot;, sID)
+	end if 	 
 	oStream.writeString(gsTAB &amp; &quot;&lt;dc:identifier id=&quot;&quot;uid&quot;&quot;&gt;&quot; &amp; sID &amp; &quot;&lt;/dc:identifier&gt;&quot; &amp; gsCR)
-    sTitle = ReplaceSymbolsMetadata(poMetadata.docTitle)
-	oStream.writeString(gsTAB &amp; &quot;&lt;dc:title&gt;&quot; &amp; sTitle &amp; &quot;&lt;/dc:title&gt;&quot; &amp; gsCR)
-	oStream.writeString(gsTAB &amp; &quot;&lt;dc:language&gt;&quot; &amp; gsLang &amp; &quot;&lt;/dc:language&gt;&quot; &amp; gsCR)
-    aAuthors = ArrayOutOfString(ReplaceSymbolsMetadata(poMetadata.docAuthors), &quot;,&quot;)
-	if poMetadata.docAuthors &lt;&gt; &quot;&quot; then
+	
+	&apos;Title
+    sText = ReplaceSymbolsMetadata(goDlgExport.Model.txtMetaTitle.Text)
+    if sText = &quot;&quot; then sText = &quot;Unknown Title&quot;
+	oStream.writeString(gsTAB &amp; &quot;&lt;dc:title&gt;&quot; &amp; sText &amp; &quot;&lt;/dc:title&gt;&quot; &amp; gsCR)
+
+	&apos;language
+	sText = goDlgExport.Model.cmbMetaLanguage.Text
+	oStream.writeString(gsTAB &amp; &quot;&lt;dc:language&gt;&quot; &amp; sText &amp; &quot;&lt;/dc:language&gt;&quot; &amp; gsCR)
+	
+	&apos;authors
+	if goDlgExport.Model.txtMetaAuthor.Text &lt;&gt; &quot;&quot; then
+	    aAuthors = ArrayOutOfString(ReplaceSymbolsMetadata(goDlgExport.Model.txtMetaAuthor.Text), &quot;,&quot;)
 		for i = 0 to ubound(aAuthors())
 			sAuthor = ltrim(rtrim(aAuthors(i))
 			oStream.writeString(gsTAB &amp; &quot;&lt;dc:creator id=&quot;&quot;creator&quot; &amp; i + 1 &amp; &quot;&quot;&quot;&gt;&quot; &amp; sAuthor &amp; &quot;&lt;/dc:creator&gt;&quot; &amp; gsCR)
 		next i
 	end if  
-	sLastModified = &quot;2012-02-27T16:38:35Z&quot; &apos;&apos;&apos;set correct date later
-	oStream.writeString(gsTAB &amp; &quot;&lt;meta property=&quot;&quot;dcterms:modified&quot;&quot;&gt;&quot; &amp; sLastModified &amp; &quot;&lt;/meta&gt;&quot; &amp; gsCR)
-	oStream.writeString(&quot;&lt;/metadata&gt;&quot; &amp; gsCR)
 	
-	&apos;MANIFEST: Write information of all files within the book
+	&apos;Last modified
+	sDate = CDateToISO(Date)
+	sTime = Time
+	sLastModified = mid(sDate, 1, 4) &amp; &quot;-&quot; &amp; mid(sDate, 5, 2) &amp; &quot;-&quot; &amp; mid(sDate, 7, 2) &amp; &quot;T&quot; &amp; sTime &amp; &quot;Z&quot;
+	oStream.writeString(gsTAB &amp; &quot;&lt;meta property=&quot;&quot;dcterms:modified&quot;&quot;&gt;&quot; &amp; sLastModified &amp; &quot;&lt;/meta&gt;&quot; &amp; gsCR)
+	
+	&apos;contributor
+	sText = goDlgExport.Model.txtMetaContributor.Text
+	if sText &lt;&gt; &quot;&quot; then oStream.writeString(gsTAB &amp; &quot;&lt;dc:contributor id=&quot;&quot;contributor&quot;&quot;&gt;&quot; &amp; sText &amp; &quot;&lt;/dc:contributor&gt;&quot; &amp; gsCR)
+
+	&apos;coverage
+	sText = goDlgExport.Model.txtMetaCoverage.Text
+	if sText &lt;&gt; &quot;&quot; then oStream.writeString(gsTAB &amp; &quot;&lt;dc:coverage id=&quot;&quot;coverage&quot;&quot;&gt;&quot; &amp; sText &amp; &quot;&lt;/dc:coverage&gt;&quot; &amp; gsCR)
+
+	&apos;creator
+	sText = goDlgExport.Model.txtMetaCreator.Text
+	if sText &lt;&gt; &quot;&quot; then oStream.writeString(gsTAB &amp; &quot;&lt;dc:creator id=&quot;&quot;creator&quot;&quot;&gt;&quot; &amp; sText &amp; &quot;&lt;/dc:creator&gt;&quot; &amp; gsCR)
+
+	&apos;publishing date
+	sDate = goDlgExport.Model.dateMetaPublishing.Text
+	sTime = goDlgExport.Model.timeMetaPublishing.Text
+	if sDate &amp; sTime &lt;&gt; &quot;&quot; then oStream.writeString(gsTAB &amp; &quot;&lt;dc:date id=&quot;&quot;date&quot;&quot;&gt;&quot; &amp; sDate &amp; &quot;T&quot; &amp; sTime &amp; &quot;Z&quot; &amp; &quot;&lt;/dc:date&gt;&quot; &amp; gsCR)
+
+	&apos;publisher
+	sText = goDlgExport.Model.txtMetaPublisher.Text
+	if sText &lt;&gt; &quot;&quot; then oStream.writeString(gsTAB &amp; &quot;&lt;dc:publisher id=&quot;&quot;publisher&quot;&quot;&gt;&quot; &amp; sText &amp; &quot;&lt;/dc:publisher&gt;&quot; &amp; gsCR)
+
+	&apos;format
+	sText = goDlgExport.Model.txtMetaFormat.Text
+	if sText &lt;&gt; &quot;&quot; then oStream.writeString(gsTAB &amp; &quot;&lt;dc:format id=&quot;&quot;format&quot;&quot;&gt;&quot; &amp; sText &amp; &quot;&lt;/dc:format&gt;&quot; &amp; gsCR)
+
+	&apos;relation
+	sText = goDlgExport.Model.txtMetaRelation.Text
+	if sText &lt;&gt; &quot;&quot; then oStream.writeString(gsTAB &amp; &quot;&lt;dc:relation id=&quot;&quot;relation&quot;&quot;&gt;&quot; &amp; sText &amp; &quot;&lt;/dc:relation&gt;&quot; &amp; gsCR)
+
+	&apos;rights
+	sText = goDlgExport.Model.txtMetaRights.Text
+	if sText &lt;&gt; &quot;&quot; then oStream.writeString(gsTAB &amp; &quot;&lt;dc:rights id=&quot;&quot;rights&quot;&quot;&gt;&quot; &amp; sText &amp; &quot;&lt;/dc:rights&gt;&quot; &amp; gsCR)
+
+	&apos;source
+	sText = goDlgExport.Model.txtMetaSource.Text
+	if sText &lt;&gt; &quot;&quot; then oStream.writeString(gsTAB &amp; &quot;&lt;dc:source id=&quot;&quot;source&quot;&quot;&gt;&quot; &amp; sText &amp; &quot;&lt;/dc:source&gt;&quot; &amp; gsCR)
+
+	&apos;subject
+	sText = goDlgExport.Model.txtMetaSubject.Text
+	if sText &lt;&gt; &quot;&quot; then oStream.writeString(gsTAB &amp; &quot;&lt;dc:subject id=&quot;&quot;subject&quot;&quot;&gt;&quot; &amp; sText &amp; &quot;&lt;/dc:subject&gt;&quot; &amp; gsCR)
+
+	&apos;type
+	sText = goDlgExport.Model.txtMetaType.Text
+	if sText &lt;&gt; &quot;&quot; then oStream.writeString(gsTAB &amp; &quot;&lt;dc:type id=&quot;&quot;type&quot;&quot;&gt;&quot; &amp; sText &amp; &quot;&lt;/dc:type&gt;&quot; &amp; gsCR)
+
+	&apos;description
+	sText = goDlgExport.Model.txtMetaDescription.Text
+	if sText &lt;&gt; &quot;&quot; then oStream.writeString(gsTAB &amp; &quot;&lt;dc:description id=&quot;&quot;description&quot;&quot;&gt;&quot; &amp; sText &amp; &quot;&lt;/dc:description&gt;&quot; &amp; gsCR)
+
+	oStream.writeString(&quot;&lt;/metadata&gt;&quot; &amp; gsCR)
+end sub
+
+
+sub ExportEpubPackageManifest(oStream as object)
+dim iChapter as integer
+dim iChapterCount as long 
+dim oMedia as object
+dim iMedia as integer
+dim iMediaCount as long
+dim sMediaType as string 
+dim sFilename as string
+dim oControl as object
+dim iPos as integer
+
 	oStream.writeString(&quot;&lt;manifest&gt;&quot; &amp; gsCR)
 	&apos;Write the navigation page
-	oStream.writeString(gsTAB &amp; &quot;&lt;item href=&quot;&quot;xhtml/nav.xhtml&quot;&quot; properties=&quot;&quot;nav&quot;&quot; id=&quot;&quot;nav&quot;&quot; media-type=&quot;&quot;application/xhtml+xml&quot;&quot;/&gt;&quot; &amp; gsCR)
+	if goDlgExport.Model.optCreateNdxFile.State = 1 then
+		oStream.writeString(gsTAB &amp; &quot;&lt;item id=&quot;&quot;ncx&quot;&quot; href=&quot;&quot;toc.ncx&quot;&quot; media-type=&quot;&quot;application/x-dtbncx+xml&quot;&quot;/&gt;&quot; &amp; gsCR)
+	end if
+	oStream.writeString(gsTAB &amp; &quot;&lt;item id=&quot;&quot;htmltoc&quot;&quot; href=&quot;&quot;nav.xhtml&quot;&quot; properties=&quot;&quot;nav&quot;&quot; media-type=&quot;&quot;application/xhtml+xml&quot;&quot;/&gt;&quot; &amp; gsCR)
 	&apos;Write chapter pages
 	iChapterCount = ubound(gaDocChapter())
 	iChapter = 0
 	do while iChapter &lt; iChapterCount
 		iChapter = iChapter + 1	
-		oStream.writeString(gsTAB &amp; &quot;&lt;item href=&quot;&quot;xhtml/page-&quot; &amp; iChapter &amp; &quot;.xhtml&quot;&quot; id=&quot;&quot;page-&quot; &amp; iChapter &amp; &quot;&quot;&quot; media-type=&quot;&quot;application/xhtml+xml&quot;&quot;/&gt;&quot; &amp; gsCR)
+		oStream.writeString(gsTAB &amp; &quot;&lt;item id=&quot;&quot;page-&quot; &amp; iChapter &amp; &quot;&quot;&quot; href=&quot;&quot;page-&quot; &amp; iChapter &amp; &quot;.xhtml&quot;&quot; media-type=&quot;&quot;application/xhtml+xml&quot;&quot;/&gt;&quot; &amp; gsCR)
 	loop
+	
 	&apos;Write Graphics
+	&apos;first check if a cover image has been defined (0 = no image | 1 = internal graphic | 3 = external file)
+	oControl = goDlgExport.getControl(&quot;listCoverImage&quot;)
+	iPos = oControl.SelectedItemPos
+	
 	iMediaCount = ubound(gaExtMedia())
 	iMedia = 0
 	do while iMedia &lt; iMediaCount
 		iMedia = iMedia + 1
 		oMedia = gaExtMedia(iMedia)
 		sFilename = FileNameOutOfPath(oMedia.FileName)
-		&apos;sImage = oMedia.ObjectName
-		&apos;sType = oMedia.MediaTypeText
-		if oMedia.ObjectName = &quot;Logo&quot; then
-		    oStream.writeString(gsTAB &amp; &quot;&lt;item href=&quot;&quot;images/Logo.png&quot;&quot; id=&quot;&quot;logo&quot;&quot; media-type=&quot;&quot;&quot; &amp; oMedia.MediaTypeText &amp; &quot;&quot;&quot;/&gt;&quot; &amp; gsCR)
-		elseif oMedia.ObjectName = &quot;Cover&quot; then    
-			bHasCover = true
-			oStream.writeString(gsTAB &amp; &quot;&lt;item href=&quot;&quot;xhtml/cover.xhtml&quot;&quot; id=&quot;&quot;cover&quot;&quot; media-type=&quot;&quot;application/xhtml+xml&quot;&quot;/&gt;&quot; &amp; gsCR)
-		    oStream.writeString(gsTAB &amp; &quot;&lt;item href=&quot;&quot;images/Cover.png&quot;&quot; id=&quot;&quot;cover-image&quot;&quot; properties=&quot;&quot;cover-image&quot;&quot; media-type=&quot;&quot;&quot; &amp; oMedia.MediaTypeText &amp; &quot;&quot;&quot;/&gt;&quot; &amp; gsCR)
-		    ExportEpubCoverPage(sTitle, sFilename)
+		if (sFilename = gsEpubCoverImage) and (iPos = 1) then    
+			oStream.writeString(gsTAB &amp; &quot;&lt;item id=&quot;&quot;cover&quot;&quot; href=&quot;&quot;cover.xhtml&quot;&quot; media-type=&quot;&quot;application/xhtml+xml&quot;&quot;/&gt;&quot; &amp; gsCR)
+		    oStream.writeString(gsTAB &amp; &quot;&lt;item id=&quot;&quot;cover-image&quot;&quot; href=&quot;&quot;images/&quot; &amp; gsEpubCoverImage &amp; &quot;&quot;&quot; properties=&quot;&quot;cover-image&quot;&quot; media-type=&quot;&quot;&quot; &amp; oMedia.MediaTypeText &amp; &quot;&quot;&quot;/&gt;&quot; &amp; gsCR)
+		    ExportEpubCoverPage(&quot;Cover image&quot;, sFilename)
 		else
-			oStream.writeString(gsTAB &amp; &quot;&lt;item href=&quot;&quot;images/&quot; &amp; sFilename &amp; &quot;&quot;&quot; id=&quot;&quot;img-&quot; &amp; oMedia.ID &amp; _
-							&quot;&quot;&quot; media-type=&quot;&quot;&quot; &amp; oMedia.MediaTypeText &amp; &quot;&quot;&quot;/&gt;&quot; &amp; gsCR)	
+			oStream.writeString(gsTAB &amp; &quot;&lt;item id=&quot;&quot;img-&quot; &amp; oMedia.ID &amp; &quot;&quot;&quot; href=&quot;&quot;images/&quot; &amp; sFilename &amp; &quot;&quot;&quot;  media-type=&quot;&quot;&quot; &amp; oMedia.MediaTypeText &amp; &quot;&quot;&quot;/&gt;&quot; &amp; gsCR)	
 		end if	
 	loop
-    oStream.writeString(gsTAB &amp; &quot;&lt;item href=&quot;&quot;css/style.css&quot;&quot; id=&quot;&quot;css&quot;&quot; media-type=&quot;&quot;text/css&quot;&quot;/&gt;&quot; &amp; gsCR)
+	if (iPos = 2) and (gsEpubCoverImage &lt;&gt; &quot;&quot;) then
+		sMediaType = GetMediaTypeFromFilename(gsEpubCoverImage)
+		oStream.writeString(gsTAB &amp; &quot;&lt;item id=&quot;&quot;cover&quot;&quot; href=&quot;&quot;cover.xhtml&quot;&quot; media-type=&quot;&quot;application/xhtml+xml&quot;&quot;/&gt;&quot; &amp; gsCR)
+	    oStream.writeString(gsTAB &amp; &quot;&lt;item id=&quot;&quot;cover-image&quot;&quot; href=&quot;&quot;images/&quot; &amp; gsEpubCoverImage &amp; &quot;&quot;&quot; properties=&quot;&quot;cover-image&quot;&quot; media-type=&quot;&quot;&quot; &amp; sMediaType &amp; &quot;&quot;&quot;/&gt;&quot; &amp; gsCR)
+	    ExportEpubCoverPage(&quot;Cover image&quot;, gsEpubCoverImage)
+	end if 
+	
+	&apos;write link to css file
+    oStream.writeString(gsTAB &amp; &quot;&lt;item id=&quot;&quot;css&quot;&quot; href=&quot;&quot;css/style.css&quot;&quot; media-type=&quot;&quot;text/css&quot;&quot;/&gt;&quot; &amp; gsCR)
 
+	&apos;write closing manifest tag
 	oStream.writeString(&quot;&lt;/manifest&gt;&quot; &amp; gsCR)
 
-	&apos;SPINE: Write information about the order of the elements within the book
-	oStream.writeString(&quot;&lt;spine&gt;&quot; &amp; gsCR)
-	if bHascover then
+end sub
+
+
+sub ExportEpubPackageSpine(oStream as object)
+dim iChapter as integer
+dim iChapterCount as long 
+dim sCover as string
+
+	oStream.writeString(&quot;&lt;spine toc=&quot;&quot;ncx&quot;&quot;&gt;&quot; &amp; gsCR)
+	&apos;sCover = GetInternalDocString(&quot;epubCoverFromDocument&quot;)
+	if gsEpubCoverImage &lt;&gt; &quot;&quot; then
 		oStream.writeString(gsTAB &amp; &quot;&lt;itemref idref=&quot;&quot;cover&quot;&quot; linear=&quot;&quot;no&quot;&quot;/&gt;&quot; &amp; gsCR)
 	end if
-	oStream.writeString(gsTAB &amp; &quot;&lt;itemref idref=&quot;&quot;nav&quot;&quot; linear=&quot;&quot;no&quot;&quot;/&gt;&quot; &amp; gsCR)
+	oStream.writeString(gsTAB &amp; &quot;&lt;itemref idref=&quot;&quot;htmltoc&quot;&quot; linear=&quot;&quot;no&quot;&quot;/&gt;&quot; &amp; gsCR)
 	iChapter = 0
+	iChapterCount = ubound(gaDocChapter())
 	do while iChapter &lt; iChapterCount
 		iChapter = iChapter + 1			
 		oStream.writeString(gsTAB &amp; &quot;&lt;itemref idref=&quot;&quot;page-&quot; &amp; iChapter &amp; &quot;&quot;&quot; linear=&quot;&quot;yes&quot;&quot;/&gt;&quot; &amp; gsCR)
 	loop		
 	oStream.writeString(&quot;&lt;/spine&gt;&quot; &amp; gsCR)
-	oStream.writeString(&quot;&lt;/package&gt;&quot; &amp; gsCR)
-	oStream.closeOutput() 
 end sub
 
 
 sub ExportEpubNavigation
+	ExportEpubTocNavigation
+	if goDlgExport.Model.optCreateNdxFile.State = 1 then
+		ExportEpubNcxNavigation
+	end if
+end sub
+	
+
+sub ExportEpubTocNavigation
 dim sTitle as string
 dim iChapterCount as integer
 
-    sTitle = ReplaceSymbolsMetadata(poMetadata.docTitle)
+    sTitle = ReplaceSymbolsMetadata(goDlgExport.Model.txtMetaTitle.Text)
 
 	&apos;Create file &quot;EPUB/xhtml/nav.xhtml and set the header&quot;
-	poNavStream = GetExportFileObject(gsExportZipDir &amp; &quot;/EPUB/xhtml/nav.xhtml&quot;)
-	poNavStream.writeString(&quot;&lt;?xml version=&quot;&quot;1.0&quot;&quot; encoding=&quot;&quot;utf-8&quot;&quot;?&gt;&quot; &amp; gsCR)
-	poNavStream.writeString(&quot;&lt;html xmlns=&quot;&quot;http://www.w3.org/1999/xhtml&quot;&quot; xmlns:epub=&quot;&quot;http://www.idpf.org/2007/ops&quot;&quot;&gt;&quot; &amp; gsCR)
+	poNavStream = GetExportFileObject(gsExportZipDir &amp; &quot;/EPUB/nav.xhtml&quot;)
+	poNavStream.writeString(&quot;&lt;?xml version=&quot;&quot;1.0&quot;&quot; encoding=&quot;&quot;utf-8&quot;&quot; standalone=&quot;&quot;no&quot;&quot;?&gt;&quot; &amp; gsCR)
+	poNavStream.writeString(&quot;&lt;html xmlns=&quot;&quot;http://www.w3.org/1999/xhtml&quot;&quot; xmlns:epub=&quot;&quot;http://www.idpf.org/2007/ops&quot;&quot; xml:lang=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot; lang=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot;&gt;&quot; &amp; gsCR)
 	poNavStream.writeString(&quot;&lt;head&gt;&quot; &amp; gsCR)
 	poNavStream.writeString(&quot;&lt;meta charset=&quot;&quot;utf-8&quot;&quot;/&gt;&quot; &amp; gsCR)	
 	poNavStream.writeString(&quot;&lt;title&gt;&quot; &amp; sTitle &amp; &quot;&lt;/title&gt;&quot; &amp; gsCR)
-	poNavStream.writeString(&quot;&lt;link rel=&quot;&quot;stylesheet&quot;&quot; type=&quot;&quot;text/css&quot;&quot; href=&quot;&quot;../css/style.css&quot;&quot;/&gt;&quot; &amp; gsCR)
+	poNavStream.writeString(&quot;&lt;link rel=&quot;&quot;stylesheet&quot;&quot; type=&quot;&quot;text/css&quot;&quot; href=&quot;&quot;css/style.css&quot;&quot;/&gt;&quot; &amp; gsCR)
 	poNavStream.writeString(&quot;&lt;/head&gt;&quot; &amp; gsCR)
 
 	&apos;Generate a structured link list for all chapters and subchapters in the body section
 	poNavStream.writeString(&quot;&lt;body&gt;&quot; &amp; gsCR)		
-	poNavStream.writeString(&quot;&lt;nav epub:type=&quot;&quot;toc&quot;&quot; id=&quot;&quot;toc&quot;&quot;&gt;&quot; &amp; gsCR)
-	poNavStream.writeString(&quot;&lt;h1 class=&quot;&quot;title&quot;&quot;&gt;Table of Contents&lt;/h1&gt;&quot; &amp; gsCR)
+	poNavStream.writeString(&quot;&lt;nav id=&quot;&quot;toc&quot;&quot; xmlns:epub=&quot;&quot;http://www.idpf.org/2007/ops&quot;&quot; epub:type=&quot;&quot;toc&quot;&quot;&gt;&quot; &amp; gsCR)
+	poNavStream.writeString(&quot;&lt;h1 class=&quot;&quot;toc_title&quot;&quot;&gt;&quot; &amp; goDlgExport.Model.txtTocTitle.Text &amp; &quot;&lt;/h1&gt;&quot; &amp; gsCR)
 	iChapterCount = ubound(gaDocChapter())
 	piBacksteps = 0
-	ExportNavigationList(iChapterCount, 0)
+	ExportTocNavigationList(iChapterCount, 0)
 	poNavStream.writeString(&quot;&lt;/nav&gt;&quot; &amp; gsCR)
 	poNavStream.writeString(&quot;&lt;/body&gt;&quot; &amp; gsCR)
 
 	poNavStream.writeString(&quot;&lt;/html&gt;&quot; &amp; gsCR)
-	poNavStream.closeOutput() 
+	poNavStream.closeOutput 
 	
 end sub
 
 
-function ExportNavigationList(iChapterCount as integer, iChapter as integer) as integer
+function ExportTocNavigationList(iChapterCount as integer, iChapter as integer) as integer
 dim iLevelDiff as integer
 dim sStr as string
 dim bContinue
@@ -228,10 +338,14 @@ dim bContinue
 	poNavStream.writeString(&quot;&lt;ol&gt;&quot; &amp; gsCR)
 	do while (iChapter &lt; iChapterCount) and bContinue
 		if piBacksteps = 0 then
-			iChapter = iChapter + 1											
-			sStr = gaDocChapter(iChapter).GetString
-			poNavStream.writeString(&quot;&lt;li&gt;&quot;)		
-			poNavStream.writeString(&quot;&lt;a href=&quot;&quot;page-&quot; &amp; iChapter &amp; &quot;.xhtml&quot;&quot;&gt;&quot; &amp; gaDocChapter(iChapter).GetString &amp; &quot;&lt;/a&gt;&quot;)					
+			iChapter = iChapter + 1	
+			if goDlgExport.Model.optIncludeChapterNumberingToc.State = 1 then									
+				sStr = gaDocChapter(iChapter).ListLabelString &amp; gaDocChapter(iChapter).GetString
+			else
+				sStr = gaDocChapter(iChapter).GetString
+			end if	
+			poNavStream.writeString(&quot;&lt;li id=&quot;&quot;page-&quot; &amp; iChapter &amp; &quot;&quot;&quot;&gt;&quot;)		
+			poNavStream.writeString(&quot;&lt;a href=&quot;&quot;page-&quot; &amp; iChapter &amp; &quot;.xhtml&quot;&quot;&gt;&quot; &amp; sStr &amp; &quot;&lt;/a&gt;&quot;)					
 
 			&apos;check if there is a next level
 			if iChapter &lt; iChapterCount then
@@ -239,7 +353,7 @@ dim bContinue
 				&apos;check if the next chapter has a higher level and is not a page break
 				if (gaDocChapter(iChapter + 1).Level &gt; gaDocChapter(iChapter).Level)  then
 					&apos;call this function recursively
-					iChapter = ExportNavigationList(iChapterCount, iChapter)
+					iChapter = ExportTocNavigationList(iChapterCount, iChapter)
 
 				&apos;check if the next chapter has a lower level
 				elseif (gaDocChapter(iChapter + 1).Level &lt; gaDocChapter(iChapter).Level) then
@@ -256,7 +370,94 @@ dim bContinue
 		end if
 	loop
 	poNavStream.writeString(&quot;&lt;/ol&gt;&quot; &amp; gsCR)	
-	ExportNavigationList = iChapter		
+	ExportTocNavigationList = iChapter		
+end function
+
+
+sub ExportEpubNcxNavigation
+dim sTitle as string
+dim sID as string
+dim iChapterCount as integer
+
+    sTitle = ReplaceSymbolsMetadata(goDlgExport.Model.txtMetaTitle.Text)
+    sID = goDlgExport.Model.txtMetaID.Text
+
+	&apos;Create file &quot;EPUB/xhtml/nav.xhtml and set the header&quot;
+	poNavStream = GetExportFileObject(gsExportZipDir &amp; &quot;/EPUB/toc.ncx&quot;)
+	poNavStream.writeString(&quot;&lt;?xml version=&quot;&quot;1.0&quot;&quot; encoding=&quot;&quot;utf-8&quot;&quot; standalone=&quot;&quot;no&quot;&quot;?&gt;&quot; &amp; gsCR)
+	poNavStream.writeString(&quot;&lt;ncx xmlns=&quot;&quot;http://www.daisy.org/z3986/2005/ncx/&quot;&quot; version=&quot;&quot;2005-1&quot;&quot;&gt;&quot; &amp; gsCR)
+	poNavStream.writeString(gsTAB &amp; &quot;&lt;head&gt;&quot; &amp; gsCR)
+	poNavStream.writeString(gsTAB &amp; gsTAB &amp; &quot;&lt;meta name=&quot;&quot;cover&quot;&quot; content=&quot;&quot;cover&quot;&quot;/&gt;&quot; &amp; gsCR)
+	poNavStream.writeString(gsTAB &amp; gsTAB &amp; &quot;&lt;meta name=&quot;&quot;dtb:uid&quot;&quot; content=&quot;&quot;&quot; &amp; sID &amp; &quot;&quot;&quot;/&gt;&quot; &amp; gsCR)	
+	poNavStream.writeString(gsTAB &amp; &quot;&lt;/head&gt;&quot; &amp; gsCR)
+	poNavStream.writeString(gsTAB &amp; &quot;&lt;docTitle&gt;&quot; &amp; gsCR)
+	poNavStream.writeString(gsTAB &amp; gsTAB &amp; &quot;&lt;text&gt;&quot; &amp; sTitle &amp; &quot;&lt;/text&gt;&quot; &amp; gsCR)
+	poNavStream.writeString(gsTAB &amp; &quot;&lt;/docTitle&gt;&quot; &amp; gsCR)
+
+	&apos;Generate a structured link list for all chapters and subchapters in the body section
+	poNavStream.writeString(gsTAB &amp; &quot;&lt;navMap&gt;&quot; &amp; gsCR)		
+	iChapterCount = ubound(gaDocChapter())
+	piBacksteps = 0
+	ExportNcxNavigationList(iChapterCount, 0)
+	poNavStream.writeString(gsTAB &amp; &quot;&lt;/navMap&gt;&quot; &amp; gsCR)
+	poNavStream.writeString(&quot;&lt;/ncx&gt;&quot; &amp; gsCR)
+	poNavStream.closeOutput 	
+end sub
+
+
+function ExportNcxNavigationList(iChapterCount as integer, iChapter as integer) as integer
+dim iLevelDiff as integer
+dim sStr as string
+dim sIndentPoint as string
+dim sIndentLabel as string
+dim bContinue
+
+	bContinue = true
+	do while (iChapter &lt; iChapterCount) and bContinue
+		if piBacksteps = 0 then
+			iChapter = iChapter + 1	
+			if goDlgExport.Model.optIncludeChapterNumberingToc.State = 1 then									
+				sStr = gaDocChapter(iChapter).ListLabelString &amp; gaDocChapter(iChapter).GetString
+			else
+				sStr = gaDocChapter(iChapter).GetString
+			end if	
+			
+			if iChapter = 0 then 
+				sIndentPoint = gsTab &amp; gsTab
+			else	
+				sIndentPoint = GetRepeatedString(gsTab, gaDocChapter(iChapter).Level + 1)
+			end if	
+			
+			poNavStream.writeString(sIndentPoint &amp; &quot;&lt;navPoint id=&quot;&quot;page-&quot; &amp; iChapter &amp; &quot;&quot;&quot; playOrder=&quot;&quot;&quot; &amp; iChapter &amp; &quot;&quot;&quot;&gt;&quot; &amp; gsCR)
+			sIndentLabel = GetRepeatedString(gsTab, gaDocChapter(iChapter).Level + 2)
+			poNavStream.writeString(sIndentLabel &amp; &quot;&lt;navLabel&gt;&quot; &amp; gsCR
+			poNavStream.writeString(sIndentLabel &amp; gsTab &amp; &quot;&lt;text&gt;&quot; &amp; sStr &amp; &quot;&lt;/text&gt;&quot;
+			poNavStream.writeString(sIndentLabel &amp; &quot;&lt;/navLabel&gt;&quot; &amp; gsCR
+			poNavStream.writeString(sIndentLabel &amp; &quot;&lt;content src=&quot;&quot;page-&quot; &amp; iChapter &amp; &quot;.xhtml&quot;&quot;/&gt;&quot; &amp; gsCR 
+
+			&apos;check if there is a next level
+			if iChapter &lt; iChapterCount then
+				
+				&apos;check if the next chapter has a higher level and is not a page break
+				if (gaDocChapter(iChapter + 1).Level &gt; gaDocChapter(iChapter).Level)  then
+					&apos;call this function recursively
+					iChapter = ExportNcxNavigationList(iChapterCount, iChapter)
+
+				&apos;check if the next chapter has a lower level
+				elseif (gaDocChapter(iChapter + 1).Level &lt; gaDocChapter(iChapter).Level) then
+					&apos;look how much level the next level is going back
+					piBacksteps = gaDocChapter(iChapter).Level - gaDocChapter(iChapter + 1).Level - 1
+					bContinue = false
+				end if	
+			end if
+			poNavStream.writeString(sIndentPoint &amp; &quot;&lt;/navPoint&gt;&quot; &amp; gsCR)	
+						
+		else 
+			piBacksteps = piBacksteps - 1
+			bContinue = false
+		end if
+	loop
+	ExportNcxNavigationList = iChapter		
 end function
 
 
@@ -264,26 +465,26 @@ sub ExportEpubCoverPage(sTitle as string, sImage as string)
 dim oStream as object
 		
 	&apos;Export the page head and body starting tags
-	oStream = GetExportFileObject(gsExportZipDir &amp; &quot;/EPUB/xhtml/cover.xhtml&quot;)
+	oStream = GetExportFileObject(gsExportZipDir &amp; &quot;/EPUB/cover.xhtml&quot;)
 	oStream.writeString(&quot;&lt;?xml version=&quot;&quot;1.0&quot;&quot; encoding=&quot;&quot;utf-8&quot;&quot;?&gt;&quot; &amp; gsCR)
 	oStream.writeString(&quot;&lt;html xml:lang=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot; lang=&quot;&quot;&quot; &amp; gsLang &amp; _
 	 &quot;&quot;&quot; xmlns=&quot;&quot;http://www.w3.org/1999/xhtml&quot;&quot; xmlns:epub=&quot;&quot;http://www.idpf.org/2007/ops&quot;&quot;&gt;&quot; &amp; gsCR)
 	oStream.writeString(&quot;&lt;head&gt;&quot; &amp; gsCR)
 	oStream.writeString(&quot;&lt;title&gt;&quot; &amp; sTitle &amp; &quot;&lt;/title&gt;&quot; &amp; gsCR)
-	oStream.writeString(&quot;&lt;link rel=&quot;&quot;stylesheet&quot;&quot; type=&quot;&quot;text/css&quot;&quot; href=&quot;&quot;../css/style.css&quot;&quot;/&gt;&quot; &amp; gsCR)
+	oStream.writeString(&quot;&lt;link rel=&quot;&quot;stylesheet&quot;&quot; type=&quot;&quot;text/css&quot;&quot; href=&quot;&quot;css/style.css&quot;&quot;/&gt;&quot; &amp; gsCR)
 	oStream.writeString(&quot;&lt;meta charset=&quot;&quot;utf-8&quot;&quot;/&gt;&quot; &amp; gsCR)
 	oStream.writeString(&quot;&lt;/head&gt;&quot; &amp; gsCR)
 	oStream.writeString(&quot;&lt;body id=&quot;&quot;cover&quot;&quot; epub:type=&quot;&quot;frontmatter&quot;&quot;&gt;&quot; &amp; gsCR)
 
 	&apos;Export the cover image
-	oStream.writeString(&quot;&lt;img src=&quot;&quot;../images/&quot; &amp; sImage &amp; &quot;&quot;&quot; alt=&quot;&quot;Cover Image&quot;&quot; title=&quot;&quot;Cover Image&quot;&quot;/&gt;&quot; &amp; gsCR)
+	oStream.writeString(&quot;&lt;img src=&quot;&quot;images/&quot; &amp; sImage &amp; &quot;&quot;&quot; alt=&quot;&quot;Cover Image&quot;&quot; title=&quot;&quot;Cover Image&quot;&quot;/&gt;&quot; &amp; gsCR)
 
 	&apos;Export the page head and body closing tags
 	oStream.writeString(&quot;&lt;/body&gt;&quot; &amp; gsCR)
 	oStream.writeString(&quot;&lt;/html&gt;&quot; &amp; gsCR)
 	
 	&apos;Close the document
-	oStream.closeOutput() 
+	oStream.closeOutput 
 end sub	
 
 
@@ -300,9 +501,10 @@ dim iParaCount as long
 dim i as long
 dim sCharacteristic as string
 dim iActPageID as long
+dim sTag as string
 
 	iActPageID = 0
-
+	 
 	for iChapterNo = 1 to ubound(gaDocChapter())
 	
 		gsFootnotes = &quot;&quot;
@@ -312,19 +514,24 @@ dim iActPageID as long
 		if oChapter.HasContent then
 		
 			&apos;Export the page head and body starting tags
-			poPageStream = GetExportFileObject(gsExportZipDir &amp; &quot;/EPUB/xhtml/page-&quot; &amp; oChapter.ID &amp; &quot;.xhtml&quot;)
+			poPageStream = GetExportFileObject(gsExportZipDir &amp; &quot;/EPUB/page-&quot; &amp; oChapter.ID &amp; &quot;.xhtml&quot;)
 			poPageStream.writeString(&quot;&lt;?xml version=&quot;&quot;1.0&quot;&quot; encoding=&quot;&quot;utf-8&quot;&quot;?&gt;&quot; &amp; gsCR)
 			poPageStream.writeString(&quot;&lt;html xml:lang=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot; lang=&quot;&quot;&quot; &amp; gsLang &amp; _
 			 &quot;&quot;&quot; xmlns=&quot;&quot;http://www.w3.org/1999/xhtml&quot;&quot; xmlns:epub=&quot;&quot;http://www.idpf.org/2007/ops&quot;&quot;&gt;&quot; &amp; gsCR)
 			poPageStream.writeString(&quot;&lt;head&gt;&quot; &amp; gsCR)
 			poPageStream.writeString(&quot;&lt;title&gt;&quot; &amp; oChapter.GetString &amp; &quot;&lt;/title&gt;&quot; &amp; gsCR)
-			poPageStream.writeString(&quot;&lt;link rel=&quot;&quot;stylesheet&quot;&quot; type=&quot;&quot;text/css&quot;&quot; href=&quot;&quot;../css/style.css&quot;&quot;/&gt;&quot; &amp; gsCR)
+			poPageStream.writeString(&quot;&lt;link rel=&quot;&quot;stylesheet&quot;&quot; type=&quot;&quot;text/css&quot;&quot; href=&quot;&quot;css/style.css&quot;&quot;/&gt;&quot; &amp; gsCR)
 			poPageStream.writeString(&quot;&lt;meta charset=&quot;&quot;utf-8&quot;&quot;/&gt;&quot; &amp; gsCR)
 			poPageStream.writeString(&quot;&lt;/head&gt;&quot; &amp; gsCR)
 			poPageStream.writeString(&quot;&lt;body id=&quot;&quot;&quot; &amp; oChapter.ID &amp; &quot;&quot;&quot; epub:type=&quot;&quot;frontmatter&quot;&quot;&gt;&quot; &amp; gsCR)
 
 			&apos;Export the title
-			poPageStream.writeString(&quot;&lt;h1&gt;&quot; &amp; oChapter.GetString &amp; &quot;&lt;/h1&gt;&quot; &amp; gsCR)
+			sTag = &quot;h&quot; &amp; oChapter.Level
+			if goDlgExport.Model.optIncludeChapterNumberingDoc.State = 1 then
+				poPageStream.writeString(&quot;&lt;&quot; &amp; sTag &amp; &quot;&gt;&lt;span class=&quot;&quot;label&quot;&quot;&gt;&quot; &amp; oChapter.ListLabelString &amp; &quot;&lt;/span&gt;&quot; &amp; oChapter.GetString &amp; &quot;&lt;/&quot; &amp; sTag &amp; &quot;&gt;&quot; &amp; gsCR)
+			else
+				poPageStream.writeString(&quot;&lt;&quot; &amp; sTag &amp; &quot;&gt;&quot; &amp; oChapter.GetString &amp; &quot;&lt;/&quot; &amp; sTag &amp; &quot;&gt;&quot; &amp; gsCR)
+			end if	
 					
 			&apos;Enumerate all paragraphs of this chapter and export them
 			aParaSet() = GetParaSetOfChapter(oChapter.ID)	
@@ -349,7 +556,7 @@ dim iActPageID as long
 			poPageStream.writeString(&quot;&lt;/html&gt;&quot; &amp; gsCR)
 			
 			&apos;Close the document
-			poPageStream.closeOutput() 
+			poPageStream.closeOutput
 		end if		
 		
 	next iChapterNo	
@@ -434,10 +641,10 @@ dim bGraphicIsFloated as boolean
 					end if	
 					sExportString = sExportString &amp; GetEpubTextPortionExportString(oPortion)
 					
-				Case &quot;_TextField&quot; &apos;this portion is a reference
+				Case &quot;TextField&quot; &apos;this portion is a reference
 					sExportString = sExportString &amp; GetEpubTextFieldExportString(oPortion)
 					
-				Case &quot;_Bookmark&quot; &apos;this portion is a bookmark
+				Case &quot;Bookmark&quot; &apos;this portion is a bookmark
 					sExportString = sExportString &amp; GetEpubBookmarkExportString(oPortion)
 
 				Case &quot;Footnote&quot; &apos;this portion is a footnote
@@ -467,7 +674,7 @@ dim bGraphicIsFloated as boolean
 		if not isNull(oMedia) then
 			&apos;graphics with surrounding portions should be exported as IntLink	
 			if (oMedia.TextWrap = iNoTextWrap) and (oMedia.AnchorType = 1) and (oMedia.HoriOrient = 3) and (iPortionCount &gt; 1) then
-				sImgFilename = &quot;../images/&quot; &amp; FileNameOutOfPath(gaExtMedia(oMedia.ExtMediaID).FileName)
+				sImgFilename = &quot;images/&quot; &amp; FileNameOutOfPath(gaExtMedia(oMedia.ExtMediaID).FileName)
 				if oMedia.Caption &lt;&gt; &quot;&quot; then
 					sImgAltTag = oMedia.Caption
 				else
@@ -655,15 +862,17 @@ sub ExportEpubListHeader(sStyle as string, sNumberingType as string, bSetClass a
 
     if sNumberingType = &quot;Unordered&quot; then
     	if bSetClass then
-			poPageStream.writeString(&quot;&lt;ul class=&quot;&quot;&quot; &amp; sStyle &amp; &quot;&quot;&quot; style=&quot;&quot;margin-left: 0.6em; padding-left: 0.6em;&quot;&quot;&gt;&quot;)
+			&apos;poPageStream.writeString(&quot;&lt;ul class=&quot;&quot;&quot; &amp; sStyle &amp; &quot;&quot;&quot; style=&quot;&quot;margin-left: 0.8em&quot;&quot;&gt;&quot;)
+			poPageStream.writeString(&quot;&lt;ul class=&quot;&quot;&quot; &amp; sStyle &amp; &quot;&quot;&quot;&gt;&quot;)
 		else
-			poPageStream.writeString(&quot;&lt;ul style=&quot;&quot;margin-left: 0.6em; padding-left: 0.6em;&quot;&quot;&gt;&quot;)
+			&apos;poPageStream.writeString(&quot;&lt;ul style=&quot;&quot;margin-left: 0.8em&quot;&quot;&gt;&quot;)
+			poPageStream.writeString(&quot;&lt;ul&gt;&quot;)
 		end if	
     else
     	if bSetClass then
-			poPageStream.writeString(&quot;&lt;ol class=&quot;&quot;&quot; &amp; sStyle &amp; &quot;&quot;&quot; style=&quot;&quot;margin-left: 0.6em; padding-left: 0.6em; list-style-type:&quot; &amp; sNumberingType &amp; &quot;;&quot;&quot;&gt;&quot;)
+			poPageStream.writeString(&quot;&lt;ol class=&quot;&quot;&quot; &amp; sStyle &amp; &quot;&quot;&quot; style=&quot;&quot;list-style-type:&quot; &amp; sNumberingType &amp; &quot;;&quot;&quot;&gt;&quot;)
 		else
-			poPageStream.writeString(&quot;&lt;ol style=&quot;&quot;margin-left: 0.6em; padding-left: 0.6em;&quot;&quot;&gt;&quot;)
+			poPageStream.writeString(&quot;&lt;ol&gt;&quot;)
 		end if	
     end if  	
 
@@ -844,7 +1053,7 @@ dim oStream as object
 		 &quot;&quot;&quot; xmlns=&quot;&quot;http://www.w3.org/1999/xhtml&quot;&quot; xmlns:epub=&quot;&quot;http://www.idpf.org/2007/ops&quot;&quot;&gt;&quot; &amp; gsCR)
 		oStream.writeString(&quot;&lt;head&gt;&quot; &amp; gsCR)
 		oStream.writeString(&quot;&lt;title&gt;Footnotes&lt;/title&gt;&quot; &amp; gsCR)
-		oStream.writeString(&quot;&lt;link rel=&quot;&quot;stylesheet&quot;&quot; type=&quot;&quot;text/css&quot;&quot; href=&quot;&quot;../css/style.css&quot;&quot;/&gt;&quot; &amp; gsCR)
+		oStream.writeString(&quot;&lt;link rel=&quot;&quot;stylesheet&quot;&quot; type=&quot;&quot;text/css&quot;&quot; href=&quot;&quot;css/style.css&quot;&quot;/&gt;&quot; &amp; gsCR)
 		oStream.writeString(&quot;&lt;meta charset=&quot;&quot;utf-8&quot;&quot;/&gt;&quot; &amp; gsCR)
 		oStream.writeString(&quot;&lt;/head&gt;&quot; &amp; gsCR)
 		oStream.writeString(&quot;&lt;body id=&quot;&quot;footnotes&quot;&quot; epub:type=&quot;&quot;frontmatter&quot;&quot;&gt;&quot; &amp; gsCR)
@@ -856,7 +1065,7 @@ dim oStream as object
 		oStream.writeString(&quot;&lt;/body&gt;&quot; &amp; gsCR)
 		oStream.writeString(&quot;&lt;/html&gt;&quot; &amp; gsCR)
 		&apos;Close the document
-		oStream.closeOutput() 
+		oStream.closeOutput
 	end if 						
 end sub
 
@@ -923,21 +1132,19 @@ dim iWidth as integer
 dim sWidth as string
 dim sHeight as string
 
-	sImgFilename = &quot;../images/&quot; &amp; FileNameOutOfPath(gaExtMedia(oMedia.ExtMediaID).FileName)
+	sImgFilename = &quot;images/&quot; &amp; FileNameOutOfPath(gaExtMedia(oMedia.ExtMediaID).FileName)
 	iWidth = Int(oMedia.Width / 26.459)
-	if iWidth &gt; 600 then
-		sWidth = &quot;100%&quot;
+	if iWidth &gt; Int(goDlgExport.Model.txtMaxImageWidth.Text) then
+		sWidth = &quot;100%;&quot;
 	else	
-		sWidth = CStr(iWidth)
+		sWidth = CStr(iWidth) &amp; &quot;px;&quot;
 	end if	
 	&apos;sHeight = CStr(Int(oMedia.Height / 26.459))
 	&apos;sTag = &quot;&lt;figure class=&quot;&quot;image_container &quot; &amp; GetEpubAlignString(oMedia) &amp; &quot;&quot;&quot; width=&quot;&quot;&quot; &amp; sWidth &amp; &quot;&quot;&quot; height=&quot;&quot;&quot; &amp; sHeight &amp; &quot;&quot;&quot;&gt;&quot;
-	sTag = &quot;&lt;figure class=&quot;&quot;image_container &quot; &amp; GetEpubAlignString(oMedia) &amp; &quot;&quot;&quot; width=&quot;&quot;&quot; &amp; sWidth &amp; &quot;&quot;&quot;&gt;&quot;
+	sTag = &quot;&lt;figure class=&quot;&quot;image_container &quot; &amp; GetEpubAlignString(oMedia) &amp; &quot;&quot;&quot; style=&quot;&quot;width:&quot; &amp; sWidth &amp; &quot;&quot;&quot;&gt;&quot;
+	sTag = sTag &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; oMedia.Caption &amp; &quot;&quot;&quot; style=&quot;&quot;width:&quot; &amp; sWidth &amp; &quot;&quot;&quot;/&gt;&quot; 
 	if oMedia.Caption &lt;&gt; &quot;&quot; then
-		sTag = sTag &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; oMedia.Caption &amp; &quot;&quot;&quot; width=&quot;&quot;&quot; &amp; sWidth &amp; &quot;&quot;&quot; /&gt;&quot; 
-		sTag = sTag &amp; &quot;&lt;figcaption class=&quot;&quot;para Illustration&quot;&quot;&gt;&quot; &amp; oMedia.Caption &amp; &quot;&lt;/figcaption&gt;&quot;
-	else	
-		sTag = sTag &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; oMedia.MediaName &amp; &quot;&quot;&quot; width=&quot;&quot;&quot; &amp; sWidth &amp; &quot;&quot;&quot; /&gt;&quot; 
+		sTag = sTag &amp; &quot;&lt;br/&gt;&lt;figcaption class=&quot;&quot;para Illustration&quot;&quot;&gt;&quot; &amp; oMedia.Caption &amp; &quot;&lt;/figcaption&gt;&quot;
 	end if	
 	sTag = sTag &amp; &quot;&lt;/figure&gt;&quot;
 	GetEpubMediaTag = sTag
@@ -963,23 +1170,25 @@ dim sTempStr as string
 dim iAsc as integer
 dim sType as string
 
-	sResult = oPortion.GetString
-	sResult= ReplaceString(sResult, &quot;&lt;br/&gt;&lt;br/&gt;&quot;, gsLF)
+	sResult = ReplaceSymbolsCode(oPortion.GetString)
 	if sResult &lt;&gt; &quot;&quot; then
 		&apos;first check if paragraph is ILIAS Code formatted
 		vParaStyle = left(oPortion.ParaStyleName, 10)
 		if oPortion.HyperLinkURL &lt;&gt; &quot;&quot; then
+		
 			&apos;it could be an external Link
 			if left(oPortion.HyperLinkURL, 4) = &quot;http&quot; then
 				vURL = ReplaceSymbols(oPortion.HyperLinkURL)
 				vLink = ReplaceSymbols(sResult)
 				sResult = &quot;&lt;a class=&quot;&quot;extern&quot;&quot; href=&quot;&quot;&quot; &amp; vURL &amp; &quot;&quot;&quot;&gt;&quot; &amp; vLink &amp; &quot;&lt;/a&gt;&quot;
+				
 			&apos;it could be an internal link	
 			elseif left(oPortion.CharStyleName, 10) = &quot;ILIAS Link&quot; then
 				dim sLink as string
 				sLink = mid(oPortion.HyperLinkURL, 2)
 				sType = mid(oPortion.CharStyleName, 12)
 				sResult = &quot;&lt;a class=&quot;&quot;intern&quot;&quot; href=&quot;&quot;&quot; &amp; sLink &amp; &quot;&quot;&quot;&gt;&quot; &amp; oPortion.GetString &amp; &quot;&lt;/a&gt;&quot;
+				
 			&apos;it could be an internal link to a bookmark
 			elseif left(oPortion.HyperLinkURL, 1) = &quot;#&quot; then
 				dim sBookmark as string
@@ -989,7 +1198,7 @@ dim sType as string
 				oBookmarkPortion = GetTextPortionByBookmark(sBookmark)
 				if not isnull (oBookmarkPortion) then
 					iChapterId = gaDocParagraph(oBookmarkPortion.ParaID).ChapterID
-					sResult = &quot;&lt;a class=&quot;&quot;bookmark&quot;&quot; Anchor=&quot;&quot;&quot; &amp; sBookmark &amp; &quot;&quot;&quot;&gt;&quot; &amp; oPortion.Getstring &amp; &quot;&lt;/a&gt;&quot;
+					sResult = &quot;&lt;a href=&quot;&quot;page-&quot; &amp; iChapterID &amp; &quot;.xhtml#&quot; &amp; sBookmark &amp; &quot;&quot;&quot;&gt;&quot; &amp; oPortion.Getstring &amp; &quot;&lt;/a&gt;&quot;
 				end if    
 			end if    
 		else
@@ -1082,9 +1291,11 @@ end function
 
 function GetEpubBookmarkExportString(oPortionRec as object) as string
 dim sAnchor as string
+dim sString as string
 
 	sAnchor = ReplaceString(oPortionRec.Bookmark, &quot;_&quot;, &quot; &quot;)
-	GetEpubBookmarkExportString = &quot;&lt;Anchor Name=&quot;&quot;&quot; &amp; sAnchor &amp; &quot;&quot;&quot;&gt;&quot; &amp; oPortionRec.GetString &amp; &quot;&lt;/Anchor&gt;&quot;
+	sString = oPortionRec.GetString 
+	GetEpubBookmarkExportString = &quot;&lt;span id=&quot;&quot;&quot; &amp; sAnchor &amp; &quot;&quot;&quot;&gt;&quot; &amp; sString &amp; &quot;&lt;/span&gt;&quot;
 
 end function
 
@@ -1105,14 +1316,18 @@ dim iNumberOfNull as integer
 		&apos;first get the Paragraph to which is referenced
 		for i = 1 to ubound(gaDocChapter())
 			if gaDocChapter(i).ReferenceMark = oPortionRec.TextField then
-				sTarget = &quot;page-&quot; &amp; gaDocParagraph(i).ID
+				sTarget = &quot;page-&quot; &amp; gaDocParagraph(i).ID &amp; &quot;.xhtml&quot;
 				exit for
 			end if
 		next i
   		
   		if sTarget &lt;&gt; &quot;&quot; then
 			sText = ReplaceSymbols(oPortionRec.GetString)
-			sResult = &quot;&lt;a class=&quot;&quot;intern href=&quot;&quot;&quot; &amp; sTarget &amp; &quot;&quot;&quot;&gt;&quot; &amp; sText &amp; &quot;&lt;/a&gt;&quot;
+			if oPortionRec.CharStyleName &lt;&gt; &quot;&quot; then
+				sResult = &quot;&lt;a class=&quot;&quot;&quot; &amp; oPortionRec.CharStyleName &amp; &quot;&quot;&quot; href=&quot;&quot;&quot; &amp; sTarget &amp; &quot;&quot;&quot; title=&quot;&quot;&quot; &amp; sText &amp; &quot;&quot;&quot;&gt;&quot; &amp; sText &amp; &quot;&lt;/a&gt;&quot;
+			else
+				sResult = &quot;&lt;a href=&quot;&quot;&quot; &amp; sTarget &amp; &quot;&quot;&quot; title=&quot;&quot;&quot; &amp; sText &amp; &quot;&quot;&quot;&gt;&quot; &amp; sText &amp; &quot;&lt;/a&gt;&quot;
+			end if	
 		else	
 			sResult = oPortionRec.GetString
 		end if
@@ -1610,6 +1825,20 @@ dim i as long
 	for i = 1 to iMediaCount
 		if gaDocMedia(i).TextPortionID = iPortionID then
 			GetEpubDocMediaByPortionID = gaDocMedia(i)
+			exit function
+		end if
+	next i
+end function
+
+
+function GetEpubExtMediaByObjectName(sObjectName as string) as object
+dim iMediaCount as long
+dim i as long
+
+	iMediaCount = ubound(gaExtMedia())
+	for i = 1 to iMediaCount
+		if gaExtMedia(i).ObjectName = sObjectName then
+			GetEpubExtMediaByObjectName = gaExtMedia(i)
 			exit function
 		end if
 	next i

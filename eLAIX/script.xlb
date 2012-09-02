@@ -14,4 +14,7 @@
  <library:element library:name="ImWrite"/>
  <library:element library:name="StyleILIAS"/>
  <library:element library:name="StyleEPUB"/>
+ <library:element library:name="DlgEPUB"/>
+ <library:element library:name="DlgILIAS"/>
+ <library:element library:name="Lang"/>
 </library:library>

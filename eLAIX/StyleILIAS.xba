@@ -69,7 +69,7 @@ dim sLocation as string
 
 	WriteToStream(oStyleXML, &quot;&lt;/StyleSheet&gt;&quot;)	
 	&apos;close style.xml 
-	oStyleXML.closeOutput() 
+	oStyleXML.closeOutput
 end sub
 
 	
@@ -97,7 +97,6 @@ dim sLocation as string
 		
 		&apos;the style is used by the document
 		if oStyle.isInUse and (oStyle.Name &lt;&gt; &quot;&quot;) then
-			&apos;xray oStyle
 			sStylename = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
 			sGraphicName = oStyle.BackGraphicURL
 			if sGraphicName &lt;&gt; &quot;&quot; then
@@ -223,7 +222,6 @@ dim sLocation as string
 		
 		&apos;the style is used by the document
 		if oStyle.isInUse and (oStyle.Name &lt;&gt; &quot;&quot;) then
-			&apos;xray oStyle
 			sStylename = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
 			sStyleString = GetStyleStringCharacter(oStyle)
 			WriteToStream(oStyleXML, sStyleString)			
@@ -412,7 +410,7 @@ dim i as integer
 	if oStyle.CharColor = -1 then
 		oProps(8).Value = &quot;&quot;
 	else	
-		oProps(8).Value = GetHexColorString(oStyle.CharColor)
+		oProps(8).Value = GetIliasHexColorString(oStyle.CharColor)
 	end if 
 	
 	for i = 0 to ubound(oProps)
@@ -461,7 +459,7 @@ dim i as integer
 	if oStyle.CharColor = -1 then
 		oProps(10).Value = &quot;&quot;
 	else	
-		oProps(10).Value = GetHexColorString(oStyle.CharColor)
+		oProps(10).Value = GetIliasHexColorString(oStyle.CharColor)
 	end if 
 	
 	for i = 0 to ubound(oProps)
@@ -484,7 +482,6 @@ dim oProps(15) as new com.sun.star.beans.PropertyValue
 dim i as integer
 dim iCount as integer
 
-	&apos;xray oStyle
 	&apos;oPara = GetParaByStyleName(sStyleName)
 	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
 	if sStylename = &quot;ILIAS_FileList&quot; then
@@ -511,7 +508,7 @@ dim iCount as integer
 	oProps(5).Value =  &quot;#000000&quot;
 	
 	oProps(6).Name  = &quot;background-color&quot;
-	oProps(6).Value =  GetHexColorString(oStyle.BackColorRGB)
+	oProps(6).Value =  GetIliasHexColorString(oStyle.BackColorRGB)
 	oProps(7).Name  = &quot;border-top&quot;
 	oProps(7).Value = GetCSSBorderString(oStyle.TopBorder)
 	oProps(8).Name  = &quot;border-right&quot;
@@ -561,7 +558,6 @@ dim oProp as new com.sun.star.beans.PropertyValue
 dim i as integer
 dim iCount as integer
 
-	&apos;xray oStyle
 	&apos;oPara = GetParaByStyleName(sStyleName)
 	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
 	
@@ -616,7 +612,7 @@ dim iCount as integer
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;color&quot;
-		oProps(iCount).Value =  GetHexColorString(oStyle.CharColor)
+		oProps(iCount).Value =  GetIliasHexColorString(oStyle.CharColor)
 	end if
 		
 	if oStyle.GetPropertyState(&quot;CharHeight&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
@@ -644,7 +640,7 @@ dim iCount as integer
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;background-color&quot;
-		oProps(iCount).Value = GetHexColorString(oStyle.ParaBackColor)
+		oProps(iCount).Value = GetIliasHexColorString(oStyle.ParaBackColor)
 	end if
 
 	if oStyle.GetPropertyState(&quot;TopBorder&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
@@ -843,7 +839,6 @@ dim oProps(0) as new com.sun.star.beans.PropertyValue
 dim i as integer
 dim iCount as integer
 
-	&apos;xray oStyle
 	&apos;oPara = GetParaByStyleName(sStyleName)
 	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
 	sStyleString = &quot;&lt;Style Tag=&quot;&quot;span&quot;&quot; Type=&quot;&quot;text_inline&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
@@ -852,7 +847,7 @@ dim iCount as integer
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name = &quot;color&quot;
-		oProps(iCount).Value = GetHexColorString(oStyle.CharColor)
+		oProps(iCount).Value = GetIliasHexColorString(oStyle.CharColor)
 	end if
 
 	if oStyle.GetPropertyState(&quot;CharHeight&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
@@ -873,7 +868,7 @@ dim iCount as integer
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;background-color&quot;
-		oProps(iCount).Value  = GetHexColorString(oStyle.CharBackColor)
+		oProps(iCount).Value  = GetIliasHexColorString(oStyle.CharBackColor)
 	end if
 
 	if oStyle.GetPropertyState(&quot;CharWeight&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
@@ -1049,7 +1044,7 @@ dim i as integer
 	
 	oProps(10).Name  = &quot;background-color&quot;
 	if oStyle.GetPropertyState(&quot;BackColor&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
-		oProps(10).Value =  GetHexColorString(oStyle.BackColor)
+		oProps(10).Value =  GetIliasHexColorString(oStyle.BackColor)
 	else
 		oProps(10).Value = &quot;#FFFFFF&quot;
 	end if	
@@ -1057,7 +1052,7 @@ dim i as integer
 	oStyles = oStyleFamilies.getByName( &quot;ParagraphStyles&quot; )
 	oStyle = oStyles.GetByName(&quot;Standard&quot;)	
 	oProps(11).Name  = &quot;color&quot;
-	oProps(11).Value =  GetHexColorString(oStyle.CharColor)
+	oProps(11).Value =  GetIliasHexColorString(oStyle.CharColor)
 	oProps(12).Name  = &quot;font-size&quot;
 	oProps(12).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
 	oProps(13).Name  = &quot;text-decoration&quot;
@@ -1124,7 +1119,7 @@ dim i as integer
 	oProps(7).Name  = &quot;border-left&quot;
 	oProps(7).Value = GetCSSBorderString(oStyle.LeftBorder)
 	oProps(8).Name  = &quot;background-color&quot;
-	oProps(8).Value = GetHexColorString(oStyle.BackColor)
+	oProps(8).Value = GetIliasHexColorString(oStyle.BackColor)
 
 	for i = 0 to ubound(oProps)
 		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
@@ -1161,7 +1156,7 @@ dim i as integer
 	oProps(7).Name  = &quot;border-left&quot;
 	oProps(7).Value = GetCSSBorderString(oStyle.LeftBorder)
 	oProps(8).Name  = &quot;background-color&quot;
-	oProps(8).Value = GetHexColorString(oStyle.BackColor)
+	oProps(8).Value = GetIliasHexColorString(oStyle.BackColor)
 
 	for i = 0 to ubound(oProps)
 		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
@@ -1182,13 +1177,13 @@ dim i as integer
 	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;va_ihead&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
 
 	oProps(0).Name  = &quot;color&quot;
-	oProps(0).Value =  GetHexColorString(oStyle.CharColor)
+	oProps(0).Value =  GetIliasHexColorString(oStyle.CharColor)
 	oProps(1).Name  = &quot;font-size&quot;
 	oProps(1).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
 	oProps(2).Name  = &quot;text-decoration&quot;
 	oProps(2).Value =  GetCssUnderlineString(oStyle.CharUnderline)
 	oProps(3).Name  = &quot;background-color&quot;
-	oProps(3).Value =  GetHexColorString(oStyle.ParaBackColor)
+	oProps(3).Value =  GetIliasHexColorString(oStyle.ParaBackColor)
 	oProps(4).Name  = &quot;cursor&quot;
 	oProps(4).Value =  &quot;pointer&quot;
 	oProps(5).Name  = &quot;padding&quot;
@@ -1223,13 +1218,13 @@ dim i as integer
 	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;ha_ihead&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
 
 	oProps(0).Name  = &quot;color&quot;
-	oProps(0).Value =  GetHexColorString(oStyle.CharColor)
+	oProps(0).Value =  GetIliasHexColorString(oStyle.CharColor)
 	oProps(1).Name  = &quot;font-size&quot;
 	oProps(1).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
 	oProps(2).Name  = &quot;text-decoration&quot;
 	oProps(2).Value =  GetCssUnderlineString(oStyle.CharUnderline)
 	oProps(3).Name  = &quot;background-color&quot;
-	oProps(3).Value =  GetHexColorString(oStyle.ParaBackColor)
+	oProps(3).Value =  GetIliasHexColorString(oStyle.ParaBackColor)
 	oProps(4).Name  = &quot;cursor&quot;
 	oProps(4).Value =  &quot;pointer&quot;
 	oProps(5).Name  = &quot;padding&quot;
@@ -1369,23 +1364,21 @@ dim iNumLevel as integer
 end function
 
 
-function GetHexColorString(lCharColor as long) as string
+function GetIliasHexColorString(lCharColor as long) as string
 dim sColor as string
 dim iNumberOfZero as integer
 dim i as integer
 
+	sColor = CStr(Hex(lCharColor))
 	if lCharColor &lt;&gt; -1 then
-		sColor = CStr(Hex(lCharColor))
 		if Len(sColor) &lt; 6 then
 			iNumberOfZero = 6 - Len(sColor) 
 			for i=1 to iNumberOfZero
 				sColor = &quot;0&quot; &amp; sColor
 			next i
 		end if
-		GetHexColorString = &quot;#&quot; &amp; sColor
-	else
-		GetHexColorString = &quot;transparent&quot;
 	end if
+	GetIliasHexColorString = &quot;#&quot; &amp; sColor
 end function
 
 
@@ -1422,7 +1415,6 @@ dim sColor as string
 dim iWidth as integer
 dim sWidth as string
 
-	&apos;xray oBorder
 	&apos;first check if this paragraph has a border at all
 	if oBorder.OuterLineWidth = 0 then
 		sBorder = &quot;0px&quot;
@@ -1432,7 +1424,7 @@ dim sWidth as string
 			iWidth = 1
 		end if	
 		sWidth = CStr(iWidth) &amp; &quot;px&quot;		
-		sColor = GetHexColorString(oBorder.Color)
+		sColor = GetIliasHexColorString(oBorder.Color)
 		sBorder = sWidth &amp; &quot; solid &quot; &amp; sColor
 	end if	
 	GetCssBorderString = sBorder

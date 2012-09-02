@@ -320,7 +320,6 @@ dim iLevel as integer
 	&apos;then set the heading
 	oCursor.ParaStylename = &quot;Heading &quot; + CStr(iLevel)
 	oText.insertString(oCursor, sTitle, FALSE) 
-	&apos;xray oCursor
 end sub
 
 
@@ -485,7 +484,6 @@ dim oTable as object
 	oText.insertTextContent(oCursor, oTable, False)
 	oTable.TopMargin = 300
 	oTable.BottomMargin = 500
-	&apos;xray oTable
 
 	impInsertTable = oTable
 end function
@@ -581,7 +579,6 @@ dim oFrame as object
 		.VertOrient = com.sun.star.text.VertOrientation.LINE_TOP
 		.AnchorType = com.sun.star.text.TextContentAnchorType.AS_CHARACTER
 	end with	
-	&apos;xray oFrame
 	
 	oText.insertTextContent(oCursor, oFrame, FALSE)
 	&apos;oFrame.IsSyncWidthToHeight = true
@@ -769,7 +766,6 @@ dim oDoc as object
 				oSize.Width = oShape.Graphic.Size.Width * 26.45
 				oGraphic.Size = oSize	
 			else
-				&apos;xray oGraphic
 				&apos;oGraphic = oProvider.queryGraphic(oProps())
 			end if	
 				
@@ -867,7 +863,6 @@ dim oGraphic as object
 	
 	On Error Goto ErrHandler
 	oShape.Graphic = oProvider.queryGraphic(oProps())
-	&apos;xray oShape.Graphic
 	oGraphic.GraphicUrl = oShape.GraphicUrl
 	
 	&apos;read the size in pixel from the shape object and store it in the graphic object

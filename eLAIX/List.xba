@@ -133,7 +133,6 @@ dim lWhichSelection as integer
 			oSel.NumberingLevel = iNumberingLevel
 		Next
 	endif	
-	&apos;xray oSel
 end sub
 
 
@@ -157,7 +156,6 @@ dim lWhichSelection as integer
 			oSel.NumberingStyleName = sStyleName
 		Next
 	endif	
-	&apos;xray oSel
 end sub
 
 
@@ -197,7 +195,6 @@ dim i as integer, j as integer
 		
 	&apos;iterate through the Numbering Rules
 	oNumRules = oNumStyle.NumberingRules
-	&apos;xray oNumStyle
 	
 	for j = 0 to UBound(aNumDefs())
 		vNumRule = oNumRules.getByIndex(j)

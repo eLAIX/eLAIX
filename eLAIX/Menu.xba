@@ -316,10 +316,10 @@ sub DocCheckSetElements
 dim oStructure as object
 
 	oStructure = goDlgCheck.getControl(&quot;chkStructure&quot;)
-	&apos;xray oStructure
 	goDlgCheck.getControl(&quot;chkSyncOutlines&quot;).Enable = oStructure.State = 1
 	goDlgCheck.getControl(&quot;chkEmptyHeadings&quot;).Enable = oStructure.State = 1
 end sub
+
 
 sub DoDocCheck()
 dim oMetadata as object
@@ -552,7 +552,6 @@ Sub EmbedGraphic(sURL as string, iAlign as integer)
   oGraph.GraphicUrl = oShape.GraphicUrl
   
 &apos; next two lines are new
-  &apos;xray ograph
   &apos;oGraph.Size = oShape.Graphic.Size100thMM
   &apos;if oShape.graphic.MimeType = &quot;image/gif&quot; then
   &apos;if oShape.Graphic.Size100thMM.Height &gt; 0 then
@@ -838,7 +837,6 @@ dim oBookmark as object
 
 	oBookmarks = thisComponent.Bookmarks
 	oListBox = oBookmarkDialog.getControl(&quot;listBookmarks&quot;)
-	&apos;xray oBookmarks
 
 	&apos;Do not read internal bookmarks starting with &quot;__UnoMark__&quot;
 	iCount = oBookmarks.GetCount - 1
@@ -1135,7 +1133,6 @@ dim oBorder As New com.sun.star.table.BorderLine
 		end with	
 		&apos; create paragraph style here
 		oStyle = ThisComponent.createInstance(&quot;com.sun.star.style.ParagraphStyle&quot;)
-		&apos;xray oStyle
 		with oStyle
 			.ParentStyle = &quot;Standard&quot;
 			.FollowStyle = &quot;Text body&quot;
@@ -1153,7 +1150,6 @@ dim oBorder As New com.sun.star.table.BorderLine
 		end with			
 		oParaStyles.insertByName(sStyleName, oStyle)
 	&apos;else 
-	&apos;	xray oParaStyles.GetByName(sStylename)	
 	end if
 end sub
 
@@ -1198,7 +1194,6 @@ dim oBorder As New com.sun.star.table.BorderLine
 		end with			
 		oFrameStyles.insertByName(sStyleName, oStyle)
 	&apos;else
-	&apos;	xray oFrameStyles.GetByName(sStyleName)	
 	end if
 end sub
 
@@ -1242,7 +1237,6 @@ dim oBorder As New com.sun.star.table.BorderLine
 			.InnerLineWidth = 0
 			.LineDistance = 0
 		end with	
-		&apos;xray oStyle
 		with oStyle
 			.ParentStyle = &quot;Standard&quot;
 			.FollowStyle = &quot;ILIAS FileList Element&quot;
@@ -1580,6 +1574,7 @@ sub RefreshStyleList
 	DoRefreshStyleList
 end sub
 
+
 sub DoRefreshStyleList(Optional sStyleName as string)
 dim aStyleList()
 dim oListBoxStyles as object
@@ -1780,7 +1775,6 @@ dim iCount as integer
 dim sStyleName as string
 
 	oListBoxStyles = oStyleDialog.getControl(&quot;ListBoxStyles&quot;)
-	&apos;xray oListBoxStyles
 	iPos = oListBoxStyles.SelectedItemPos
 	iCount = oListBoxStyles.ItemCount
 	if iPos &lt; iCount then
@@ -1887,7 +1881,6 @@ dim bIsUserDefined as boolean
 	if bStyleExists then
 		oStyle = oStyles.GetByName(sStyle) 
 		bIsUserDefined = oStyle.isUserDefined
-		&apos;xray oStyle
 	end if 
 	oButtonRemove.Model.Enabled = bStyleExists and bIsUserDefined
 	oButtonReset.Model.Enabled = giStyleFamily &lt;&gt; STYLE_FAMILY_SECTION
@@ -2087,7 +2080,6 @@ dim oText as object
 			oSelection.FrameStylename = sStyleName
 		else	
 			&apos;Cut the current selection if something has been selected
-			&apos;xray oSelection
 			if oSelection.getCount &gt; 0 then
 				oSel = oSelection.GetByIndex(0)
 				if oSel.String &lt;&gt; &quot;&quot; then
@@ -2487,7 +2479,6 @@ Dim lSelCount As Long, lWhichSelection As Long
 			&apos;search the property &quot;NumberingType&quot; in the Property-Set 
 			For i = LBound(mLevel()) To UBound(mLevel())
 			  vProperty = mLevel(i)
-			  &apos;xRay vProperty
 			  If (vProperty.Name = &quot;NumberingType&quot;) Then
 			    &apos;and give it the passed Format
 			    vProperty.Value = iNumberingType			    
@@ -2643,7 +2634,6 @@ dim iAnchorAsCharacter as integer
 	iAnchorAtParagraph = com.sun.star.text.TextContentAnchorType.AT_PARAGRAPH
 	iAnchorAsCharacter = com.sun.star.text.TextContentAnchorType.AS_CHARACTER
 	
-	&apos;xRay oAlignObj
 	select case iAlignment
 	case GRAPHIC_ALIGNLEFT
 		&apos;set anchor at paragraph and the alignment of the paragraph to left

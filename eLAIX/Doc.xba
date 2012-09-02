@@ -594,7 +594,6 @@ dim i as integer
 
 	&apos;oDocument = ThisComponent()
 	&apos;oGraphics = oDocument.getGraphicObjects
-	&apos;xray oGraphics
 	&apos;oGraphic = oGraphics.GetByName(sURL)
 	
 	GetGraphicByURL = oGraphic
@@ -1050,6 +1049,7 @@ dim i as integer
 	ReplaceTabToSpaces = iCount
 end function
 
+
 sub DeleteDocModule (sLibrary as string, sModule as string)
 Dim oLibs as object
 
@@ -1200,6 +1200,44 @@ sub CheckDocFormats()
 end sub
 
 
+function GetAppliedHeadingsList(bSorted as boolean)
+dim oStyleFamilies as object
+dim oParaStyles as object
+dim oStyle as object
+dim sStylename as string
+dim iCount as integer
+dim i as integer
+dim j as integer
+dim aStyles() as string
+
+	&apos;get all applied paragraph
+	oStyleFamilies = ThisComponent.StyleFamilies
+	oParaStyles = oStyleFamilies.getByName(&quot;ParagraphStyles&quot;)
+	
+	i = 0
+	j = 0
+	iCount = oParaStyles.GetCount - 1
+	redim aStyles(iCount)
+	for i = 0 to iCount
+		oStyle = oParaStyles.GetByIndex(i)
+		&apos;sStylename = oStyle.DisplayName
+		if oStyle.isInUse and (left(oStyle.Name, 8) = &quot;Heading &quot;) then
+			sStylename = oStyle.DisplayName
+			aStyles(j) = oStyle.DisplayName
+			j = j + 1
+		end if
+	next i
+	if j = 0 then 
+		redim preserve aStyles(0)
+	else
+		redim preserve aStyles(j - 1)	
+	end if
+	if bSorted then BubbleSortArray(aStyles())
+		
+	GetAppliedHeadingsList = aStyles()
+end function
+
+
 function GetAppliedStylesList(sStyleFamily as string, bSorted as boolean)
 dim oStyleFamilies as object
 dim oParaStyles as object
@@ -1220,9 +1258,6 @@ dim aStyles() as string
 	redim aStyles(iCount)
 	for i = 0 to iCount
 		oStyle = oParaStyles.GetByIndex(i)
-		&apos;xray oStyle
-		&apos;sStylename = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
-		&apos;the style is used by the document
 		if oStyle.isInUse and (oStyle.Name &lt;&gt; &quot;&quot;) then
 			sStylename = oStyle.DisplayName
 			aStyles(j) = oStyle.DisplayName

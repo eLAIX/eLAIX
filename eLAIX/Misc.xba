@@ -73,7 +73,6 @@ Dim ListAny(0)
 	  oFileDialog.SetDisplayDirectory(InitPath)
 	End If
 	iAccept = oFileDialog.Execute()
-	&apos;xRay oFileDialog
 	If iAccept = 1 Then
 	  sPath = oFileDialog.Files(0)
 	  GetOpenFileName = ConvertToURL(sPath)

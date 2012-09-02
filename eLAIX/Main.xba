@@ -67,6 +67,7 @@ global giMissedGraphics as integer
 global giMissedFiles as integer
 Global giMissedEmbeddedObject as integer
 global gbMissedWriter2Latex as boolean
+global gbSaveDocUnsaved as boolean
 global gsEnumErrors as string
 Global giListInCode as integer
 global giActPage as long
@@ -91,6 +92,9 @@ global giMarginaleRightWidth as integer
 global gsPageTitleStyle as string
 global giFromChapter as integer
 global giToChapter as integer
+global giLastEpubDialogPage as integer
+global giLastIliasDialogPage as integer
+global gsEpubCoverImage
 
 &apos;Enumaration Arrays
 global gaDocChapter(0) as object
@@ -137,11 +141,15 @@ sub InitGlobals()
 	gbMissedWriter2Latex = false
 	giListInCode = 0
 	gsEnumErrors = &quot;&quot;
+	gbSaveDocUnsaved = false
 	
 	&apos;---- export dialog ---------------------------&apos;
 	gsCheckString = chr(187)
 	gbAskForOverwrite = true
 	gsPageTitleStyle = &quot;&quot;
+	giLastIliasDialogPage = 1
+	giLastEpubDialogPage = 1
+	gsEpubCoverImage = &quot;&quot;
 	
 	&apos;---- enumeration ---------------------------&apos;
 	gsMarginaleLeftStyle = &quot;&quot;
@@ -150,712 +158,6 @@ sub InitGlobals()
 	giMarginaleRightWidth = 0
 
 end sub
-
-
-sub ShowIliasExportDialog()
-dim oDlgFilename as object
-dim oDlgResult as object
-dim sFileName as string
-dim sFolderName as string
-dim sVersion as string
-dim aVersion(2) as integer
-dim sDocPrefix as string
-dim sString as string
-dim oLeftControl as object
-dim oRightControl as object
-dim oControl as object
-dim iPos as integer
-dim aHeadings()
-dim aStyles()
-dim i as integer
-dim iCount as integer
-dim oFromChapter as object
-dim oToChapter as object
-dim sLang as string
-dim oStartButton as object
-
-	&apos;---- Init XML File Globals -------------------------&apos;
-	gsHead = &quot;&lt;?xml version=&quot;&quot;1.0&quot;&quot; encoding=&quot;&quot;utf-8&quot;&quot;?&gt;&quot; &amp;_
-		&quot;&lt;!--created with eLAIX 4.0 - http://elaix.org--&gt;&quot; &amp;_
-		&quot;&lt;!DOCTYPE LearningModule SYSTEM &quot;&quot;http://www.ilias.uni-koeln.de/download/dtd/ilias_co.dtd&quot;&quot;&gt;&quot;
-	sLang = GetInternalDocString(&quot;elaixDocLanguage&quot;)
-	gsLang = &quot;&quot;&quot;&quot; &amp; GetLanguageCode(sLang) &amp; &quot;&quot;&quot;&quot;
-	
-	gsType = &quot;&quot;&quot;LearningModule&quot;&quot;&quot;
-	gsStru = &quot;&quot;&quot;Hierarchical&quot;&quot;&quot;
-	gsCata = &quot;&quot;&quot;ILIAS&quot;&quot;&quot;  
-
-	&apos;set the extension of the export file
-	gsFilterZIP = &quot;*.zip&quot;
-	gsExtensionZIP = &quot;.zip&quot;
-
-	&apos;Get the eLAIX version from the document
-	sVersion = GetInternalDocString(&quot;elaixVersion&quot;)
-	if sVersion &lt;&gt; &quot;&quot; then
-		aVersion(0) = mid(sVersion, 1, 2)
-		aVersion(1) = mid(sVersion, 4, 2)
-		aVersion(2) = mid(sVersion, 7, 2)
-	end if
-	
-	&apos;use the new internal DocStrings since version 4
-	if aVersion(0) &lt; 4 then
-		sDocPrefix = &quot;elaix&quot;
-	else
-		sDocPrefix = &quot;ilias&quot;
-	endif
-	
-	&apos;initialize dialog and elements
-	const sLibName = &quot;eLAIX&quot;
-	const sDialogName = &quot;DlgILIAS&quot;
-    goDlgExport = LoadDialog(sLibName, sDialogName)
-    
-	goDlgExport.Title = &quot;Export document to ILIAS zip-file&quot;
-
-	oDlgFilename = goDlgExport.getControl(&quot;lblFilename&quot;)
-	
-	sFileName = GetInternalDocString(sDocPrefix &amp; &quot;iliasExportFilename&quot;)
-	if sFileName &lt;&gt; &quot;&quot; then
-		sFolderName = DirectoryNameoutofPath(sFileName, gsPathSeparator)
-		if FolderExists(sFolderName, gsPathSeparator) then	
-			oDlgFilename.SetText(sFilename)
-		else	
-			oDlgFilename.SetText(GetDefaultFilename)
-		end if	
-	else
-		oDlgFilename.SetText(GetDefaultFilename)
-	end if	
-	
-	oDlgResult = goDlgExport.getControl(&quot;txtResult&quot;)
-	oDlgResult.setText(&quot;Please set the export options and then click the Export-button.&quot;)
-	gbAskForOverwrite = true
-
-	sString = GetInternalDocString(sDocPrefix &amp; &quot;ExportDelTmpFiles&quot;)
-	if sString &lt;&gt; &quot;&quot; then goDlgExport.getControl(&quot;optDelTmpFiles&quot;).State = sString
-	
-	sString = GetInternalDocString(sDocPrefix &amp; &quot;ExportShowLineNo&quot;)
-	if sString &lt;&gt; &quot;&quot; then goDlgExport.getControl(&quot;optShowLineNo&quot;).State = sString
-	
-	sString = GetInternalDocString(sDocPrefix &amp; &quot;ExportNoScaleGraphics&quot;)
-	if sString &lt;&gt; &quot;&quot; then goDlgExport.getControl(&quot;optNoScaleGraphics&quot;).State = sString
-	
-	sString = GetInternalDocString(sDocPrefix &amp; &quot;ExportIncludeHeader&quot;)
-	if sString &lt;&gt; &quot;&quot; then goDlgExport.getControl(&quot;optIncludeHeader&quot;).State = sString
-	
-	sString = GetInternalDocString(sDocPrefix &amp; &quot;ExportIncludeFooter&quot;)
-	if sString &lt;&gt; &quot;&quot; then goDlgExport.getControl(&quot;optIncludeFooter&quot;).State = sString
-	
-	aHeadings() = GetFirstLevelHeadings()
-	oFromChapter = goDlgExport.getControl(&quot;optFromChapter&quot;)
-	oFromChapter.AddItem(&quot;&quot;, 0)
-	oFromChapter.AddItems(aHeadings(), 1)
-	sString = GetInternalDocString(sDocPrefix &amp; &quot;ExportFromChapter&quot;)
-	iPos = FindInArray(oFromChapter.Items, sString)
-	if iPos &gt;= 0 then 
-		oFromChapter.SelectItemPos(iPos, true)
-	else	
-		oFromChapter.SelectItemPos(0, true)
-	end if	
-	oToChapter = goDlgExport.getControl(&quot;optToChapter&quot;)
-	oToChapter.AddItem(&quot;&quot;, 0)
-	oToChapter.AddItems(aHeadings(), 1)
-	sString = GetInternalDocString(sDocPrefix &amp; &quot;ExportToChapter&quot;)
-	iPos = FindInArray(oToChapter.Items, sString)
-	if iPos &gt;= 0 then 
-		oToChapter.SelectItemPos(iPos, true)
-	else	
-		oToChapter.SelectItemPos(0, true)
-	end if	
-	
-	oLeftControl = goDlgExport.getControl(&quot;optMarginaleLeftStyle&quot;)
-	aStyles() = GetAppliedStylesList(&quot;ParagraphStyles&quot;, true)
-	oLeftControl.AddItem(&quot;&quot;, 0)
-	iCount = Ubound(aStyles())
-	for i = 0 to iCount
-		if left(aStyles(i), 5) &lt;&gt; &quot;ILIAS&quot; then
-			oLeftControl.AddItem(aStyles(i), i+1)
-		end if
-	next i
-	&apos;oLeftControl.AddItems(GetAppliedStylesList(&quot;ParagraphStyles&quot;, true), 1)
-	sString = GetInternalDocString(sDocPrefix &amp; &quot;ExportMarginaleLeftStyle&quot;)
-	iPos = FindInArray(oLeftControl.Items, sString)
-	if iPos &gt;= 0 then 
-		oLeftControl.SelectItemPos(iPos, true)
-	else	
-		oLeftControl.SelectItemPos(0, true)
-	end if	
-	
-	sString = GetInternalDocString(sDocPrefix &amp; &quot;ExportMarginaleLeftWidth&quot;)
-	if sString &lt;&gt; &quot;&quot; then 
-		goDlgExport.getControl(&quot;optMarginaleLeftWidth&quot;).Text = sString
-	else
-		goDlgExport.getControl(&quot;optMarginaleLeftWidth&quot;).Text = &quot;0&quot;
-	end if	
-	
-	oRightControl = goDlgExport.getControl(&quot;optMarginaleRightStyle&quot;)	
-	oRightControl.AddItems(oLeftControl.Items, 0)
-	sString = GetInternalDocString(sDocPrefix &amp; &quot;ExportMarginaleRightStyle&quot;)
-	iPos = FindInArray(oRightControl.Items, sString)
-	if iPos &gt;= 0 then 
-		oRightControl.SelectItemPos(iPos, true)
-	else	
-		oRightControl.SelectItemPos(0, true)
-	end if	
-	
-	sString = GetInternalDocString(sDocPrefix &amp; &quot;ExportMarginaleRightWidth&quot;)
-	if sString &lt;&gt; &quot;&quot; then 
-		goDlgExport.getControl(&quot;optMarginaleRightWidth&quot;).Text = sString
-	else	
-		goDlgExport.getControl(&quot;optMarginaleRightWidth&quot;).Text = &quot;0&quot;
-	end if	
-	
-	oControl = goDlgExport.getControl(&quot;optPageTitleStyle&quot;)	
-	oControl.AddItems(oLeftControl.Items, 0)
-	sString = GetInternalDocString(sDocPrefix &amp; &quot;ExportPageTitleStyle&quot;)
-	iPos = FindInArray(oControl.Items, sString)
-	if iPos &gt;= 0 then 
-		oControl.SelectItemPos(iPos, true)
-	else	
-		oControl.SelectItemPos(0, true)
-	end if	
-	
-	oStartButton = goDlgExport.getControl(&quot;butOK&quot;)
-	oStartButton.setFocus()  	
-	
-	&apos;show the dialog
-	goDlgExport.execute()
-end sub
-
-
-sub ShowEpubExportDialog()
-dim oDlgFilename as object
-dim oDlgResult as object
-dim sFileName as string
-dim sFolderName as string
-dim sString as string
-dim oLeftControl as object
-dim oRightControl as object
-dim oControl as object
-dim iPos as integer
-dim aHeadings()
-dim aStyles()
-dim i as integer
-dim iCount as integer
-dim oFromChapter as object
-dim oToChapter as object
-dim oStartButton as object
-
-	&apos;set the extension of the export file
-	gsFilterZIP = &quot;*.epub&quot;
-	gsExtensionZIP = &quot;.epub&quot;
-
-	&apos;initialize dialog and elements
-	const sLibName = &quot;eLAIX&quot;
-	const sDialogName = &quot;DlgEPUB&quot;
-    goDlgExport = LoadDialog(sLibName, sDialogName)
-    
-	goDlgExport.Title = &quot;Export document to EPUB file&quot;
-
-	oDlgFilename = goDlgExport.getControl(&quot;lblFilename&quot;)
-	sFileName = GetInternalDocString(&quot;epubExportFilename&quot;)
-	if sFileName &lt;&gt; &quot;&quot; then
-		sFolderName = DirectoryNameoutofPath(sFileName, gsPathSeparator)
-		if FolderExists(sFolderName, gsPathSeparator) then	
-			oDlgFilename.SetText(sFilename)
-		else	
-			oDlgFilename.SetText(GetDefaultFilename)
-		end if	
-	else
-		oDlgFilename.SetText(GetDefaultFilename)
-	end if	
-	
-	oDlgResult = goDlgExport.getControl(&quot;txtResult&quot;)
-	oDlgResult.setText(&quot;Please set the export options and then click the Export-button.&quot;)
-	gbAskForOverwrite = true
-
-	sString = GetInternalDocString(&quot;epubExportDelTmpFiles&quot;)
-	if sString &lt;&gt; &quot;&quot; then goDlgExport.getControl(&quot;optDelTmpFiles&quot;).State = sString
-	
-	sString = GetInternalDocString(&quot;epubExportShowLineNo&quot;)
-	if sString &lt;&gt; &quot;&quot; then goDlgExport.getControl(&quot;optShowLineNo&quot;).State = sString
-	
-	sString = GetInternalDocString(&quot;epubExportNoScaleGraphics&quot;)
-	if sString &lt;&gt; &quot;&quot; then goDlgExport.getControl(&quot;optNoScaleGraphics&quot;).State = sString
-	
-	sString = GetInternalDocString(&quot;epubExportIncludeHeader&quot;)
-	if sString &lt;&gt; &quot;&quot; then goDlgExport.getControl(&quot;optIncludeHeader&quot;).State = sString
-	
-	sString = GetInternalDocString(&quot;epubExportIncludeFooter&quot;)
-	if sString &lt;&gt; &quot;&quot; then goDlgExport.getControl(&quot;optIncludeFooter&quot;).State = sString
-	
-	aHeadings() = GetFirstLevelHeadings()
-	oFromChapter = goDlgExport.getControl(&quot;optFromChapter&quot;)
-	oFromChapter.AddItem(&quot;&quot;, 0)
-	oFromChapter.AddItems(aHeadings(), 1)
-	sString = GetInternalDocString(&quot;epubExportFromChapter&quot;)
-	iPos = FindInArray(oFromChapter.Items, sString)
-	if iPos &gt;= 0 then 
-		oFromChapter.SelectItemPos(iPos, true)
-	else	
-		oFromChapter.SelectItemPos(0, true)
-	end if	
-	oToChapter = goDlgExport.getControl(&quot;optToChapter&quot;)
-	oToChapter.AddItem(&quot;&quot;, 0)
-	oToChapter.AddItems(aHeadings(), 1)
-	sString = GetInternalDocString(&quot;epubExportToChapter&quot;)
-	iPos = FindInArray(oToChapter.Items, sString)
-	if iPos &gt;= 0 then 
-		oToChapter.SelectItemPos(iPos, true)
-	else	
-		oToChapter.SelectItemPos(0, true)
-	end if	
-	
-	oLeftControl = goDlgExport.getControl(&quot;optMarginaleLeftStyle&quot;)
-	aStyles() = GetAppliedStylesList(&quot;ParagraphStyles&quot;, true)
-	oLeftControl.AddItem(&quot;&quot;, 0)
-	iCount = Ubound(aStyles())
-	for i = 0 to iCount
-		if left(aStyles(i), 5) &lt;&gt; &quot;ILIAS&quot; then
-			oLeftControl.AddItem(aStyles(i), i+1)
-		end if
-	next i
-	&apos;oLeftControl.AddItems(GetAppliedStylesList(&quot;ParagraphStyles&quot;, true), 1)
-	sString = GetInternalDocString(&quot;epubExportMarginaleLeftStyle&quot;)
-	iPos = FindInArray(oLeftControl.Items, sString)
-	if iPos &gt;= 0 then 
-		oLeftControl.SelectItemPos(iPos, true)
-	else	
-		oLeftControl.SelectItemPos(0, true)
-	end if	
-	
-	sString = GetInternalDocString(&quot;epubExportMarginaleLeftWidth&quot;)
-	if sString &lt;&gt; &quot;&quot; then 
-		goDlgExport.getControl(&quot;optMarginaleLeftWidth&quot;).Text = sString
-	else
-		goDlgExport.getControl(&quot;optMarginaleLeftWidth&quot;).Text = &quot;0&quot;
-	end if	
-	
-	oRightControl = goDlgExport.getControl(&quot;optMarginaleRightStyle&quot;)	
-	oRightControl.AddItems(oLeftControl.Items, 0)
-	sString = GetInternalDocString(&quot;epubExportMarginaleRightStyle&quot;)
-	iPos = FindInArray(oRightControl.Items, sString)
-	if iPos &gt;= 0 then 
-		oRightControl.SelectItemPos(iPos, true)
-	else	
-		oRightControl.SelectItemPos(0, true)
-	end if	
-	
-	sString = GetInternalDocString(&quot;epubExportMarginaleRightWidth&quot;)
-	if sString &lt;&gt; &quot;&quot; then 
-		goDlgExport.getControl(&quot;optMarginaleRightWidth&quot;).Text = sString
-	else	
-		goDlgExport.getControl(&quot;optMarginaleRightWidth&quot;).Text = &quot;0&quot;
-	end if	
-	
-	oControl = goDlgExport.getControl(&quot;optPageTitleStyle&quot;)	
-	oControl.AddItems(oLeftControl.Items, 0)
-	sString = GetInternalDocString(&quot;epubExportPageTitleStyle&quot;)
-	iPos = FindInArray(oControl.Items, sString)
-	if iPos &gt;= 0 then 
-		oControl.SelectItemPos(iPos, true)
-	else	
-		oControl.SelectItemPos(0, true)
-	end if	
-
-	oStartButton = goDlgExport.getControl(&quot;butOK&quot;)
-	oStartButton.setFocus()  
-		
-	&apos;show the dialog
-	goDlgExport.execute()
-end sub
-
-
-sub DlgIliasExportClick
-dim oDlgFilename as object
-dim oOptDelTmpFiles as object
-dim oOptShowLineNo as object
-dim oOptNoScaleGraphics as object
-dim oOptIncludeHeader as object
-dim oOptIncludeFooter as object
-dim oOptMarginaleLeftStyle as object
-dim oOptMarginaleLeftWidth as object
-dim oOptMarginaleRightStyle as object
-dim oOptMarginaleRightWidth as object
-dim oOptPageTitleStyle as object
-dim oOptFromChapter as object
-dim oOptToChapter as object
-dim oDlgLabel1 as object
-dim oDlgLabel2 as object
-dim oDlgLabel3 as object
-dim oDlgLabel4 as object
-dim oDlgLabel5 as object
-dim oDlgLabel6 as object
-dim oDlgResult as object
-
-dim oStartButton As Object 
-dim oCancelButton As Object 
-dim vFilename as string
-dim vStr as string
-dim sImageDir as string
-dim iPos as integer
-dim sStyle as string
-
-	&apos;Deactivate OK-Button
-	oStartButton = goDlgExport.getControl(&quot;butOK&quot;)
-	oStartButton.setEnable(false)
-	
-	&apos;Check if file exists
-	oDlgFilename = goDlgExport.Model.lblFilename
-	if oDlgFilename.Label &lt;&gt; &quot;&quot; then
-	  if FileExists(oDlgFilename.Label) and (gbAskForOverwrite) then
-	    vStr = &quot;The file you selected already exists.&quot; &amp; Chr(13) &amp; &quot;Do you really want to overwrite it?&quot;
-	    if msgbox(vStr, 164, &quot;Document Export&quot;) = 7 then
-	      exit sub
-	    end if
-	  end if
-	else
-	  msgbox (&quot;Please select an export filename first.&quot;, 48, &quot;Document Export&quot;)
-	  exit sub
-	end if
-	
-	SwitchMousePointer(goDlgExport.getPeer(), false)
-	
-	&apos;Initialize global variables for the export
-	InitGlobals
-	
-	&apos;Reset the dialog elements
-	oDlgLabel1 = goDlgExport.Model.lblPosition1 &apos;prepare
-	oDlgLabel2 = goDlgExport.Model.lblPosition2 &apos;read content
-	oDlgLabel3 = goDlgExport.Model.lblPosition3 &apos;export media
-	oDlgLabel4 = goDlgExport.Model.lblPosition4 &apos;write ILIAS content
-	oDlgLabel5 = goDlgExport.Model.lblPosition5 &apos;pack to zip 
-	oDlgLabel6 = goDlgExport.Model.lblPosition6 &apos; finish
-	oDlgLabel1.Label = gsCheckString
-	oDlgLabel2.Label = &quot;&quot;
-	oDlgLabel3.Label = &quot;&quot;
-	oDlgLabel4.Label = &quot;&quot;
-	oDlgLabel5.Label = &quot;&quot;
-	oDlgLabel6.Label = &quot;&quot;
-	goDlgExport.Model.lblCountGraphic.Label = &quot;&quot;
-	goDlgExport.Model.lblCountRead.Label = &quot;&quot;
-	goDlgExport.Model.lblCountWrite.Label = &quot;&quot;
-	
-	oDlgResult = goDlgExport.Model.txtResult
-	oDlgFilename = goDlgExport.Model.lblFilename
-	oDlgResult.Text = &quot;Export is running - please wait...&quot;
-		
-	
-	&apos;Initialize options from the dialog elements
-	oOptDelTmpFiles = goDlgExport.Model.optDelTmpFiles
-	gbOptDelTmpFiles = oOptDelTmpFiles.State = 1 
-	
-	oOptShowLineNo = goDlgExport.Model.optShowLineNo
-	if oOptShowLineNo.State = 1 then 
-	      gsOptShowLineNo = &quot;y&quot;
-	    else
-	      gsOptShowLineNo = &quot;n&quot;
-	    end if  
-	    
-	oOptNoScaleGraphics = goDlgExport.Model.optNoScaleGraphics
-	gbOptNoScaleGraphics = oOptNoScaleGraphics.State = 1   
-	
-	oOptIncludeHeader = goDlgExport.Model.optIncludeHeader
-	gbOptIncludeHeader = oOptIncludeHeader.State = 1 
-	
-	oOptIncludeFooter = goDlgExport.Model.optIncludeFooter
-	gbOptIncludeFooter = oOptIncludeFooter.State = 1
-	
-	oOptMarginaleLeftStyle = goDlgExport.Model.optMarginaleLeftStyle
-	iPos = oOptMarginaleLeftStyle.SelectedItems(0)
-	gsMarginaleLeftStyle = oOptMarginaleLeftStyle.StringItemList(iPos)
-	oOptMarginaleLeftWidth = goDlgExport.Model.optMarginaleLeftWidth
-	giMarginaleLeftWidth = Int(oOptMarginaleLeftWidth.Text)
-	oOptMarginaleRightStyle = goDlgExport.Model.optMarginaleRightStyle
-	iPos = oOptMarginaleRightStyle.SelectedItems(0)
-	gsMarginaleRightStyle = oOptMarginaleRightStyle.StringItemList(iPos)
-	oOptMarginaleRightWidth = goDlgExport.Model.optMarginaleRightWidth
-	giMarginaleRightWidth = Int(oOptMarginaleRightWidth.Text)
-	oOptPageTitleStyle = goDlgExport.Model.optPageTitleStyle
-	iPos = oOptPageTitleStyle.SelectedItems(0)
-	sStyle = oOptPageTitleStyle.StringItemList(iPos)
-	if sStyle &lt;&gt; &quot;&quot; then
-	gsPageTitleStyle = GetInternalStyleName(&quot;ParagraphStyles&quot;, sStyle)
-	gsPageTitleStyle = ReplaceString(gsPageTitleStyle, &quot;_&quot;, &quot; &quot;)
-	else
-	gsPageTitleStyle = &quot;&quot;
-	end if  
-	oOptFromChapter = goDlgExport.Model.optFromChapter
-	giFromChapter = oOptFromChapter.SelectedItems(0)
-	oOptToChapter = goDlgExport.Model.optToChapter
-	giToChapter = oOptToChapter.SelectedItems(0) 
-	gsExportZIP = ConvertToURL(oDlgFilename.Label)
-	
-	SetIliasPathGlobals
-	
-	&apos;ThisComponent.lockControllers() &apos;lock screen controls
-	&apos;vFileName = ConvertToURL(gsExportMediaDir &amp; gsPathSeparator &amp; gsExportHTML)
-	&apos;SaveToHTML(thisComponent, vFileName)
-	&apos;GetMediaFromHtml(vFileName)
-	&apos;DeleteHtmlFile  &apos;Temporäre HTML Datei löschen 
-	
-	&apos;Export embedded Writer Graphics to the temporary objects/images folder	
-	oDlgLabel2.Label = gsCheckString
-	sImageDir = gsExportMediaDir &amp; gsPathSeparator &amp; &quot;images&quot;
-	ExtractWriterGraphics(sImageDir &amp; gsPathSeparator)
-	&apos;Add the filenames of the exported graphics to the extMedia object list
-	ReadExtractedGraphics(sImageDir, MEDIA_TYPE_IMAGE)
-	&apos;Add the filenames of all linked graphics to the extMedia object list
-	ReadLinkedObjects 
-	
-	&apos;Read the document
-	oDlgLabel3.Label = gsCheckString
-	if oOptIncludeHeader.State = 1 then ReadDocStandardHeader
-	if oOptIncludeFooter.State = 1 then ReadDocStandardFooter
-	ReadDocument
-	PrintEnumArrays  &apos;&apos;&apos;for debugging purposes
-	
-	&apos;Export the document
-	oDlgLabel4.Label = gsCheckString
-	InitExportFile
-	ExportToILIAS
-	CloseExportFile 
-	
-	&apos;Build the package
-	oDlgLabel5.Label = gsCheckString
-	MoveMediaToAliasFolder
-	MoveFilesToAliasFolder
-	MoveStyleToAliasFolder
-	ZipFolderToFile(ConvertFromURL(gsExportZipDir), ConvertFromURL(gsExportZIP), &quot;&quot;)
-	if gbOptDelTmpFiles then
-	  DeleteExportFiles
-	end if  
-	
-	&apos;write export parameters into the document
-	&apos;ThisComponent.unlockControllers() &apos;unlock screeen controls
-	oDlgResult.Text = GetResultString
-  
-	SetInternalDocString(&quot;elaixVersion&quot;, CURRENT_ELAIX_VERSION)
-	SetInternalDocString(&quot;iliasExportFilename&quot;, oDlgFilename.Label)
-	SetInternalDocString(&quot;iliasExportDelTmpFiles&quot;, oOptDelTmpFiles.State)
-	SetInternalDocString(&quot;iliasExportShowLineNo&quot;, oOptShowLineNo.State)
-	SetInternalDocString(&quot;iliasExportNoScaleGraphics&quot;, oOptNoScaleGraphics.State)
-	SetInternalDocString(&quot;iliasExportIncludeHeader&quot;, oOptIncludeHeader.State)
-	SetInternalDocString(&quot;iliasExportIncludeFooter&quot;, oOptIncludeFooter.State)
-	iPos = oOptMarginaleLeftStyle.SelectedItems(0)
-	SetInternalDocString(&quot;iliasExportMarginaleLeftStyle&quot;, oOptMarginaleLeftStyle.StringItemList(iPos))
-	SetInternalDocString(&quot;iliasExportMarginaleLeftWidth&quot;, oOptMarginaleLeftWidth.Text)
-	iPos = oOptMarginaleRightStyle.SelectedItems(0)
-	SetInternalDocString(&quot;iliasExportMarginaleRightStyle&quot;, oOptMarginaleRightStyle.StringItemList(iPos))
-	SetInternalDocString(&quot;iliasExportMarginaleRightWidth&quot;, oOptMarginaleRightWidth.Text)
-	iPos = oOptPageTitleStyle.SelectedItems(0)
-	SetInternalDocString(&quot;iliasExportPageTitleStyle&quot;, oOptPageTitleStyle.StringItemList(iPos))
-	iPos = oOptFromChapter.SelectedItems(0)
-	SetInternalDocString(&quot;iliasExportFromChapter&quot;, oOptFromChapter.StringItemList(iPos))
-	iPos = oOptToChapter.SelectedItems(0)
-	SetInternalDocString(&quot;iliasExportToChapter&quot;, oOptToChapter.StringItemList(iPos))
-
-	oDlgLabel6.Label = gsCheckString
-
-	&apos;Reactivate OK-Button and set the focus to the cancel-button
-	oStartButton.setEnable(true)
-	oCancelButton = goDlgExport.getControl(&quot;butCancel&quot;)
-	oCancelButton.setFocus()  
-	SwitchMousePointer(goDlgExport.getPeer(), true)
-	Beep
-end sub
-
-
-sub DlgEpubExportClick
-dim oDlgFilename as object
-dim oOptDelTmpFiles as object
-dim oOptShowLineNo as object
-dim oOptNoScaleGraphics as object
-dim oOptIncludeHeader as object
-dim oOptIncludeFooter as object
-dim oOptMarginaleLeftStyle as object
-dim oOptMarginaleLeftWidth as object
-dim oOptMarginaleRightStyle as object
-dim oOptMarginaleRightWidth as object
-dim oOptPageTitleStyle as object
-dim oOptFromChapter as object
-dim oOptToChapter as object
-dim oDlgResult as object
-
-dim oDlgLabel1 as object
-dim oDlgLabel2 as object
-dim oDlgLabel3 as object
-dim oDlgLabel4 as object
-dim oDlgLabel5 as object
-dim oDlgLabel6 as object
-
-dim oStartButton As Object 
-dim oCancelButton As Object 
-dim vFilename as string
-dim vStr as string
-dim sImageDir as string
-dim iPos as integer
-dim sStyle as string
-dim sTempFolder as string
-dim iMsg as integer
-
-	&apos;Deactivate OK-Button
-	oStartButton = goDlgExport.getControl(&quot;butOK&quot;)
-	oStartButton.setEnable(false)
-	
-	&apos;Check if file exists
-	oDlgFilename = goDlgExport.Model.lblFilename
-	if oDlgFilename.Label &lt;&gt; &quot;&quot; then
-	  if FileExists(oDlgFilename.Label) and (gbAskForOverwrite) then
-	    vStr = &quot;The file you selected already exists.&quot; &amp; Chr(13) &amp; &quot;Do you really want to overwrite it?&quot;
-	    if msgbox(vStr, 164, &quot;Document Export&quot;) = 7 then 
-	      exit sub
-	    end if
-	  end if
-	else
-	  msgbox (&quot;Please select an export filename first.&quot;, 48, &quot;Document Export&quot;)
-	  exit sub
-	end if
-	
-	SwitchMousePointer(goDlgExport.getPeer(), false)
-	
-	&apos;Initialize global variables for the export
-	InitGlobals
-	
-	&apos;Reset the dialog elements
-	oDlgLabel1 = goDlgExport.Model.lblPosition1 &apos;prepare
-	oDlgLabel2 = goDlgExport.Model.lblPosition2 &apos;read content
-	oDlgLabel3 = goDlgExport.Model.lblPosition3 &apos;export media
-	oDlgLabel4 = goDlgExport.Model.lblPosition4 &apos;write ILIAS content
-	oDlgLabel5 = goDlgExport.Model.lblPosition5 &apos;pack to zip 
-	oDlgLabel6 = goDlgExport.Model.lblPosition6 &apos;finish
-	oDlgLabel1.Label = gsCheckString
-	oDlgLabel2.Label = &quot;&quot;
-	oDlgLabel3.Label = &quot;&quot;
-	oDlgLabel4.Label = &quot;&quot;
-	oDlgLabel5.Label = &quot;&quot;
-	oDlgLabel6.Label = &quot;&quot;
-	goDlgExport.Model.lblCountGraphic.Label = &quot;&quot;
-	goDlgExport.Model.lblCountRead.Label = &quot;&quot;
-	goDlgExport.Model.lblCountWrite.Label = &quot;&quot;
-	
-	oDlgResult = goDlgExport.Model.txtResult
-	oDlgFilename = goDlgExport.Model.lblFilename
-	oDlgResult.Text = &quot;Export is running - please wait...&quot;
-	
-	&apos;Initialize options from the dialog elements
-	oOptDelTmpFiles = goDlgExport.Model.optDelTmpFiles
-	gbOptDelTmpFiles = oOptDelTmpFiles.State = 1 
-	
-	oOptShowLineNo = goDlgExport.Model.optShowLineNo
-	if oOptShowLineNo.State = 1 then 
-	      gsOptShowLineNo = &quot;y&quot;
-	    else
-	      gsOptShowLineNo = &quot;n&quot;
-	    end if  
-	    
-	oOptNoScaleGraphics = goDlgExport.Model.optNoScaleGraphics
-	gbOptNoScaleGraphics = oOptNoScaleGraphics.State = 1   
-	
-	oOptIncludeHeader = goDlgExport.Model.optIncludeHeader
-	gbOptIncludeHeader = oOptIncludeHeader.State = 1 
-	
-	oOptIncludeFooter = goDlgExport.Model.optIncludeFooter
-	gbOptIncludeFooter = oOptIncludeFooter.State = 1
-	
-	oOptMarginaleLeftStyle = goDlgExport.Model.optMarginaleLeftStyle
-	iPos = oOptMarginaleLeftStyle.SelectedItems(0)
-	gsMarginaleLeftStyle = oOptMarginaleLeftStyle.StringItemList(iPos)
-	oOptMarginaleLeftWidth = goDlgExport.Model.optMarginaleLeftWidth
-	giMarginaleLeftWidth = Int(oOptMarginaleLeftWidth.Text)
-	oOptMarginaleRightStyle = goDlgExport.Model.optMarginaleRightStyle
-	iPos = oOptMarginaleRightStyle.SelectedItems(0)
-	gsMarginaleRightStyle = oOptMarginaleRightStyle.StringItemList(iPos)
-	oOptMarginaleRightWidth = goDlgExport.Model.optMarginaleRightWidth
-	giMarginaleRightWidth = Int(oOptMarginaleRightWidth.Text)
-	oOptPageTitleStyle = goDlgExport.Model.optPageTitleStyle
-	iPos = oOptPageTitleStyle.SelectedItems(0)
-	sStyle = oOptPageTitleStyle.StringItemList(iPos)
-	if sStyle &lt;&gt; &quot;&quot; then
-	gsPageTitleStyle = GetInternalStyleName(&quot;ParagraphStyles&quot;, sStyle)
-	gsPageTitleStyle = ReplaceString(gsPageTitleStyle, &quot;_&quot;, &quot; &quot;)
-	else
-	gsPageTitleStyle = &quot;&quot;
-	end if  
-	oOptFromChapter = goDlgExport.Model.optFromChapter
-	giFromChapter = oOptFromChapter.SelectedItems(0)
-	oOptToChapter = goDlgExport.Model.optToChapter
-	giToChapter = oOptToChapter.SelectedItems(0)
-	
-	SetEpubPathGlobals
-	
-	&apos;Export embedded Writer Graphics to the EPUB/images folder	
-	oDlgLabel2.Label = gsCheckString
-	sImageDir = gsExportZipDir &amp; &quot;/EPUB/images/&quot;
-	ExtractWriterGraphics(sImageDir)
-	&apos;Add the filenames of the exported graphics to the extMedia object list
-	ReadExtractedGraphics(sImageDir, MEDIA_TYPE_IMAGE)	
-	&apos;Add the filenames of all linked graphics to the extMedia object list
-	ReadLinkedObjects
-
-	&apos;Read the document
-	oDlgLabel3.Label = gsCheckString
-	ReadDocument
-	&apos;if goDlgExport.Model.optWriteDebugFiles.State = 1 then
-		PrintEnumArrays  &apos;&apos;&apos;for debugging purposes
-	&apos;end if
-	
-	&apos;Export the document
-	oDlgLabel4.Label = gsCheckString
-	ExportToEPUB
-	
-	&apos;Build the package
-	oDlgLabel5.Label = gsCheckString
-	&apos;MoveMediaToAliasFolder
-	&apos;MoveFilesToAliasFolder
-	&apos;MoveStyleToAliasFolder	
-	if FileExists(oDlgFilename.Label) then
-	   	kill oDlgFilename.Label
-	end if   	
-	ZipFolderToFile(ConvertFromURL(gsExportZipDir), ConvertFromURL(gsExportZIP), &quot;application/epub+zip&quot;)
-
-	if gbOptDelTmpFiles then
-	  DeleteExportFiles
-	end if  
-
-	&apos;ThisComponent.unlockControllers() &apos;unlock screeen controls
-	oDlgResult.Text = GetResultString
-  
-	&apos;Write export parameters into the document
-	SetInternalDocString(&quot;elaixVersion&quot;, CURRENT_ELAIX_VERSION)
-	SetInternalDocString(&quot;epubExportFilename&quot;, oDlgFilename.Label)
-	SetInternalDocString(&quot;epubExportDelTmpFiles&quot;, oOptDelTmpFiles.State)
-	SetInternalDocString(&quot;epubExportShowLineNo&quot;, oOptShowLineNo.State)
-	SetInternalDocString(&quot;epubExportNoScaleGraphics&quot;, oOptNoScaleGraphics.State)
-	SetInternalDocString(&quot;epubExportIncludeHeader&quot;, oOptIncludeHeader.State)
-	SetInternalDocString(&quot;epubExportIncludeFooter&quot;, oOptIncludeFooter.State)
-	iPos = oOptMarginaleLeftStyle.SelectedItems(0)
-	SetInternalDocString(&quot;epubExportMarginaleLeftStyle&quot;, oOptMarginaleLeftStyle.StringItemList(iPos))
-	SetInternalDocString(&quot;epubExportMarginaleLeftWidth&quot;, oOptMarginaleLeftWidth.Text)
-	iPos = oOptMarginaleRightStyle.SelectedItems(0)
-	SetInternalDocString(&quot;epubExportMarginaleRightStyle&quot;, oOptMarginaleRightStyle.StringItemList(iPos))
-	SetInternalDocString(&quot;epubExportMarginaleRightWidth&quot;, oOptMarginaleRightWidth.Text)
-	iPos = oOptPageTitleStyle.SelectedItems(0)
-	SetInternalDocString(&quot;epubExportPageTitleStyle&quot;, oOptPageTitleStyle.StringItemList(iPos))
-	iPos = oOptFromChapter.SelectedItems(0)
-	SetInternalDocString(&quot;epubExportFromChapter&quot;, oOptFromChapter.StringItemList(iPos))
-	iPos = oOptToChapter.SelectedItems(0)
-	SetInternalDocString(&quot;epubExportToChapter&quot;, oOptToChapter.StringItemList(iPos))
-
-	oDlgLabel6.Label = gsCheckString
-
-	&apos;Reactivate OK-Button and set the focus to the cancel-button
-	oStartButton.setEnable(true)
-	oCancelButton = goDlgExport.getControl(&quot;butCancel&quot;)
-	oCancelButton.setFocus()
-	
-	SwitchMousePointer(goDlgExport.getPeer(), true)
-	Beep
-end sub
-
 
 function GetFirstLevelHeadings()
 dim oText as object
@@ -928,7 +230,6 @@ dim vOutputStream as object
   vOutputStream = vFileAccessService.openFileWrite(gsExportXML)
   vOutputStream.truncate()
   goExportXML.setOutputStream(vOutputStream)
-  &apos;xray goExportXML
 End Sub
 
 
@@ -941,7 +242,7 @@ End Sub
 
 
 Sub CloseExportFile
-  goExportXML.closeOutput() 
+  goExportXML.closeOutput 
 End Sub  
 
 Sub CloseExportTXT
@@ -1197,6 +498,15 @@ function GetResultString()
     vMsg = vMsg &amp; &quot;List elements are not allowed in code paragraphs. &quot; &amp;  CStr(giListInCode) &amp; _
                   &quot; of them where found and reformatted to standard text. &quot;
   end if
+  
+  if gbSaveDocUnsaved then
+    if vMsg &lt;&gt; &quot;&quot; then
+      vMsg = vMsg &amp; chr(13) &amp; chr(13)
+    end if
+    vMsg = vMsg &amp; &quot;Not all graphics of this document could be exported. &quot; &amp;  _
+                  &quot;This happens, if you insert a graphic wihtout saving the document afterwards. Please save your document now and then try again.&quot;
+  end if
+  
   if vMsg = &quot;&quot; then
     vMsg = &quot;The export of this document was successful.&quot;
   &apos;else
@@ -1205,6 +515,7 @@ function GetResultString()
   
   GetResultString = vMsg &amp; chr(13) &amp; gsEnumErrors
 end function
+
 
 function DocHasLocation() as boolean
   if thisComponent.Location = &quot;&quot; then
@@ -1393,7 +704,6 @@ dim sFilename as string
 			AppendFileToExtMediaByName(MEDIA_TYPE_IMAGE, oGraphic.Name, sFilename)
 			
 		end if
-		&apos;xRay oGraphic
 	next i
 end sub
 

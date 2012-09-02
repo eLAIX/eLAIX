@@ -256,7 +256,6 @@ dim oRepair as new com.sun.star.beans.NamedValue
 	args(0) = sUrlFilename
 	args(1) = oRepair
 	objZipService.initialize(args())  
-	&apos;xray objZipService
 
 	&apos;in a package &quot;sample.zip&quot; the xml file should be located in &quot;sample/sample.xml&quot;
 	&apos;check if the xml file is in subfolder of the same name
@@ -280,7 +279,6 @@ dim oRepair as new com.sun.star.beans.NamedValue
 			args(0) = sStyleZipFile
 			args(1) = oRepair
 			objStyleZipService.initialize(args())  
-			&apos;xray objStyleZipService
 			dim oFiles as object
 			dim mFiles()
 			sStyleXMLFile = &quot;style/style.xml&quot;
@@ -781,7 +779,6 @@ dim iCount as long
 		&apos;next j
 		
 		oAttributes = gaTag(i).Attributes
-		&apos;xray oAttributes
 		if not isnull(oAttributes) then
 			for j = 0 to oAttributes.Length - 1
 				sName = oAttributes.GetNameByIndex(j)
@@ -820,7 +817,7 @@ dim iCount as long
 &apos;	oFile.writeString(sStrg &amp; sCR)
 &apos;	sStrg = &quot;&quot;
 
-	oFile.closeOutput() 
+	oFile.closeOutput
 end sub
 
 

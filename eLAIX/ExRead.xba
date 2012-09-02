@@ -38,6 +38,7 @@ type docChapter
 	ChapterType as integer
 	GetString as string
 	Level as integer
+	ListLabelString as string
 	ReferenceMark as string
 	HasContent as boolean
 end type
@@ -230,7 +231,6 @@ dim iExtMediaID as long
 	&apos; for all pictures in document ...
 	For i = 0 to oGraphics.getCount - 1
 		oGraphic = oGraphics.getByIndex(i)
-		&apos;xray oGraphic
 		&apos;check if the graphic already exists in gaExtMedia
 		iExtMediaID = GetExtMediaIDByName(oGraphic.getName)
 		if iExtMediaID = 0 then
@@ -337,7 +337,6 @@ dim iPageInnerWidth as integer
 dim iBorderWidth as integer
 dim oRules as object
 
-	&apos;xray oPara
 	&apos;A paragraph can be a standard paragraph or a table. First check if it&apos;s a paragraph
 	if oPara.supportsService(&quot;com.sun.star.text.Paragraph&quot;) then
 
@@ -361,7 +360,6 @@ dim oRules as object
 			iActParaID = ubound(gaDocParagraph()) + 1
 
 			&apos;if (iActParaID = 139) then
-			&apos;	xray oPara
 			&apos;end if
 
 			oParaRec = createObject(&quot;docParagraph&quot;)
@@ -403,7 +401,6 @@ dim oRules as object
 		&apos;the paragraph is other than a list (text, graphics, OLE, frames...)
 		else	
 			&apos;create a new paragraph record
-			&apos;xRay oPara
 			iActParaID = ubound(gaDocParagraph()) + 1
 			oParaRec = createObject(&quot;docParagraph&quot;) 
 			with oParaRec
@@ -552,11 +549,9 @@ dim sURL as string
 			&apos;	iNewPos = iNewPos 
 			&apos;end if	
 			&apos;if oTextPortion.CharUnderline &gt; 0 then
-			&apos;	xray oPara
 			&apos;end if	
 			
 			&apos;if oTextPortionRec.HyperLinkURL = &quot;#il_1500_git_688&quot; then
-			&apos;	xray oTextPortion
 			&apos;end if
 			
 		
@@ -574,7 +569,6 @@ dim sURL as string
 			  		gaDocParagraph(oTextPortionRec.ParaID).ParaType = PARA_TYPE_TEXT
 			  	end if	
 		  	case &quot;Bookmark&quot;
-		  		&apos;xray oTextPortion
 		  		oTextPortionRec.Bookmark = oTextPortion.Bookmark.Name
 		  		&apos;check if the Bookmark has a range. Then the next Portion holds the text and the next Portion again is bookmark 
 		  		if oTextPortion.Bookmark.Anchor.String &lt;&gt; &quot;&quot; then
@@ -585,12 +579,10 @@ dim sURL as string
 			  		end if
 			  	end if				  	
 		  	case &quot;Hyperlink&quot;
-		  		&apos;xray oTextPortion
 
 		  	case &quot;Footnote&quot;
 		  		oTextPortionRec.Footnote = oTextPortion.Footnote.GetString
 		  	case &quot;TextField&quot;  &apos;(link to chapter)
-		  		&apos;xray oTextPortion
 		  		&apos;if oTextPortion.supportsService(&quot;com.sun.star.text.TextField&quot;) Then
 		  		if not isnull(oTextPortion.TextField) then
 		  			if oTextPortion.TextField.supportsService(&quot;com.sun.star.text.TextField.GetReference&quot;) Then
@@ -616,7 +608,6 @@ dim sURL as string
 							
 					&apos;check if the non-text object is an embedded object
 				    elseif oPortionObj.ImplementationName = &quot;SwXTextEmbeddedObject&quot; then
-				    	&apos;xray oPortionObj
 				    	if not isnull(oPortionObj.EmbeddedObject) then
 					    	&apos;it could be a formula
 				    		oEmbeddedObj = oPortionObj.EmbeddedObject
@@ -656,7 +647,6 @@ dim sURL as string
 						&apos;this frame contains other stuff, so read paragraph again (recursive)
 						elseif GetFrameContentType(oPortionObj) = &quot;TextFrame&quot; then
 							oFrameEnum = oPortionObj.GetText().CreateEnumeration()
-							&apos;xray oPortionObj
 							&apos;sFrameTitle = oPortionObj.Title
 							&apos;if sFrametitle = &quot;&quot; then
 							&apos;	sFrameTitle = oPortionObj.Description
@@ -679,7 +669,6 @@ dim sURL as string
 					
 							while oFrameEnum.HasMoreElements()
 								oFrameObj = oFrameEnum.NextElement() 
-								&apos;xray oFrameObj						
 								if isMissing(oTableRec) then
 									ReadParagraph(oFrameObj, oParaRec.PageArea, oParaRec.ChapterID)
 								else
@@ -720,10 +709,8 @@ dim sURL as string
 			  		gaDocParagraph(oTextPortionRec.ParaID).ParaType = PARA_TYPE_TEXT
 			  	else	
 					oEmbeddedEnum = oTextPortion.createContentEnumeration(&quot;com.sun.star.text.TextEmbeddedObject&quot;)
-					&apos;xray oEmbeddedEnum
 					while oEmbeddedEnum.hasMoreElements()
 						oEmbeddedObj = oEmbeddedEnum.nextElement()
-						&apos;xray oEmbeddedObj
 						&apos;if oEmbeddedObj.FrameStyleName &lt;&gt; &quot;Formula&quot; then
 							AppendMediaRec(oEmbeddedObj, oParaRec, oTextPortionRec)
 						&apos;end if	
@@ -778,7 +765,6 @@ dim sURL as string
 				&apos;ReadTextPortions(iChapterID, oContentObj, oParaRec)
 			 							
 			else
-				&apos;xray oContentObj
 				oContentObj = oPortionObj.GetText().CreateEnumeration()
 				while oFrameEnum.HasMoreElements()
 					oFrameObj = oFrameEnum.NextElement() 						
@@ -793,7 +779,6 @@ dim sURL as string
 		&apos; read embedded object
 		elseif oContentObj.supportsService(&quot;com.sun.star.text.TextEmbeddedObject&quot;) then
 	    	&apos;it could be a formula
-	    	&apos;xray oContentObj
 	    	
 	    	
 	    	if not isnull(oContentObj.EmbeddedObject) then
@@ -823,7 +808,6 @@ dim sURL as string
 	    	
 		else	
 			&apos;oEmbeddedEnum = oTextPortion.createContentEnumeration(&quot;com.sun.star.text.TextEmbeddedObject&quot;)
-			&apos;xray oContentObj
 			  
 		end if	
 	wend  	
@@ -997,7 +981,6 @@ dim iMediaType as integer
 			&apos;step 2: build the Media Record
 			iNewPos = ubound(gaDocMedia()) + 1
 		    oMediaRec = createObject(&quot;docMedia&quot;)
-		    &apos;xray oPortionObj
 		    with oMediaRec
 		    	.ID = iNewPos
 			    .TextPortionID = oTextPortionRec.ID
@@ -1046,7 +1029,6 @@ dim iMediaType as integer
 		elseif oPortionObj.supportsService(&quot;com.sun.star.text.TextEmbeddedObject&quot;) then  
 			iNewPos = ubound(gaDocMedia()) + 1
 		    oMediaRec = createObject(&quot;docMedia&quot;)
-		    &apos;xray oPortionObj
 			with oMediaRec
 		    	.ID = iNewPos
 				.TextPortionID = oTextPortionRec.ID
@@ -1323,6 +1305,7 @@ dim iOutlineLevel as integer
 		.ID = iNewPos
 		.ChapterType = iChapterType
 		.Level = oPara.OutlineLevel
+		.ListLabelString = oPara.ListLabelString
 		.HasContent = false
 	end with	
 	
@@ -1367,6 +1350,7 @@ dim oOutputStream as object
 		sStrg = sStrg &amp; &quot;ID: &quot; &amp; gaDocChapter(i).ID &amp; sCR
 		sStrg = sStrg &amp; &quot;ChapterType: &quot; &amp; gaDocChapter(i).ChapterType &amp; sCR
 		sStrg = sStrg &amp; &quot;Level: &quot; &amp; gaDocChapter(i).Level &amp; sCR
+		sStrg = sStrg &amp; &quot;ListLabelString: &quot; &amp; gaDocChapter(i).ListLabelString &amp; sCR
 		sStrg = sStrg &amp; &quot;GetString: &quot; &amp; gaDocChapter(i).GetString &amp; sCR
 		sStrg = sStrg &amp; &quot;ReferenceMark: &quot; &amp; gaDocChapter(i).ReferenceMark &amp; sCR
 		sStrg = sStrg &amp; &quot;HasContent: &quot; &amp; gaDocChapter(i).HasContent &amp; sCR
@@ -1479,7 +1463,7 @@ dim oOutputStream as object
 		sStrg = &quot;&quot;
 	next i
 	
-	oFile.closeOutput() 
+	oFile.closeOutput
 
 end sub
 

@@ -1,0 +1,474 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">
+<script:module xmlns:script="http://openoffice.org/2000/script" script:name="DlgEPUB" script:language="StarBasic">&apos;****************************************************************************
+&apos; eLAIX   : Writing ILIAS learning modules offline with OpenOffice.org Writer
+&apos; Author  : Harry Boldt - h.boldt@boldt-media.de - http://elaix.org
+&apos; License : GPL
+&apos;****************************************************************************
+
+&apos; This module is part of eLAIX. You can redistribute it and/or
+&apos; modify it under the terms of the GNU Lesser General Public
+&apos; License as published by the Free Software Foundation, either
+&apos; version 3 of the License, or (at your option) any later version.
+&apos; 
+&apos; This program is distributed in the hope that it will be useful,
+&apos; but WITHOUT ANY WARRANTY; without even the implied warranty of
+&apos; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+&apos; Lesser General Public License for more details.
+&apos; 
+&apos; You should have received a copy of the GNU Lesser General Public
+&apos; License along with this program. If not, please visit the Free
+&apos; Software Foundation website at http://www.gnu.org/licenses/.
+
+Option Explicit
+
+&apos;-----------------------------------------------------------
+&apos; Dialog handling
+&apos;-----------------------------------------------------------
+
+sub ShowEpubExportDialog()
+dim oDlgResult as object
+dim oStartButton as object
+dim sPage as string
+dim iPage as integer
+dim oPages as object
+
+	&apos;initialize global variables and constants
+	gsFilterZIP = &quot;*.epub&quot;
+	gsExtensionZIP = &quot;.epub&quot;
+	gbAskForOverwrite = true
+	const sLibName = &quot;eLAIX&quot;
+	const sDialogName = &quot;DlgEPUB&quot;
+	
+	&apos;load the dialog and initialize all dialog elements
+    goDlgExport = LoadDialog(sLibName, sDialogName)   
+    InitEpubExportOptions 
+		
+	&apos;set last active dialog page
+	oPages = goDlgExport.getControl(&quot;listPages&quot;)
+	sPage = GetInternalDocString(&quot;epubLastDialogPage&quot;)
+	if sPage &lt;&gt; &quot;&quot; then
+		iPage = int(sPage)
+		oPages.SelectItemPos(iPage - 1, true)
+	else	
+		oPages.SelectItemPos(0, true)
+	end if	
+
+	&apos;set the focus to the OK-Button	
+	oStartButton = goDlgExport.getControl(&quot;butOK&quot;)
+	oStartButton.setFocus()  
+		
+	&apos;execute the dialog
+	goDlgExport.execute()
+end sub
+
+
+sub InitEpubExportOptions
+dim iPos as integer
+dim sPos as string
+dim iPage as integer
+dim oDlgFilename as object
+dim sFolderName as string
+dim sFileName as string
+dim sString as string
+dim aHeadings()
+dim oFromChapter as object
+dim oToChapter as object
+dim oGraphics as object
+dim oControl as object
+	
+	&apos;Read the eLAIX version (has to be saved into a variable - later)
+	&apos;GetInternalDocString(&quot;elaixVersion&quot;)
+	
+	&apos;Dialog title
+	goDlgExport.Title = &quot;Export document to EPUB file&quot;
+
+	&apos;Metadata - Required
+	goDlgExport.Model.txtMetaTitle.Text = GetInternalDocString(&quot;epubMetaTitle&quot;)
+	goDlgExport.Model.txtMetaID.Text = GetInternalDocString(&quot;epubMetaID&quot;)
+	goDlgExport.Model.cmbMetaLanguage.Text = GetInternalDocString(&quot;epubMetaLanguage&quot;)
+	goDlgExport.Model.txtMetaAuthor.Text = GetInternalDocString(&quot;epubMetaAuthor&quot;)
+	
+	&apos;Metadata - Optional
+	goDlgExport.Model.txtMetaContributor.Text = GetInternalDocString(&quot;epubMetaContributor&quot;)
+	goDlgExport.Model.txtMetaCoverage.Text = GetInternalDocString(&quot;epubMetaCoverage&quot;)
+	goDlgExport.Model.txtMetaCreator.Text = GetInternalDocString(&quot;epubMetaCreator&quot;)
+	goDlgExport.Model.dateMetaPublishing.Text = GetInternalDocString(&quot;epubMetaPublishingDate&quot;)
+	goDlgExport.Model.timeMetaPublishing.Text = GetInternalDocString(&quot;epubMetaPublishingTime&quot;)
+	goDlgExport.Model.txtMetaPublisher.Text = GetInternalDocString(&quot;epubMetaPublisher&quot;)
+	goDlgExport.Model.txtMetaFormat.Text = GetInternalDocString(&quot;epubMetaFormat&quot;)
+	goDlgExport.Model.txtMetaRelation.Text = GetInternalDocString(&quot;epubMetaRelation&quot;)
+	goDlgExport.Model.txtMetaRights.Text = GetInternalDocString(&quot;epubMetaRights&quot;)
+	goDlgExport.Model.txtMetaSource.Text = GetInternalDocString(&quot;epubMetaSource&quot;)
+	goDlgExport.Model.txtMetaSubject.Text = GetInternalDocString(&quot;epubMetaSubject&quot;)
+	goDlgExport.Model.txtMetaType.Text = GetInternalDocString(&quot;epubMetaType&quot;)
+
+	&apos;Metadata - Description
+	goDlgExport.Model.txtMetaDescription.Text = GetInternalDocString(&quot;epubMetaDescription&quot;)
+
+	&apos;General
+	oDlgFilename = goDlgExport.getControl(&quot;lblFilename&quot;)
+	sFileName = GetInternalDocString(&quot;epubExportFilename&quot;)
+	if sFileName &lt;&gt; &quot;&quot; then
+		sFolderName = DirectoryNameoutofPath(sFileName, gsPathSeparator)
+		if FolderExists(sFolderName, gsPathSeparator) then	
+			oDlgFilename.SetText(sFilename)
+		else	
+			oDlgFilename.SetText(GetDefaultFilename)
+		end if	
+	else
+		oDlgFilename.SetText(GetDefaultFilename)
+	end if	
+	
+	goDlgExport.Model.optKeepTempFiles.State = GetInternalDocString(&quot;epubExportKeepTempFiles&quot;)
+	goDlgExport.Model.optWriteDebugFiles.State = GetInternalDocString(&quot;epubExportWriteDebugFiles&quot;)
+	
+	aHeadings() = GetFirstLevelHeadings(true)
+	oFromChapter = goDlgExport.getControl(&quot;cmbExportFromChapter&quot;)
+	oFromChapter.AddItem(&quot;&quot;, 0)
+	oFromChapter.AddItems(aHeadings(), 1)
+	sString = GetInternalDocString(&quot;epubExportFromChapter&quot;)
+	iPos = FindInArray(oFromChapter.Items, sString)
+	if iPos &gt;= 0 then 
+		oFromChapter.SelectItemPos(iPos, true)
+	else	
+		oFromChapter.SelectItemPos(0, true)
+	end if	
+
+	oToChapter = goDlgExport.getControl(&quot;cmbExportToChapter&quot;)
+	oToChapter.AddItem(&quot;&quot;, 0)
+	oToChapter.AddItems(aHeadings(), 1)
+	sString = GetInternalDocString(&quot;epubExportToChapter&quot;)
+	iPos = FindInArray(oToChapter.Items, sString)
+	if iPos &gt;= 0 then 
+		oToChapter.SelectItemPos(iPos, true)
+	else	
+		oToChapter.SelectItemPos(0, true)
+	end if	
+	
+	&apos;Content
+	&apos;read all graphics
+	oGraphics = thisComponent.getGraphicObjects()
+	if oGraphics.Count &gt; 0 then
+		oControl = goDlgExport.getControl(&quot;cmbCoverImage&quot;)
+		oControl.AddItems(oGraphics.Elementnames(), 0)
+		sString = GetInternalDocString(&quot;epubCoverFromDocument&quot;)
+		iPos = FindInArray(oControl.Items, sString)
+		if iPos &gt;= 0 then 
+			oControl.SelectItemPos(iPos, true)
+		else	
+			oControl.SelectItemPos(0, true)
+		end if	
+	end if
+	oControl = goDlgExport.getControl(&quot;listCoverImage&quot;)
+	sPos = GetInternalDocString(&quot;epubSelectCoverImage&quot;)
+	if sPos = &quot;&quot; then
+		iPos = 0
+	else
+		iPos = int(sPos)
+	end if
+	oControl.SelectItemPos(iPos, true)
+	SetCoverImageOptions
+
+	goDlgExport.Model.fileCoverImage.Text = GetInternalDocString(&quot;epubCoverFromFile&quot;)
+	goDlgExport.Model.txtMaxImageWidth.Text = GetInternalDocString(&quot;epubMaxImageWidth&quot;)
+	goDlgExport.Model.optIncludeChapterNumberingToc.State = GetInternalDocString(&quot;epubIncludeChapterNumberingToc&quot;)
+	goDlgExport.Model.optIncludeChapterNumberingDoc.State = GetInternalDocString(&quot;epubIncludeChapterNumberingDoc&quot;)
+
+	goDlgExport.Model.txtTocTitle.Text = GetInternalDocString(&quot;epubTocTitle&quot;)
+	goDlgExport.Model.optCreateNdxFile.State = GetInternalDocString(&quot;epubCreateNdxFile&quot;)
+end sub
+
+
+sub SaveEpubExportOptions
+dim iPos as integer
+dim oControl as object
+dim sText as string
+
+	&apos;Write export parameters into the document
+	SetInternalDocString(&quot;elaixVersion&quot;, CURRENT_ELAIX_VERSION)
+	
+	&apos;Metadata - Required
+	SetInternalDocString(&quot;epubMetaTitle&quot;, goDlgExport.Model.txtMetaTitle.Text)
+	SetInternalDocString(&quot;epubMetaID&quot;, goDlgExport.Model.txtMetaID.Text)
+	sText = GetLanguageCode(goDlgExport.Model.cmbMetaLanguage.Text)
+	SetInternalDocString(&quot;epubMetaLanguage&quot;, sText)
+	SetInternalDocString(&quot;epubMetaAuthor&quot;, goDlgExport.Model.txtMetaAuthor.Text)
+	
+	&apos;Metadata - Optional
+	SetInternalDocString(&quot;epubMetaContributor&quot;, goDlgExport.Model.txtMetaContributor.Text)
+	SetInternalDocString(&quot;epubMetaCoverage&quot;, goDlgExport.Model.txtMetaCoverage.Text)
+	SetInternalDocString(&quot;epubMetaCreator&quot;, goDlgExport.Model.txtMetaCreator.Text)
+	SetInternalDocString(&quot;epubMetaPublishingDate&quot;, goDlgExport.Model.dateMetaPublishing.Text)
+	SetInternalDocString(&quot;epubMetaPublishingTime&quot;, goDlgExport.Model.timeMetaPublishing.Text)
+	SetInternalDocString(&quot;epubMetaPublisher&quot;, goDlgExport.Model.txtMetaPublisher.Text)
+	SetInternalDocString(&quot;epubMetaFormat&quot;, goDlgExport.Model.txtMetaFormat.Text)
+	SetInternalDocString(&quot;epubMetaRelation&quot;, goDlgExport.Model.txtMetaRelation.Text)
+	SetInternalDocString(&quot;epubMetaRights&quot;, goDlgExport.Model.txtMetaRights.Text)
+	SetInternalDocString(&quot;epubMetaSource&quot;, goDlgExport.Model.txtMetaSource.Text)
+	SetInternalDocString(&quot;epubMetaSubject&quot;, goDlgExport.Model.txtMetaSubject.Text)
+	SetInternalDocString(&quot;epubMetaType&quot;, goDlgExport.Model.txtMetaType.Text)
+
+	&apos;Metadata - Description
+	SetInternalDocString(&quot;epubMetaDescription&quot;, goDlgExport.Model.txtMetaDescription.Text)
+
+	&apos;General
+	SetInternalDocString(&quot;epubExportFilename&quot;, goDlgExport.Model.lblFilename.Label)
+	SetInternalDocString(&quot;epubExportKeepTempFiles&quot;, goDlgExport.Model.optKeepTempFiles.State)
+	SetInternalDocString(&quot;epubExportWriteDebugFiles&quot;, goDlgExport.Model.optWriteDebugFiles.State)
+	iPos = goDlgExport.Model.cmbExportFromChapter.SelectedItems(0)
+	SetInternalDocString(&quot;epubExportFromChapter&quot;, goDlgExport.Model.cmbExportFromChapter.StringItemList(iPos))
+	iPos = goDlgExport.Model.cmbExportToChapter.SelectedItems(0)
+	SetInternalDocString(&quot;epubExportToChapter&quot;, goDlgExport.Model.cmbExportToChapter.StringItemList(iPos))
+	
+	&apos;Content
+	oControl = goDlgExport.getControl(&quot;listCoverImage&quot;)
+	SetInternalDocString(&quot;epubSelectCoverImage&quot;, oControl.SelectedItemPos)
+	if goDlgExport.Model.cmbCoverImage.ItemCount &gt; 0 then
+		iPos = goDlgExport.Model.cmbCoverImage.SelectedItems(0)
+		SetInternalDocString(&quot;epubCoverFromDocument&quot;, goDlgExport.Model.cmbCoverImage.StringItemList(iPos))
+	else	
+		SetInternalDocString(&quot;epubCoverFromDocument&quot;, &quot;&quot;)
+	end if	
+	SetInternalDocString(&quot;epubCoverFromFile&quot;, goDlgExport.Model.fileCoverImage.Text)
+	SetInternalDocString(&quot;epubMaxImageWidth&quot;, goDlgExport.Model.txtMaxImageWidth.Text)
+	
+	SetInternalDocString(&quot;epubIncludeChapterNumberingToc&quot;, goDlgExport.Model.optIncludeChapterNumberingToc.State)
+	SetInternalDocString(&quot;epubIncludeChapterNumberingDoc&quot;, goDlgExport.Model.optIncludeChapterNumberingDoc.State)
+
+	SetInternalDocString(&quot;epubTocTitle&quot;, goDlgExport.Model.txtTocTitle.Text)	
+	SetInternalDocString(&quot;epubCreateNdxFile&quot;, goDlgExport.Model.optCreateNdxFile.State)	
+	
+	&apos;Save last dialog page
+	SetInternalDocString(&quot;epubLastDialogPage&quot;, goDlgExport.Model.Step)	
+end sub
+
+
+sub SetEpubExportDialogPage
+dim oListBoxPages as object
+dim oTitle as object
+dim iPage as integer
+dim sTitle as string
+
+	oListBoxPages = goDlgExport.getControl(&quot;listPages&quot;)
+	oTitle = goDlgExport.Model.lblTitle
+	iPage = oListBoxPages.SelectedItemPos
+	sTitle = &quot;  &quot; &amp; oListBoxPages.SelectedItem
+	oTitle.Label = sTitle
+	goDlgExport.Model.Step = iPage + 1
+end sub
+
+
+sub SetCoverImageOptions
+dim oSelect as object
+dim oList as object
+dim oFile as object
+
+	oSelect = goDlgExport.getControl(&quot;listCoverImage&quot;)
+	oList = goDlgExport.getControl(&quot;cmbCoverImage&quot;)
+	oFile = goDlgExport.getControl(&quot;fileCoverImage&quot;)
+	oList.Visible = oSelect.SelectedItemPos = 1
+	oFile.Visible = oSelect.SelectedItemPos = 2
+end sub
+
+&apos;-----------------------------------------------------------
+&apos; Start the export to ePUB
+&apos;-----------------------------------------------------------
+
+sub DlgEpubExportClick
+dim oDlgFilename as object
+dim oDlgResult as object
+dim oDlgLabel1 as object
+dim oDlgLabel2 as object
+dim oDlgLabel3 as object
+dim oDlgLabel4 as object
+dim oDlgLabel5 as object
+dim oDlgLabel6 as object
+
+dim oStartButton As Object 
+dim oCancelButton As Object 
+dim vStr as string
+dim sImageDir as string
+dim iPos as integer
+dim sStyle as string
+dim sTempFolder as string
+dim iMsg as integer
+dim oControl as object
+dim sFilename as string
+dim oMedia as object
+dim oPages as object
+
+
+	&apos;Save the export options first
+	SaveEpubExportOptions
+	
+	&apos;set export status page
+	giLastEpubDialogPage = goDlgExport.Model.Step
+	oPages = goDlgExport.getControl(&quot;listPages&quot;)
+	oPages.SelectItemPos(5, true)
+
+	&apos;Check if file exists
+	oDlgFilename = goDlgExport.Model.lblFilename
+	if oDlgFilename.Label &lt;&gt; &quot;&quot; then
+	  if FileExists(oDlgFilename.Label) and (gbAskForOverwrite) then
+	    vStr = &quot;The file you selected already exists.&quot; &amp; Chr(13) &amp; &quot;Do you really want to overwrite it?&quot;
+	    if msgbox(vStr, 164, &quot;Document Export&quot;) = 7 then 
+	      exit sub
+	    end if
+	  end if
+	else
+	  msgbox (&quot;Please select an export filename first.&quot;, 48, &quot;Document Export&quot;)
+	  exit sub
+	end if
+	
+	&apos;Deactivate OK-Button
+	oStartButton = goDlgExport.getControl(&quot;butOK&quot;)
+	oStartButton.setEnable(false)
+	
+	SwitchMousePointer(goDlgExport.getPeer(), false)
+	
+	&apos;Initialize global variables for the export
+	InitGlobals
+	
+	&apos;Reset the dialog elements
+	oDlgLabel1 = goDlgExport.Model.lblPosition1 &apos;prepare
+	oDlgLabel2 = goDlgExport.Model.lblPosition2 &apos;read content
+	oDlgLabel3 = goDlgExport.Model.lblPosition3 &apos;export media
+	oDlgLabel4 = goDlgExport.Model.lblPosition4 &apos;write ILIAS content
+	oDlgLabel5 = goDlgExport.Model.lblPosition5 &apos;pack to zip 
+	oDlgLabel6 = goDlgExport.Model.lblPosition6 &apos;finish
+	oDlgLabel1.Label = gsCheckString
+	oDlgLabel2.Label = &quot;&quot;
+	oDlgLabel3.Label = &quot;&quot;
+	oDlgLabel4.Label = &quot;&quot;
+	oDlgLabel5.Label = &quot;&quot;
+	oDlgLabel6.Label = &quot;&quot;
+	goDlgExport.Model.lblCountGraphic.Label = &quot;&quot;
+	goDlgExport.Model.lblCountRead.Label = &quot;&quot;
+	goDlgExport.Model.lblCountWrite.Label = &quot;&quot;
+	
+	oDlgResult = goDlgExport.Model.txtResult
+	oDlgFilename = goDlgExport.Model.lblFilename
+	oDlgResult.Text = &quot;Export is running - please wait...&quot;	
+	
+	SetEpubPathGlobals
+	
+	&apos;Export embedded Writer Graphics to the EPUB/images folder	
+	oDlgLabel2.Label = gsCheckString
+	sImageDir = gsExportZipDir &amp; &quot;/EPUB/images/&quot;
+	ExtractWriterGraphics(sImageDir)
+	
+	&apos;Add the filenames of the exported graphics to the extMedia object list
+	ReadExtractedGraphics(sImageDir, MEDIA_TYPE_IMAGE)	
+	
+	&apos;Add the filenames of all linked graphics to the extMedia object list
+	&apos;and move them to the images folder
+	ReadAndCopyEpubLinkedObjects(sImageDir)
+	
+	&apos;handle cover image
+	oControl = goDlgExport.getControl(&quot;listCoverImage&quot;)
+	iPos = oControl.SelectedItemPos
+	select case iPos
+		case 0 &apos; do nothing
+		case 1
+			&apos;The cover image is an internal image
+			oControl = goDlgExport.getControl(&quot;cmbCoverImage&quot;)
+			&apos;xray oControl
+			if oControl.SelectedItem &lt;&gt; &quot;&quot; then
+				oMedia = GetEpubExtMediaByObjectName(oControl.SelectedItem)
+				if isnull(oMedia) then
+					gbSaveDocUnsaved = true
+				else
+					gsEpubCoverImage = FileNameOutOfPath(oMedia.FileName)
+				end if	
+			end if	
+		case 2
+			&apos;The cover image is an external file
+			&apos;Copy the cover image to folder &quot;/EPUB/images/cover/&quot; (prevents the problem of an already existing filename)
+			oControl = goDlgExport.getControl(&quot;fileCoverImage&quot;)
+			if FileExists(oControl.Text) then
+				sFilename = FileNameOutOfPath(ConvertToURL(oControl.Text))
+		        MkDir(sImageDir &amp; &quot;cover/&quot;)
+				gsEpubCoverImage = &quot;cover/&quot; &amp; sFilename
+				FileCopy(oControl.Text, sImageDir &amp; gsEpubCoverImage)
+			end if
+	end select	
+
+	gsLang = goDlgExport.Model.cmbMetaLanguage.Text 
+	giFromChapter = goDlgExport.Model.cmbExportFromChapter.SelectedItems(0) 
+	giToChapter = goDlgExport.Model.cmbExportToChapter.SelectedItems(0) 
+
+	&apos;Read the document
+	oDlgLabel3.Label = gsCheckString
+	ReadDocument
+	
+	&apos;Write debug files if this option is checked
+	if goDlgExport.Model.optWriteDebugFiles.State = 1 then
+		PrintEnumArrays  &apos;for debugging purposes
+	end if
+	
+	&apos;Export the document
+	oDlgLabel4.Label = gsCheckString
+	ExportToEPUB
+	
+	&apos;Build the package
+	oDlgLabel5.Label = gsCheckString
+	if FileExists(oDlgFilename.Label) then
+	   	kill oDlgFilename.Label
+	end if   	
+	ZipFolderToFile(ConvertFromURL(gsExportZipDir), ConvertFromURL(gsExportZIP), &quot;application/epub+zip&quot;)
+
+	&apos;Delete temporary files if optKeepTempFiles is unchecked
+	if goDlgExport.Model.optKeepTempFiles.State &lt;&gt; 1 then
+	  DeleteExportFiles
+	end if  
+
+	&apos;ThisComponent.unlockControllers() &apos;unlock screen controls
+	oDlgResult.Text = GetResultString
+  	
+	oDlgLabel6.Label = gsCheckString
+
+	&apos;Reactivate OK-Button and set the focus to the cancel-button
+	oStartButton.setEnable(true)
+	oCancelButton = goDlgExport.getControl(&quot;butCancel&quot;)
+	oCancelButton.setFocus()
+	
+	SwitchMousePointer(goDlgExport.getPeer(), true)
+	Beep
+end sub
+
+
+sub ReadAndCopyEpubLinkedObjects(sTargetDir as string)
+dim oDocument as object
+dim oGraphics as object
+dim oGraphic as object
+dim i as integer
+dim iCount as long
+dim iPos as integer
+dim iExtMediaID as long
+dim sFilename as string
+
+	&apos;read linked graphics
+	oGraphics = ThisComponent.getGraphicObjects()
+	iCount = oGraphics.getCount() - 1
+	for i = 0 to iCount
+		oGraphic = oGraphics.getByIndex(i)
+		sFilename = oGraphic.GraphicURL
+		&apos;check if the graphic is not embedded (embedded files have already been added)
+		if left(sFilename, 12) &lt;&gt; &quot;vnd.sun.star&quot; then
+			&apos;first delete Params in web-graphics
+			iPos = inStr(1, sFilename, &quot;&amp;&quot;)
+			if iPos &gt; 0 then
+				sFilename = left(sFilename, iPos - 1)
+			end if	
+			AppendFileToExtMediaByName(MEDIA_TYPE_IMAGE, oGraphic.Name, sFilename)
+			&apos;copy the file to the image dir
+			FileCopy(sFilename, sTargetDir)			
+		end if
+	next i
+end sub
+
+
+sub ReadAndCopyLinkedCoverImage
+end sub
+</script:module>
