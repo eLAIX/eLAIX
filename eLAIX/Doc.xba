@@ -366,8 +366,6 @@ ErrorHandler:
 End Sub
 
 
-
-
 function ExportGraphic(poGraphic, pDestFolder) as string
 &apos;	On Local Error Goto ErrorHandler
 	Dim oDocument as Object
@@ -570,7 +568,28 @@ Sub EmbedLinkedGraphic(oGraph)
 End Sub
 
 
-function GetGraphicByURL(sURL) as object
+function GetGraphicByURL(sURL as string) as object
+dim oDoc as object
+dim oLinkTypes as object
+dim oGraphics as object
+dim aGraphicsNames()
+dim cGraphicName as string
+dim oGraphic as object
+dim i as integer
+
+	oGraphics = thisComponent.getGraphicObjects()
+	aGraphicsNames = oGraphics.getElementNames()
+	for i = 0 To UBound(aGraphicsNames())
+		sURL = mid(sURL, 28)		
+		if InStr(aGraphicsNames(i), sURL) = 1 Then
+			sURL = aGraphicsNames(i)
+			oGraphic = oGraphics.getByName(sURL)
+			exit for
+		end if
+	next i
+end function   
+
+function GetGraphicByURL_old(sURL as string) as object
 Dim oDocument as object
 Dim oGraphics as object
 Dim oGraphic as object
@@ -583,20 +602,20 @@ dim i as integer
 	oDocStorage = oDocument.getDocumentStorage()
 	if oDocStorage.hasByName(&quot;Pictures&quot;) then
 		oStorage = oDocStorage.getByName(&quot;Pictures&quot;)
-
 		sImgNames = oStorage.getElementNames()
+		sURL = mid(sURL, 28)
+		&apos;if oStorage.HasByName(sURL) then
+		&apos;	GetGraphicByURL = oStorage.GetByName(sURL)	
+		&apos;end if
+		
 		For i = 0 To UBound(sImgNames) Step 1
 			If InStr(sImgNames(i), sURL) = 1 Then
-				oGraphic = oStorage.GetByIndex(i)
+				sURL = sImgNames(i)
+				oGraphic = oStorage.GetByName(sURL)
+				xray oGraphic
 			End If
 		Next
-	End If
-
-	&apos;oDocument = ThisComponent()
-	&apos;oGraphics = oDocument.getGraphicObjects
-	&apos;oGraphic = oGraphics.GetByName(sURL)
-	
-	GetGraphicByURL = oGraphic
+	end if	
 end function
 
 

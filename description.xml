@@ -33,8 +33,8 @@
 	</display-name>
  
 	<icon>
-		<default xlink:href="icons/about-33.png" />
-		<high-contrast xlink:href="icons/about-33.png" />
+		<default xlink:href="icons/about.png" />
+		<high-contrast xlink:href="icons/about.png" />
 	</icon>
  
 	<extension-description>

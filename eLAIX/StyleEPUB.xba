@@ -85,6 +85,7 @@ dim sStyleString as string
 dim iNumType as integer
 dim sGraphicName as string
 dim sLocation as string
+dim oGraphic as object
 
 	oStyleFamilies = ThisComponent.StyleFamilies
 	oFrameStyles = oStyleFamilies.getByName( &quot;FrameStyles&quot; )
@@ -100,6 +101,7 @@ dim sLocation as string
 			sStylename = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
 			sGraphicName = oStyle.BackGraphicURL
 			if sGraphicName &lt;&gt; &quot;&quot; then
+				&apos;oGraphic = GetGraphicByURL(sGraphicName)
 				sGraphicName = ExportGraphicByURL(oStyle.BackGraphicURL, sStyleImageFolder)
 				if sGraphicName = &quot;save_again&quot; then
 					oDocument = ThisComponent()
@@ -126,6 +128,7 @@ dim sStyleString as string
 dim iNumType as integer
 dim sGraphicName as string
 dim sLocation as string
+dim oGraphic as object
 
 	oStyleFamilies = ThisComponent.StyleFamilies
 	oParaStyles = oStyleFamilies.getByName( &quot;ParagraphStyles&quot; )
@@ -152,12 +155,12 @@ dim sLocation as string
 				sStyleString = GetEpubStyleStringUnorderedList(oStyle) 
 				oStream.writeString(sStyleString &amp; gsCR)
 
-			&apos;check if this style is a marginale right style
-			elseif oStyle.Name = gsMarginaleRightStyle then
-				sStyleString = GetEpubStyleStringMarginaleRight(oStyle)
+			&apos;check if this style is a marginale left style
+			elseif oStyle.Name = gsMarginaleLeftStyle then
+				sStyleString = GetEpubStyleStringMarginaleLeft(oStyle)
 				oStream.writeString(sStyleString &amp; gsCR)
 							
-			&apos;check if this style is the standard style
+			&apos;check if this style is the marginale right style
 			elseif oStyle.Name = gsMarginaleRightStyle then
 				sStyleString = GetEpubStyleStringMarginaleRight(oStyle
 				oStream.writeString(sStyleString &amp; gsCR)
@@ -169,6 +172,7 @@ dim sLocation as string
 			else				
 				sGraphicName = oStyle.ParaBackGraphicURL
 				if sGraphicName &lt;&gt; &quot;&quot; then
+					&apos;oGraphic = GetGraphicByURL(sGraphicName)
 					sGraphicName = ExportGraphicByURL(oStyle.ParaBackGraphicURL, sStyleImageFolder)
 					if sGraphicName = &quot;save_again&quot; then
 						oDocument = ThisComponent()

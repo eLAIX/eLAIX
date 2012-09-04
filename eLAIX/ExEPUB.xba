@@ -1134,7 +1134,7 @@ dim sHeight as string
 
 	sImgFilename = &quot;images/&quot; &amp; FileNameOutOfPath(gaExtMedia(oMedia.ExtMediaID).FileName)
 	iWidth = Int(oMedia.Width / 26.459)
-	if iWidth &gt; Int(goDlgExport.Model.txtMaxImageWidth.Text) then
+	if iWidth &gt; Int(goDlgExport.Model.txtMaxImageWidth.Text) and oMedia.HoriOrient = com.sun.star.text.HoriOrientation.CENTER then
 		sWidth = &quot;100%;&quot;
 	else	
 		sWidth = CStr(iWidth) &amp; &quot;px;&quot;

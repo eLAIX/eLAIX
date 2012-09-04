@@ -76,12 +76,50 @@ dim oFromChapter as object
 dim oToChapter as object
 dim oGraphics as object
 dim oControl as object
+dim oCoverFromDoc as object
+dim oCoverFromFile as object
+dim sPath as string
+dim sImgPath as string
+dim aElements()
+dim oElement as object
+dim iCount as integer
+dim i as integer
+dim iFontSize as integer
+dim sOS as string
 	
 	&apos;Read the eLAIX version (has to be saved into a variable - later)
 	&apos;GetInternalDocString(&quot;elaixVersion&quot;)
 	
+	aElements = goDlgExport.getModel.getControlModels
+	iCount = ubound(aElements()) - 1
+	sOS = GetCurrentSystem
+	select case sOS
+		case &quot;Windows&quot; 
+			iFontSize = 9
+		case &quot;Linux&quot; 
+			iFontSize = 9
+		case else &apos;Mac
+			iFontSize = 8
+	end select	
+	
+	&apos;set font size for dialog elements according to the operation system
+	for i = 0 to iCount
+		oElement = aElements(i)
+		if oElement.Name &lt;&gt; &quot;imgLogo&quot; then
+			with oElement
+				.FontHeight = iFontSize
+				.FontName = &quot;&quot;
+				.FontStylename = &quot;Standard&quot;
+			end with	
+		end if	
+	next i
+	
 	&apos;Dialog title
 	goDlgExport.Title = &quot;Export document to EPUB file&quot;
+	sPath = GetPackageDirURL(&quot;vnd.harryboldt.elaix&quot;)  
+	sImgPath = sPath &amp; &quot;/icons/epub-120.png&quot;
+	oControl = goDlgExport.getControl(&quot;imgLogo&quot;)
+	oControl.getModel().ImageURL = ConvertToURL( sImgPath )
 
 	&apos;Metadata - Required
 	goDlgExport.Model.txtMetaTitle.Text = GetInternalDocString(&quot;epubMetaTitle&quot;)
@@ -147,19 +185,26 @@ dim oControl as object
 	end if	
 	
 	&apos;Content
-	&apos;read all graphics
+	&apos;SetCoverImageOptions
 	oGraphics = thisComponent.getGraphicObjects()
+	oCoverFromDoc = goDlgExport.getControl(&quot;cmbCoverImage&quot;)
 	if oGraphics.Count &gt; 0 then
-		oControl = goDlgExport.getControl(&quot;cmbCoverImage&quot;)
-		oControl.AddItems(oGraphics.Elementnames(), 0)
+		oCoverFromDoc.AddItems(oGraphics.Elementnames(), 0)
 		sString = GetInternalDocString(&quot;epubCoverFromDocument&quot;)
-		iPos = FindInArray(oControl.Items, sString)
+		iPos = FindInArray(oCoverFromDoc.Items, sString)
 		if iPos &gt;= 0 then 
-			oControl.SelectItemPos(iPos, true)
+			oCoverFromDoc.SelectItemPos(iPos, true)
 		else	
-			oControl.SelectItemPos(0, true)
+			oCoverFromDoc.SelectItemPos(0, true)
 		end if	
 	end if
+	&apos;oCoverFromDoc.Visible = false
+	
+	&apos;oCoverFromFile = goDlgExport.getControl(&quot;fileCoverImage&quot;)
+	&apos;oCoverFromFile.Visible = false
+	
+	goDlgExport.Model.fileCoverImage.Text = GetInternalDocString(&quot;epubCoverFromFile&quot;)
+	
 	oControl = goDlgExport.getControl(&quot;listCoverImage&quot;)
 	sPos = GetInternalDocString(&quot;epubSelectCoverImage&quot;)
 	if sPos = &quot;&quot; then
@@ -168,15 +213,14 @@ dim oControl as object
 		iPos = int(sPos)
 	end if
 	oControl.SelectItemPos(iPos, true)
-	SetCoverImageOptions
 
-	goDlgExport.Model.fileCoverImage.Text = GetInternalDocString(&quot;epubCoverFromFile&quot;)
 	goDlgExport.Model.txtMaxImageWidth.Text = GetInternalDocString(&quot;epubMaxImageWidth&quot;)
 	goDlgExport.Model.optIncludeChapterNumberingToc.State = GetInternalDocString(&quot;epubIncludeChapterNumberingToc&quot;)
 	goDlgExport.Model.optIncludeChapterNumberingDoc.State = GetInternalDocString(&quot;epubIncludeChapterNumberingDoc&quot;)
 
 	goDlgExport.Model.txtTocTitle.Text = GetInternalDocString(&quot;epubTocTitle&quot;)
 	goDlgExport.Model.optCreateNdxFile.State = GetInternalDocString(&quot;epubCreateNdxFile&quot;)
+	
 end sub
 
 
@@ -231,6 +275,7 @@ dim sText as string
 		SetInternalDocString(&quot;epubCoverFromDocument&quot;, &quot;&quot;)
 	end if	
 	SetInternalDocString(&quot;epubCoverFromFile&quot;, goDlgExport.Model.fileCoverImage.Text)
+	
 	SetInternalDocString(&quot;epubMaxImageWidth&quot;, goDlgExport.Model.txtMaxImageWidth.Text)
 	
 	SetInternalDocString(&quot;epubIncludeChapterNumberingToc&quot;, goDlgExport.Model.optIncludeChapterNumberingToc.State)
@@ -263,12 +308,14 @@ sub SetCoverImageOptions
 dim oSelect as object
 dim oList as object
 dim oFile as object
+dim iPos as integer 
 
-	oSelect = goDlgExport.getControl(&quot;listCoverImage&quot;)
+	&apos;oSelect = goDlgExport.getControl(&quot;listCoverImage&quot;)
+	iPos = goDlgExport.Model.listCoverImage.SelectedItems(0)
 	oList = goDlgExport.getControl(&quot;cmbCoverImage&quot;)
 	oFile = goDlgExport.getControl(&quot;fileCoverImage&quot;)
-	oList.Visible = oSelect.SelectedItemPos = 1
-	oFile.Visible = oSelect.SelectedItemPos = 2
+	oList.setVisible(iPos = 1)
+	oFile.setVisible(iPos = 2)
 end sub
 
 &apos;-----------------------------------------------------------

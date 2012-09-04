@@ -31,15 +31,15 @@
 						<value>com.sun.star.text.TextDocument</value>
 					</prop>
 					<prop oor:name="URL" oor:type="xs:string">
-						<value>vnd.sun.star.script:eLAIX.Menu.DocMetadata?language=Basic&amp;location=application</value>
+						<value>vnd.sun.star.script:eLAIX.Menu.DocCheck?language=Basic&amp;location=application</value>
 					</prop>
 					<prop oor:name="ImageIdentifier" oor:type="xs:string">
-						<value>%origin%/icons/image31</value>
+						<value>%origin%/icons/image32</value>
 					</prop>
 					<prop oor:name="Title" oor:type="xs:string">
-						<value xml:lang="en">Document Properties...</value>
-						<value xml:lang="de">Dokument Eigenschaften...</value>
-						<value xml:lang="es">Propiedades del Documento...</value>
+						<value xml:lang="en">Check Document...</value>
+						<value xml:lang="de">Dokument prüfen...</value>
+						<value xml:lang="es">Verificar Documento...</value>
 					</prop>
 					<prop oor:name="Target" oor:type="xs:string">
 						<value>_self</value>
@@ -50,15 +50,15 @@
 						<value>com.sun.star.text.TextDocument</value>
 					</prop>
 					<prop oor:name="URL" oor:type="xs:string">
-						<value>vnd.sun.star.script:eLAIX.Menu.DocCheck?language=Basic&amp;location=application</value>
+						<value>vnd.sun.star.script:eLAIX.Menu.DocMetadata?language=Basic&amp;location=application</value>
 					</prop>
 					<prop oor:name="ImageIdentifier" oor:type="xs:string">
-						<value>%origin%/icons/image32</value>
+						<value>%origin%/icons/image31</value>
 					</prop>
 					<prop oor:name="Title" oor:type="xs:string">
-						<value xml:lang="en">Check Document...</value>
-						<value xml:lang="de">Dokument prüfen...</value>
-						<value xml:lang="es">Verificar Documento...</value>
+						<value xml:lang="en">ILIAS Document Properties...</value>
+						<value xml:lang="de">ILIAS Dokument Eigenschaften...</value>
+						<value xml:lang="es">ILIAS Propiedades del Documento...</value>
 					</prop>
 					<prop oor:name="Target" oor:type="xs:string">
 						<value>_self</value>
@@ -793,15 +793,15 @@
 							<value>com.sun.star.text.TextDocument</value>
 						</prop>
 						<prop oor:name="URL" oor:type="xs:string">
-							<value>vnd.sun.star.script:eLAIX.Menu.DocMetadata?language=Basic&amp;location=application</value>
+							<value>vnd.sun.star.script:eLAIX.Menu.DocCheck?language=Basic&amp;location=application</value>
 						</prop>
 						<prop oor:name="ImageIdentifier" oor:type="xs:string">
-							<value>%origin%/icons/image82</value>
+							<value>%origin%/icons/image83</value>
 						</prop>
 						<prop oor:name="Title" oor:type="xs:string">
-							<value xml:lang="en">Document Properties...</value>
-							<value xml:lang="de">Dokumenteigenschaften...</value>
-							<value xml:lang="es">Propiedades del Documento...</value>
+							<value xml:lang="en">Check Document...</value>
+							<value xml:lang="de">Dokument überprüfen...</value>
+							<value xml:lang="es">Verificar el Documento...</value>
 						</prop>
 						<prop oor:name="Target" oor:type="xs:string">
 							<value>_self</value>
@@ -812,15 +812,15 @@
 							<value>com.sun.star.text.TextDocument</value>
 						</prop>
 						<prop oor:name="URL" oor:type="xs:string">
-							<value>vnd.sun.star.script:eLAIX.Menu.DocCheck?language=Basic&amp;location=application</value>
+							<value>vnd.sun.star.script:eLAIX.Menu.DocMetadata?language=Basic&amp;location=application</value>
 						</prop>
 						<prop oor:name="ImageIdentifier" oor:type="xs:string">
-							<value>%origin%/icons/image83</value>
+							<value>%origin%/icons/image82</value>
 						</prop>
 						<prop oor:name="Title" oor:type="xs:string">
-							<value xml:lang="en">Check Document...</value>
-							<value xml:lang="de">Dokument überprüfen...</value>
-							<value xml:lang="es">Verificar el Documento...</value>
+							<value xml:lang="en">ILIAS Document Properties...</value>
+							<value xml:lang="de">ILIAS Dokumenteigenschaften...</value>
+							<value xml:lang="es">ILIAS Propiedades del Documento...</value>
 						</prop>
 						<prop oor:name="Target" oor:type="xs:string">
 							<value>_self</value>

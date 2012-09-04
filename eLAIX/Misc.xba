@@ -881,5 +881,19 @@ function GetPackageDirURL( sIdentifier As String ) As String
 End Function
 
 
+function GetCurrentSystem as string
+dim rootDir as string
 
+	rootDir = Dir (&quot;C:&quot;)
+	if rootDir = &quot;&quot; then &apos;it is not Windows
+		rootDir = Dir (&quot;/&quot;)
+		if rootDir = &quot;&quot; then
+			GetCurrentSystem = &quot;Mac&quot;
+		else
+			GetCurrentSystem = &quot;Linux&quot;
+		end if
+	else
+		GetCurrentSystem = &quot;Windows&quot;
+	end if	
+end function
 </script:module>

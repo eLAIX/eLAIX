@@ -1,3 +1,3 @@
-ILIAS Lerneinheiten offline erstellen mit OpenOffice.org Writer.
-Copyright (c) 2004-2011 Harry Boldt
+ILIAS Lerneinheiten und ePUB 3 Dokumente erstellen.
+Copyright (c) 2004-2012 Harry Boldt
 

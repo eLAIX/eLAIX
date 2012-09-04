@@ -152,9 +152,9 @@ dim sLocation as string
 				sStyleString = GetStyleStringUnorderedList(oStyle) 
 				WriteToStream(oStyleXML, sStyleString)
 
-			&apos;check if this style is a marginale right style
-			elseif oStyle.Name = gsMarginaleRightStyle then
-				sStyleString = GetStyleStringMarginaleRight(oStyle)
+			&apos;check if this style is a marginale left style
+			elseif oStyle.Name = gsMarginaleLeftStyle then
+				sStyleString = GetStyleStringMarginaleLeft(oStyle)
 				WriteToStream(oStyleXML, sStyleString)
 							
 			&apos;check if this style is the standard style
