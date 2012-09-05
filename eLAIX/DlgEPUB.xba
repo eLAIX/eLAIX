@@ -84,36 +84,40 @@ dim aElements()
 dim oElement as object
 dim iCount as integer
 dim i as integer
+dim sFontname as string
 dim iFontSize as integer
 dim sOS as string
 	
 	&apos;Read the eLAIX version (has to be saved into a variable - later)
 	&apos;GetInternalDocString(&quot;elaixVersion&quot;)
 	
-	aElements = goDlgExport.getModel.getControlModels
-	iCount = ubound(aElements()) - 1
+	&apos;Get the operating system in order to set the font for the dialog elements
 	sOS = GetCurrentSystem
 	select case sOS
 		case &quot;Windows&quot; 
 			iFontSize = 9
 		case &quot;Linux&quot; 
 			iFontSize = 9
+			sFontname = &quot;Bitstream Vera Sans&quot;
 		case else &apos;Mac
 			iFontSize = 8
+			sFontname = &quot;Lucida Grande&quot;
 	end select	
 	
 	&apos;set font size for dialog elements according to the operation system
+	aElements = goDlgExport.getModel.getControlModels
+	iCount = ubound(aElements()) - 1
 	for i = 0 to iCount
 		oElement = aElements(i)
 		if oElement.Name &lt;&gt; &quot;imgLogo&quot; then
 			with oElement
 				.FontHeight = iFontSize
-				.FontName = &quot;&quot;
+				.FontName = sFontname
 				.FontStylename = &quot;Standard&quot;
 			end with	
 		end if	
 	next i
-	
+		
 	&apos;Dialog title
 	goDlgExport.Title = &quot;Export document to EPUB file&quot;
 	sPath = GetPackageDirURL(&quot;vnd.harryboldt.elaix&quot;)  
@@ -297,10 +301,11 @@ dim sTitle as string
 
 	oListBoxPages = goDlgExport.getControl(&quot;listPages&quot;)
 	oTitle = goDlgExport.Model.lblTitle
-	iPage = oListBoxPages.SelectedItemPos
+	iPage = oListBoxPages.SelectedItemPos + 1
 	sTitle = &quot;  &quot; &amp; oListBoxPages.SelectedItem
 	oTitle.Label = sTitle
-	goDlgExport.Model.Step = iPage + 1
+	goDlgExport.Model.Step = iPage
+	if iPage = 5 then SetCoverImageOptions
 end sub
 
 

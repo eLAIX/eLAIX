@@ -886,11 +886,11 @@ dim rootDir as string
 
 	rootDir = Dir (&quot;C:&quot;)
 	if rootDir = &quot;&quot; then &apos;it is not Windows
-		rootDir = Dir (&quot;/&quot;)
+		rootDir = Dir (&quot;/volumes&quot;)
 		if rootDir = &quot;&quot; then
-			GetCurrentSystem = &quot;Mac&quot;
-		else
 			GetCurrentSystem = &quot;Linux&quot;
+		else
+			GetCurrentSystem = &quot;Mac&quot;
 		end if
 	else
 		GetCurrentSystem = &quot;Windows&quot;
