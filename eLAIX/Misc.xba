@@ -250,6 +250,18 @@ function ReplaceHTMLToUmlaut(psString) as string
 end function
 
 
+function ReplaceUmlaut(psString) as string
+  psString = ReplaceString(psString, &quot;ae&quot;, &quot;ä&quot; ) 
+  psString = ReplaceString(psString, &quot;Ae&quot;, &quot;Ä&quot;  ) 
+  psString = ReplaceString(psString, &quot;ue&quot;, &quot;ü&quot;  ) 
+  psString = ReplaceString(psString, &quot;Ue&quot;, &quot;Ü&quot;  ) 
+  psString = ReplaceString(psString, &quot;oe&quot;, &quot;ö&quot;  ) 
+  psString = ReplaceString(psString, &quot;Oe&quot;, &quot;Ö&quot;  ) 
+  psString = ReplaceString(psString, &quot;ss&quot;, &quot;ß&quot;  )
+  ReplaceUmlaut = psString
+end function
+
+
 function GetCleanFilename(sFilename as string) as string
 dim i as integer
 dim iCount as integer
@@ -879,6 +891,18 @@ function GetPackageDirURL( sIdentifier As String ) As String
   oPIP = GetDefaultContext().getByName(&quot;/singletons/com.sun.star.deployment.PackageInformationProvider&quot;)
   GetPackageDirURL = oPIP.getPackageLocation(sIdentifier)
 End Function
+
+
+function GetCurrentOfficeVersion As String
+dim oContext As Object
+
+	oContext = GetDefaultContext().getByName(&quot;/singletons/com.sun.star.util.theOfficeInstallationDirectories&quot;)
+	if InStr(oContext.OfficeInstallationDirectoryURL, &quot;LibreOffice&quot;) &gt; 0 then
+  		GetCurrentOfficeVersion = &quot;LibreOffice&quot;
+	else
+  		GetCurrentOfficeVersion = &quot;OpenOffice&quot;
+	end if
+end function
 
 
 function GetCurrentSystem as string

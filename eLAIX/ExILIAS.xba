@@ -25,8 +25,48 @@ Option Explicit
 
 private psFrameCaption as string
 private piBacksteps as integer
+private paLayout(6)
+private paPageHeader(2)
+private paTocMode(1)
+private paCheck(1)
 
-sub SetIliasPathGlobals() &apos;after export filename has been set
+Type Metadata
+	docTitle as string
+	docDescription as string
+	docLanguage as string
+	docKeywords as string
+	docAuthors as string
+	docCopyright as string
+	propOutlineNumbering as string
+End Type
+
+sub SetIliasPropArrays &apos;after export filename has been set
+
+	&apos;set layout properties
+	paLayout(0) = &quot;toc2win&quot;
+	paLayout(1) = &quot;toc2windyn&quot;
+	paLayout(2) = &quot;1window&quot;
+	paLayout(3) = &quot;2window&quot;
+	paLayout(4) = &quot;3window&quot;
+	paLayout(5) = &quot;fullscreen&quot;
+	paLayout(6) = &quot;presentation&quot;
+	
+	&apos;set PageHeader properies
+	paPageHeader(0) = &quot;st_title&quot;
+	paPageHeader(1) = &quot;pg_title&quot;
+	paPageHeader(2) = &quot;none&quot;
+	
+	&apos;set TocMode properties
+	paTocMode(0) = &quot;chapters&quot;
+	paTocMode(1) = &quot;pages&quot;
+	
+	&apos;set Check properties
+	paCheck(0) = &quot;n&quot;
+	paCheck(1) = &quot;y&quot;
+end sub
+
+
+sub SetIliasPathGlobals(sFilename as string) &apos;after export filename has been set
 dim vFileName as string
 dim vTempFolder as string
 dim vFileFolder as string
@@ -34,11 +74,10 @@ dim sfa As Object &apos; SimpleFileAccess object
 dim vaExt(1) As String
 dim vZipDefault as string
 
+  gsExportZIP = sFilename
   vTempFolder = GetRandomString(&quot;tmp-&quot;,12)
   vFilename = FilenameOutOfPath(gsExportZIP, gsPathSeparator) &apos; the Filename of the zip file
   vFileFolder = GetFilenameWithoutExtension(vFileName) &apos; the Filename of the zip file without extension
-  &apos;gsExportZipDir = gsCurDir &amp; gsPathSeparator &amp; vTempFolder &amp; vFileFolder
-  &apos;gsExportXmlDir = gsCurDir &amp; gsPathSeparator &amp; vTempFolder &amp; vFileFolder &amp; gsPathSeparator &amp; vFileFolder
   gsExportZipDir = gsCurDir &amp; gsPathSeparator &amp; vTempFolder 
   gsExportXmlDir = gsCurDir &amp; gsPathSeparator &amp; vTempFolder &amp; gsPathSeparator &amp; vFileFolder
   gsExportStyleDir = gsExportXmlDir &amp; gsPathSeparator &amp; &quot;style&quot;
@@ -58,6 +97,7 @@ end sub
 
 
 Sub ExportToILIAS
+	SetIliasPropArrays
 	WriteToStream(goExportXML, gsHead)
 	WriteToStream(goExportXML, GetTag(&quot;ContentObject&quot;, &quot;Type=&quot; &amp; gsType, &quot;&quot;, false))
     ExportDocMetaData
@@ -81,7 +121,7 @@ dim iCount as integer
 dim i as integer
 dim sAuthor as string
 
-	oMetadata = GetDocMetadata()
+	oMetadata = GetIliasMetadata()
 
     sIdent = &quot;&quot;&quot;il_0_lm_0&quot;&quot;&quot;
     sTitle = ReplaceSymbolsMetadata(oMetadata.docTitle)
@@ -607,11 +647,15 @@ dim iActRow as long
 dim iActCol as long
 dim iParaCount as long
 dim aParaSet() as long
+dim sAlign as string
+dim sBackColor as string
+dim sBorderWidths as string
+dim sBorderColors as string
+dim sBorderStyles as string
+dim sClass as string
 dim i as long
 
-
 	WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;)
-
 	if oPara.TableIsWidthRelative then 
 		iTableRelativeWidth = oPara.TableRelativeWidth
 	elseif oPara.TableWidth &lt; oPara.PageInnerWidth then
@@ -620,7 +664,7 @@ dim i as long
 		iTableRelativeWidth = 100
 	end if		
 	
-	if oPara.TableBorderWidth &gt; 0 then 
+	if oPara.TableBorderWidths &lt;&gt; &quot;&quot; then 
 		iTableBorderWidth = 1
 	else
 		iTableBorderWidth = 0
@@ -628,9 +672,10 @@ dim i as long
 
 	aParaSet() = GetParaSetTable(oPara.ID)		
 	iParaCount = ubound(aParaSet())
+	sAlign = GetIliasTableAlignString(oPara.ParaAdjust)
 	i = 1
-	WriteToStream(goExportXML, &quot;&lt;Table Language=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot; Border=&quot;&quot;&quot; &amp; iTableBorderWidth &amp;_
-					&quot;&quot;&quot; Width=&quot;&quot;&quot; &amp; iTableRelativeWidth &amp; &quot;%&quot;&quot;&quot; &amp; &quot; CellSpacing=&quot;&quot;1&quot;&quot; CellPadding=&quot;&quot;4&quot;&quot;&gt;&quot;)
+	WriteToStream(goExportXML, &quot;&lt;Table Language=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot; Class=&quot;&quot;&quot; &amp; oPara.TableName &amp; &quot;&quot;&quot; Border=&quot;&quot;&quot; &amp; iTableBorderWidth &amp;_
+					&quot;&quot;&quot; HorizontalAlign=&quot;&quot;&quot; &amp; sAlign &amp; &quot;&quot;&quot; Width=&quot;&quot;&quot; &amp; iTableRelativeWidth &amp; &quot;%&quot;&quot;&quot; &amp; &quot; CellSpacing=&quot;&quot;1&quot;&quot; CellPadding=&quot;&quot;4&quot;&quot;&gt;&quot;)
 	if oPara.TableCaption &lt;&gt; &quot;&quot; then
 		WriteToStream(goExportXML, &quot;&lt;Caption Align=&quot;&quot;bottom&quot;&quot;&gt;&quot; &amp; oPara.TableCaption &amp; &quot;&lt;/Caption&gt;&quot;
 	end if	
@@ -641,13 +686,15 @@ dim i as long
 		do while (i &lt;= iParaCount) and (oTablePara.TableRow = iActRow)
 			iActCol = oTablePara.TableCol
 						
-			if iTableBorderWidth = 0 then 
-				WriteToStream(goExportXML, &quot;&lt;TableData&gt;&quot;)
-			elseif oTablePara.ParaStyleName = &quot;Table Heading&quot; then
-				WriteToStream(goExportXML, &quot;&lt;TableData Class=&quot;&quot;ilc_Cell1&quot;&quot;&gt;&quot;)
-			else
-				WriteToStream(goExportXML, &quot;&lt;TableData Class=&quot;&quot;ilc_Cell2&quot;&quot;&gt;&quot;)
-			end if
+			sBackColor = oTablePara.TableBackColor
+			sBorderWidths = ReplaceString(oTablePara.TableBorderWidths, &quot;&quot;, &quot; &quot;)
+			sBorderColors = ReplaceString(oTablePara.TableBorderColors, &quot;&quot;, &quot; &quot;)
+			sBorderStyles = ReplaceString(oTablePara.TableBorderStyles, &quot;&quot;, &quot; &quot;)
+			sClass =  	&quot;ilc_backcolor&quot; &amp; sBackColor &amp; _
+						&quot; ilc_table_cell_borderwidths&quot; &amp; sBorderWidths &amp; _
+						&quot; ilc_table_cell_bordercolors&quot; &amp; sBorderColors &amp; _
+						&quot; ilc_table_cell_borderstyles&quot; &amp; sBorderStyles
+			WriteToStream(goExportXML, &quot;&lt;TableData Class=&quot;&quot;&quot; &amp; sClass &amp; &quot;&quot;&quot;&gt;&quot;)
 			
 			do while (oTablePara.TableRow = iActRow) and (oTablePara.TableCol = iActCol)
 				if gaDocParagraph(aParaSet(i)).State &lt;&gt; PARA_STATE_EXPORTED then
@@ -669,6 +716,29 @@ dim i as long
 	WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;)
 End sub
 
+
+function GetIliasCssBorderStyles(sBorderStyles as string) as string
+dim aStyles(3)
+dim iCount as integer
+dim i as integer
+dim sStyles as string
+
+	aStyles() = ArrayOutOfString(sBorderStyles, &quot; &quot;)
+	sStyles = &quot;&quot;
+	iCount = uBound(aStyles())
+	for i = 0 to iCount
+		select case aStyles(i)
+			case 0  : sStyles = sStyles &amp; &quot;solid&quot; &amp; &quot; &quot;
+			case 1  : sStyles = sStyles &amp; &quot;dotted&quot; &amp; &quot; &quot;
+			case 2  : sStyles = sStyles &amp; &quot;dashed&quot; &amp; &quot; &quot;
+			case 10 : sStyles = sStyles &amp; &quot;outset&quot; &amp; &quot; &quot;
+			case 11 : sStyles = sStyles &amp; &quot;inset&quot; &amp; &quot; &quot;
+			case else
+				sStyles = sStyles &amp; &quot;double&quot; &amp; &quot; &quot;
+		end select
+	next i	
+	GetIliasCssBorderStyles = Rtrim(sStyles)	
+end function
 
 
 sub ExportFrameStart(oPara as object)
@@ -849,6 +919,7 @@ dim sType as string
 			
 		&apos;then check if textportion is a hyperlink
 		elseif oPortion.HyperLinkURL &lt;&gt; &quot;&quot; then
+		
 			&apos;it could be an external Link
 			if left(oPortion.HyperLinkURL, 4) = &quot;http&quot; then
 				dim sTarget as string
@@ -861,6 +932,7 @@ dim sType as string
 				vURL = &quot; Href=&quot;&quot;&quot; &amp; ReplaceSymbols(oPortion.HyperLinkURL) &amp; &quot;&quot;&quot;&quot;
 				vLink = ReplaceSymbols(sResult)
 				sResult = &quot;&lt;ExtLink&quot; &amp; vURL &amp; sTarget &amp; &quot;&gt;&quot; &amp; vLink &amp; &quot;&lt;/ExtLink&gt;&quot;
+				
 			&apos;it could be an internal link	
 			elseif left(oPortion.CharStyleName, 10) = &quot;ILIAS Link&quot; then
 				dim sLink as string
@@ -868,6 +940,7 @@ dim sType as string
 				sType = mid(oPortion.CharStyleName, 12)
 				sResult = &quot;&lt;IntLink Target=&quot;&quot;&quot; &amp; sLink &amp; &quot;&quot;&quot; Type=&quot;&quot;&quot; &amp; sType &amp; &quot;&quot;&quot; TargetFrame=&quot;&quot;&quot; &amp; oPortion.HyperLinkTarget &amp;_
 						 &quot;&quot;&quot;&gt;&quot; &amp; oPortion.GetString &amp; &quot;&lt;/IntLink&gt;&quot;
+						 
 			&apos;it could be an internal link to a bookmark
 			elseif left(oPortion.HyperLinkURL, 1) = &quot;#&quot; then
 				dim sBookmark as string
@@ -1101,6 +1174,7 @@ dim sParaStyleShort as string
 dim sStyle as string
 dim sSubStyle as string
 dim sCharacterStr as string
+dim sState as string
 	
 	if oPara.ParaType = PARA_TYPE_LIST then
 		WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;) 
@@ -1132,8 +1206,9 @@ dim sCharacterStr as string
 			sCharacterStr =  &quot;Characteristic=&quot;&quot;&quot; &amp; sStyle &amp; &quot;&quot;&quot; &quot;
 			
 			if sSubStyle &lt;&gt; &quot;&quot; then &apos; this paragraph is formatted as Code
+				sState = paCheck(goDlgExport.Model.optShowLineNumbersInCodeView.State)
 				sCharacterStr = sCharacterStr &amp; &quot;SubCharacteristic=&quot;&quot;&quot; &amp; sSubStyle &amp; _
-			                            &quot;&quot;&quot; ShowLineNumbers=&quot;&quot;&quot; &amp; gsOptShowLineNo &amp;  &quot;&quot;&quot; AutoIndent=&quot;&quot;y&quot;&quot; &quot;
+			                            &quot;&quot;&quot; ShowLineNumbers=&quot;&quot;&quot; &amp; sState &amp;  &quot;&quot;&quot; AutoIndent=&quot;&quot;y&quot;&quot; &quot;
 			end if
 			                            
 			WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;) &apos;write new paragraph
@@ -1316,6 +1391,16 @@ function GetIliasAlignString(oMedia as object)
 		GetILIASAlignString = &quot;&quot;&quot;Center&quot;&quot;&quot;
 	end if
 		
+end function
+
+
+function GetIliasTableAlignString(sAlign as string) as string
+
+	select case sAlign
+		case 1: GetIliasTableAlignString = &quot;Right&quot;
+		case 2: GetIliasTableAlignString = &quot;Center&quot;
+		case else GetIliasTableAlignString = &quot;Left&quot;
+	end select
 end function
 
 
@@ -1799,27 +1884,32 @@ sub ExportDocProperties
 dim sOutlineNumbering as string
 dim sValue as string
 
-	sOutlineNumbering = GetInternalDocString(&quot;elaixPropOutlineNumbering&quot;)
-	if sOutlineNumbering = &quot;1&quot; then 
-		sOutlineNumbering = &quot;y&quot;
-	else
-		sOutlineNumbering = &quot;n&quot;
-	end if	
-	
 	WriteToStream(goExportXML, &quot;&lt;Properties&gt;&quot;) 
-	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;Layout&quot;&quot; Value=&quot;&quot;toc2windyn&quot;&quot;/&gt;&quot;
-	&apos;WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;Layout&quot;&quot; Value=&quot;&quot;toc2win&quot;&quot;/&gt;&quot;
-	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;PageHeader&quot;&quot; Value=&quot;&quot;pg_title&quot;&quot;/&gt;&quot;
-	&apos;WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;PageHeader&quot;&quot; Value=&quot;&quot;st_title&quot;&quot;/&gt;&quot;
-	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;TOCMode&quot;&quot; Value=&quot;&quot;pages&quot;&quot;/&gt;&quot;
-	&apos;WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;TOCMode&quot;&quot; Value=&quot;&quot;chapters&quot;&quot;/&gt;&quot;
+
+	sValue = paLayout(goDlgExport.Model.listLayout.SelectedItems(0))
+	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;Layout&quot;&quot; Value=&quot;&quot;&quot; &amp; sValue &amp; &quot;&quot;&quot;/&gt;&quot;
+
+	sValue = paPageHeader(goDlgExport.Model.listPageHeader.SelectedItems(0))
+	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;PageHeader&quot;&quot; Value=&quot;&quot;&quot; &amp; sValue &amp; &quot;&quot;&quot;/&gt;&quot;
+	
+	sValue = paTocMode(goDlgExport.Model.listTOCMode.SelectedItems(0))
+	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;TOCMode&quot;&quot; Value=&quot;&quot;&quot; &amp; sValue &amp; &quot;&quot;&quot;/&gt;&quot;
+	
+	sValue = paCheck(goDlgExport.Model.optChapterNumeration.State)
+	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;ActiveNumbering&quot;&quot; Value=&quot;&quot;&quot; &amp; sValue &amp; &quot;&quot;&quot;/&gt;&quot;
+
+	sValue = paCheck(goDlgExport.Model.optActiveLMMenu.State)
 	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;ActiveLMMenu&quot;&quot; Value=&quot;&quot;y&quot;&quot;/&gt;&quot;
-	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;ActiveNumbering&quot;&quot; Value=&quot;&quot;&quot; &amp; sOutlineNumbering &amp; &quot;&quot;&quot;/&gt;&quot;
-	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;ActiveTOC&quot;&quot; Value=&quot;&quot;y&quot;&quot;/&gt;&quot;
-	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;ActivePrintView&quot;&quot; Value=&quot;&quot;y&quot;&quot;/&gt;&quot;
-	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;CleanFrames&quot;&quot; Value=&quot;&quot;y&quot;&quot;/&gt;&quot;
-	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;PublicNotes&quot;&quot; Value=&quot;&quot;n&quot;&quot;/&gt;&quot;
-	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;HistoryUserComments&quot;&quot; Value=&quot;&quot;n&quot;&quot;/&gt;&quot;
+	sValue = paCheck(goDlgExport.Model.optActiveTOC.State)
+	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;ActiveTOC&quot;&quot; Value=&quot;&quot;&quot; &amp; sValue &amp; &quot;&quot;&quot;/&gt;&quot;
+	sValue = paCheck(goDlgExport.Model.optActivePrintView.State)
+	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;ActivePrintView&quot;&quot; Value=&quot;&quot;&quot; &amp; sValue &amp; &quot;&quot;&quot;/&gt;&quot;
+	sValue = paCheck(goDlgExport.Model.optCleanFrames.State)
+	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;CleanFrames&quot;&quot; Value=&quot;&quot;&quot; &amp; sValue &amp; &quot;&quot;&quot;/&gt;&quot;
+	sValue = paCheck(goDlgExport.Model.optPublicNotes.State)
+	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;PublicNotes&quot;&quot; Value=&quot;&quot;&quot; &amp; sValue &amp; &quot;&quot;&quot;/&gt;&quot;
+	sValue = paCheck(goDlgExport.Model.optHistoryUserComments.State)
+	WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;HistoryUserComments&quot;&quot; Value=&quot;&quot;&quot; &amp; sValue &amp; &quot;&quot;&quot;/&gt;&quot;
 	if gbOptIncludeHeader then
 		sValue = &quot;il_0_pg_&quot; &amp; CStr(giHeaderPageID)
 		WriteToStream(goExportXML, &quot;&lt;Property Name=&quot;&quot;HeaderPage&quot;&quot; Value=&quot;&quot;&quot; &amp; sValue &amp; &quot;&quot;&quot;/&gt;&quot;
@@ -1841,6 +1931,22 @@ dim i as long
 			exit function
 		end if
 	next i
+end function
+
+
+function GetIliasMetaData() as object
+dim oMetadata as object
+
+	oMetadata = createObject(&quot;Metadata&quot;)
+	with oMetadata
+		.docTitle = goDlgExport.Model.txtMetaTitle.Text
+		.docDescription = goDlgExport.Model.txtMetaDescription.Text
+		.docLanguage = goDlgExport.Model.cmbMetaLanguage.Text
+		.docKeywords = goDlgExport.Model.txtMetaKeywords.Text
+		.docAuthors = goDlgExport.Model.txtMetaAuthor.Text
+		.docCopyright = goDlgExport.Model.txtMetaCopyright.Text
+	end with
+	GetIliasMetaData = oMetadata
 end function
 
 

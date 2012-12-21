@@ -61,11 +61,12 @@ dim sLocation as string
 	WriteToStream(oStyleXML, &quot;&lt;StyleSheet&gt;&quot;)
 	WriteToStream(oStyleXML, &quot;&lt;Title&gt;&quot; &amp; sFileFolder &amp; &quot;&lt;/Title&gt;&lt;Description&gt;&lt;/Description&gt;&quot;)	
 
+	ExportPageStyles(oStyleXML)
 	ExportSectionStyles(oStyleXML, sStyleImageFolder)
 	ExportParagraphStyles(oStyleXML, sStyleImageFolder)
 	ExportCharacterStyles(oStyleXML, sStyleImageFolder)
 	ExportAccordionStyles(oStyleXML)
-	ExportPageStyles(oStyleXML)
+	ExportTableStyles(oStyleXML)
 
 	WriteToStream(oStyleXML, &quot;&lt;/StyleSheet&gt;&quot;)	
 	&apos;close style.xml 
@@ -73,6 +74,14 @@ dim sLocation as string
 end sub
 
 	
+sub ExportPageStyles(oStyleXML as object)
+dim sStyleString as string
+
+	sStyleString = GetStyleStringPageContainer()
+	WriteToStream(oStyleXML, sStyleString)
+end sub
+
+
 sub ExportSectionStyles(oStyleXML as object, sStyleImageFolder as string)
 dim oDocument as object
 dim oStyleFamilies as object
@@ -263,217 +272,161 @@ dim oStyle as object
 end sub	
 
 
-sub ExportPageStyles(oStyleXML as object)
+sub ExportTableStyles(oStyleXML as object)
 dim sStyleString as string
+dim iCount as integer
+dim aBackColors()
+dim aBorderColors()
+dim aBorderWidths()
+dim aBorderStyles()
+dim	iBackColorCount as integer
+dim	iBorderColorCount as integer
+dim	iBorderWidthCount as integer
+dim	iBorderStyleCount as integer
+dim sSelector as string
+dim i as integer
+dim j as integer
 
-	sStyleString = GetStyleStringPageContainer()
+	&apos;first iterate through all tables of the document and export the table and cell border styles
+	iCount = uBound(gaDocParagraph())
+	iBackColorCount = 0
+	iBorderColorCount = 0
+	iBorderWidthCount = 0
+	iBorderStyleCount = 0
+	for i = 1 to iCount
+		if gaDocParagraph(i).TableName &lt;&gt; &quot;&quot; then
+			&apos;this is the start of a table
+			sStyleString = GetIliasStyleStringTable(gaDocParagraph(i))
+			WriteToStream(oStyleXML, sStyleString)
+			
+		elseif gaDocParagraph(i).TableParentID &gt; 0 then 
+			&apos;append the background color of this table cell to the list of different backcolors
+			sSelector = gaDocParagraph(i).TableBackColor
+			if FindInArray(aBackColors(), sSelector) &lt; 0 then
+				redim preserve aBackColors(iBackColorCount)
+				aBackColors(iBackColorCount) = sSelector
+				iBackColorCount = iBackColorCount + 1
+			end if	
+			&apos;append the border colors of this table cell to the list of different border colors
+			sSelector = gaDocParagraph(i).TableBorderColors
+			if FindInArray(aBorderColors(), sSelector) &lt; 0 then
+				redim preserve aBorderColors(iBorderColorCount)
+				aBorderColors(iBorderColorCount) = sSelector
+				iBorderColorCount = iBorderColorCount + 1
+			end if	
+			&apos;append the border widths of this table cell to the list of different border widths
+			sSelector = gaDocParagraph(i).TableBorderWidths
+			if FindInArray(aBorderWidths(), sSelector) &lt; 0 then
+				redim preserve aBorderWidths(iBorderWidthCount)
+				aBorderWidths(iBorderWidthCount) = sSelector
+				iBorderWidthCount = iBorderWidthCount + 1
+			end if	
+			&apos;append the border styles of this table cell to the list of different border styles
+			sSelector = gaDocParagraph(i).TableBorderStyles
+			if FindInArray(aBorderStyles(), sSelector) &lt; 0 then
+				redim preserve aBorderStyles(iBorderStyleCount)
+				aBorderStyles(iBorderStyleCount) = sSelector
+				iBorderStyleCount = iBorderStyleCount + 1
+			end if	
+		end if	
+	next i 
+	
+	&apos;generate selectors for each different style
+	sStyleString = GetIliasStyleStringTableCellStyles(aBackColors(), aBorderColors(), aBorderWidths(), aBorderStyles())
 	WriteToStream(oStyleXML, sStyleString)
 end sub
 
-
-function GetStyleStringOrderedList(oStyle as object) as string
-dim sStyleString as string
-dim sStyleName as string
-dim oProps(8) as new com.sun.star.beans.PropertyValue
-dim i as integer
-
-	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
-	sStyleString = &quot;&lt;Style Tag=&quot;&quot;ol&quot;&quot; Type=&quot;&quot;list_o&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
-
-	oProps(0).Name  = &quot;margin-top&quot;
-	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
-	oProps(1).Name  = &quot;margin-right&quot;
-	oProps(1).Value =  CStr(Int(oStyle.ParaRightMargin / cFactor)) &amp; &quot;px&quot;
-	oProps(2).Name  = &quot;margin-bottom&quot;
-	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / cFactor)) &amp; &quot;px&quot;
-	oProps(3).Name  = &quot;margin-left&quot;
-	oProps(3).Value =  CStr(Int(oStyle.ParaLeftMargin / cFactor)) &amp; &quot;px&quot;
-	oProps(4).Name  = &quot;padding-top&quot;
-	oProps(4).Value =  &quot;0px&quot;
-	oProps(5).Name  = &quot;padding-right&quot;
-	oProps(5).Value =  &quot;0px&quot;
-	oProps(6).Name  = &quot;padding-bottom&quot;
-	oProps(6).Value =  &quot;0px&quot;
-	oProps(7).Name  = &quot;padding-left&quot;
-	oProps(7).Value =  &quot;20px&quot;
-	oProps(8).Name  = &quot;font-size&quot;
-	oProps(8).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
-	&apos;oProps(8).Name  = &quot;text-indent&quot;
-	&apos;oProps(8).Value = CStr(Int(oStyle.ParaFirstLineIndent / cFactor)) &amp; &quot;px&quot;
-
-	for i = 0 to ubound(oProps)
-		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
-	next i	
-	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
-	
-	GetStyleStringOrderedList = sStyleString
-end function
-
-
-function GetStyleStringUnorderedList(oStyle as object) as string
-dim sStyleString as string
-dim sStyleName as string
-dim oProps(7) as new com.sun.star.beans.PropertyValue
-dim i as integer
-dim oNumStyle as object
-dim oNumRules as object
-dim iNumLevel as integer
-dim iLeftMargin as integer
-dim iFirstLineOffset as integer
-
-
-	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
-	sStyleString = &quot;&lt;Style Tag=&quot;&quot;ul&quot;&quot; Type=&quot;&quot;list_u&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
-
-	oProps(0).Name  = &quot;margin-top&quot;
-	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
-	oProps(1).Name  = &quot;margin-right&quot;
-	oProps(1).Value =  CStr(Int(oStyle.ParaRightMargin / cFactor)) &amp; &quot;px&quot;
-	oProps(2).Name  = &quot;margin-bottom&quot;
-	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / cFactor)) &amp; &quot;px&quot;
-	oProps(3).Name  = &quot;padding-top&quot;
-	oProps(3).Value =  &quot;0px&quot;
-	oProps(4).Name  = &quot;padding-right&quot;
-	oProps(4).Value =  &quot;0px&quot;
-	oProps(5).Name  = &quot;padding-bottom&quot;
-	oProps(5).Value =  &quot;0px&quot;
-	oProps(6).Name  = &quot;padding-left&quot;
-	oProps(6).Value =  &quot;20px&quot;
-	oProps(7).Name  = &quot;font-size&quot;
-	oProps(7).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
-
-
-	&apos;Get the NumberingLevel of the first fount paragraph with this Stylename
-	iNumLevel = GetNumberingLevelByStyleName(sStyleName)
-	if (iNumLevel &gt;= 0) and (oStyle.NumberingStyleName &lt;&gt; &quot;&quot;) then
-		&apos;Get the left margin from the current level of the joined Numberingstyle  
-		oNumStyle = GetNumberingStyleByName(oStyle.NumberingStyleName)
-		oNumRules = oNumStyle.NumberingRules
-		&apos;Set the left margin
-		iLeftMargin = GetNumRulesProperty(oNumRules, &quot;IndentAt&quot;, iNumLevel)
-		iFirstLineOffset = GetNumRulesProperty(oNumRules, &quot;FirstLineIndent&quot;, iNumLevel)
-		redim preserve oProps(8)
-		oProps(8).Name  = &quot;margin-left&quot;
-		oProps(8).Value =  CStr(Int(iLeftMargin / cFactor) + Int(iFirstLineOffset / cFactor)) &amp; &quot;px&quot;
-	end if	
-
-	&apos;if the left margin of this list-style is set manualy
-	&apos;if oStyle.ParaLeftMargin &gt; 0 then
-	&apos;	&apos;only set left margin, if this is the first level
-	&apos;	&apos;if oPara.NumberingLevel = 1 then
-	&apos;		redim preserve oProps(7)
-	&apos;		oProps(7).Name  = &quot;margin-left&quot;
-	&apos;		oProps(7).Value =  CStr(Int(oStyle.ParaLeftMargin / cFactor) + Int(oStyle.ParaFirstLineIndent / cFactor)) &amp; &quot;px&quot;
-	&apos;	&apos;end if	
-	&apos;end if	
-
-
-	for i = 0 to ubound(oProps)
-		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
-	next i	
-	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
-	
-	GetStyleStringUnorderedList = sStyleString
-end function
-
-
-function GetStyleStringMarginaleLeft(oStyle as object) as string
-dim sStyleString as string
-dim sStyleName as string
-dim oProps(8) as new com.sun.star.beans.PropertyValue
-dim i as integer
-
-	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
-	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;text_block&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
-
-	oProps(0).Name  = &quot;margin-top&quot;
-	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
-	oProps(1).Name  = &quot;margin-right&quot;
-	oProps(1).Value =  CStr(Int(oStyle.ParaRightMargin / cFactor)) &amp; &quot;px&quot;
-	oProps(2).Name  = &quot;margin-bottom&quot;
-	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / cFactor)) &amp; &quot;px&quot;
-	oProps(3).Name  = &quot;margin-left&quot;
-	oProps(3).Value =  CStr((giMarginaleLeftWidth * -1) + 5) &amp; &quot;px&quot;
-	oProps(4).Name  = &quot;font-size&quot;
-	oProps(4).Value =  &quot;75%&quot;
-	oProps(5).Name  = &quot;position&quot;
-	oProps(5).Value =  &quot;absolute&quot;
-	oProps(6).Name  = &quot;width&quot;
-	oProps(6).Value =  CStr(giMarginaleLeftWidth - 5) &amp; &quot;px&quot;
-	oProps(7).Name  = &quot;font-weight&quot;
-	if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
-		oProps(7).Value = &quot;bold&quot;
-	else
-		oProps(7).Value = &quot;normal&quot;
-	end if	 	
- 	oProps(8).Name  = &quot;color&quot;
-	if oStyle.CharColor = -1 then
-		oProps(8).Value = &quot;&quot;
-	else	
-		oProps(8).Value = GetIliasHexColorString(oStyle.CharColor)
-	end if 
-	
-	for i = 0 to ubound(oProps)
-		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
-	next i		
-	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
-	
-	GetStyleStringMarginaleLeft = sStyleString
-end function
-
-
-function GetStyleStringMarginaleRight(oStyle as object) as string
-dim sStyleString as string
-dim sStyleName as string
-dim oProps(10) as new com.sun.star.beans.PropertyValue
-dim i as integer
-
-	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
-	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;text_block&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
-
-	oProps(0).Name  = &quot;margin-top&quot;
-	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
-	oProps(1).Name  = &quot;margin-right&quot;
-	oProps(1).Value =  &quot;30px&quot;
-	oProps(2).Name  = &quot;margin-bottom&quot;
-	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / cFactor)) &amp; &quot;px&quot;
-	oProps(3).Name  = &quot;margin-left&quot;
-	oProps(3).Value = &quot;0px&quot;
-	oProps(4).Name  = &quot;font-size&quot;
-	oProps(4).Value =  &quot;75%&quot;
-	oProps(5).Name  = &quot;position&quot;
-	oProps(5).Value =  &quot;absolute&quot;
-	oProps(6).Name  = &quot;width&quot;
-	oProps(6).Value =  CStr(giMarginaleRightWidth - cFactor) &amp; &quot;px&quot;
-	oProps(7).Name  = &quot;right&quot;
-	oProps(7).Value = &quot;10px&quot;
-	oProps(8).Name  = &quot;padding&quot;
-	oProps(8).Value = &quot;0px&quot;
-	oProps(9).Name  = &quot;font-weight&quot;
-	if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
-		oProps(9).Value = &quot;bold&quot;
-	else
-		oProps(9).Value = &quot;normal&quot;
-	end if	 	
- 	oProps(10).Name  = &quot;color&quot;
-	if oStyle.CharColor = -1 then
-		oProps(10).Value = &quot;&quot;
-	else	
-		oProps(10).Value = GetIliasHexColorString(oStyle.CharColor)
-	end if 
-	
-	for i = 0 to ubound(oProps)
-		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
-	next i		
-	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
-	
-	GetStyleStringMarginaleRight = sStyleString
-end function
 
 
 &apos;******************************************************************************************
 &apos; Building the export strings
 &apos;******************************************************************************************
+
+function GetStyleStringPageContainer() as string
+dim oStyleFamilies as object
+dim oStyles as object
+dim oStyle as object
+dim sStyleString as string
+dim iMarginaleLeft as integer
+dim iMarginaleRight as integer
+dim sStyleName as string
+dim oPara as object
+dim oProps(15) as new com.sun.star.beans.PropertyValue
+dim i as integer
+
+	&apos;first set default values
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;table&quot;&quot; Type=&quot;&quot;page_cont&quot;&quot; Class=&quot;&quot;PageContainer&quot;&quot;&gt;&quot;
+	if giMarginaleLeftWidth = 0 then 
+		iMarginaleLeft = 20
+	else	
+		iMarginaleLeft = giMarginaleLeftWidth
+	end if	
+	if giMarginaleRightWidth = 0 then 
+		iMarginaleRight = 20
+	else
+		iMarginaleRight = giMarginaleRightWidth
+	end if	
+	oProps(0).Name  = &quot;margin&quot;
+	oProps(0).Value = &quot;0px&quot;
+	oProps(1).Name  = &quot;width&quot;
+	oProps(1).Value =  &quot;100%&quot;	
+	oProps(2).Name  = &quot;padding-top&quot;
+	oProps(2).Value = &quot;20px&quot;
+	oProps(3).Name  = &quot;padding-right&quot;
+	oProps(3).Value = CStr(iMarginaleRight) &amp; &quot;px&quot;
+	oProps(4).Name  = &quot;padding-bottom&quot;
+	oProps(4).Value = &quot;20px&quot;
+	oProps(5).Name  = &quot;padding-left&quot;
+	oProps(5).Value = CStr(iMarginaleLeft) &amp; &quot;px&quot;
+	oProps(6).Name  = &quot;position&quot;
+	oProps(6).Value = &quot;relative&quot;
+	oProps(7).Name  = &quot;border-width&quot;
+	oProps(7).Value = &quot;1px&quot;
+	oProps(8).Name  = &quot;border-color&quot;
+	oProps(8).Value = &quot;#9EADBA&quot;
+	oProps(9).Name  = &quot;border-style&quot;
+	oProps(9).Value = &quot;solid&quot;
+		
+	&apos;then get styles from the standard page style
+	oStyleFamilies = ThisComponent.StyleFamilies
+	oStyles = oStyleFamilies.getByName( &quot;PageStyles&quot; )
+	oStyle = oStyles.GetByName(&quot;Standard&quot;)	
+	
+	oProps(10).Name  = &quot;background-color&quot;
+	if oStyle.GetPropertyState(&quot;BackColor&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		oProps(10).Value = GetIliasHexColorString(oStyle.BackColor)
+	else
+		oProps(10).Value = &quot;#FFFFFF&quot;
+	end if	
+	
+	&apos;then get styles from the standard paragraph style
+	oStyles = oStyleFamilies.getByName( &quot;ParagraphStyles&quot; )
+	oStyle = oStyles.GetByName(&quot;Standard&quot;)	
+	oProps(11).Name  = &quot;color&quot;
+	oProps(11).Value =  GetIliasHexColorString(oStyle.CharColor)
+	oProps(12).Name  = &quot;font-size&quot;
+	oProps(12).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
+	oProps(13).Name  = &quot;text-decoration&quot;
+	oProps(13).Value =  GetCssUnderlineString(oStyle.CharUnderline)
+	oProps(14).Name  = &quot;text-align&quot;
+	oProps(14).Value =  GetCssAlignString(oStyle.ParaAdjust)
+	oProps(15).Name  = &quot;font-weight&quot;
+	if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
+		oProps(15).Value = &quot;bold&quot;
+	else
+		oProps(15).Value = &quot;normal&quot;
+	end if	 	
+
+	SetMoreParaStyleProperties(oStyle, oProps(), &quot;&quot;)		 
+
+	for i = 0 to ubound(oProps)
+		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+	next i	
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+		
+	GetStyleStringPageContainer = sStyleString
+end function
+
 
 function GetStyleStringSection(oStyle as object, sGraphicName as string) as string
 dim sStyleString as string
@@ -992,91 +945,6 @@ dim sStyleString as string
 end function
 
 
-function GetStyleStringPageContainer() as string
-dim oStyleFamilies as object
-dim oStyles as object
-dim oStyle as object
-dim sStyleString as string
-dim iMarginaleLeft as integer
-dim iMarginaleRight as integer
-dim sStyleName as string
-dim oPara as object
-dim oProps(15) as new com.sun.star.beans.PropertyValue
-dim i as integer
-
-	&apos;first set default values
-	sStyleString = &quot;&lt;Style Tag=&quot;&quot;table&quot;&quot; Type=&quot;&quot;page_cont&quot;&quot; Class=&quot;&quot;PageContainer&quot;&quot;&gt;&quot;
-	if giMarginaleLeftWidth = 0 then 
-		iMarginaleLeft = 20
-	else	
-		iMarginaleLeft = giMarginaleLeftWidth
-	end if	
-	if giMarginaleRightWidth = 0 then 
-		iMarginaleRight = 20
-	else
-		iMarginaleRight = giMarginaleRightWidth
-	end if	
-	oProps(0).Name  = &quot;margin&quot;
-	oProps(0).Value = &quot;0px&quot;
-	oProps(1).Name  = &quot;width&quot;
-	oProps(1).Value =  &quot;100%&quot;	
-	oProps(2).Name  = &quot;padding-top&quot;
-	oProps(2).Value = &quot;20px&quot;
-	oProps(3).Name  = &quot;padding-right&quot;
-	oProps(3).Value = CStr(iMarginaleRight) &amp; &quot;px&quot;
-	oProps(4).Name  = &quot;padding-bottom&quot;
-	oProps(4).Value = &quot;20px&quot;
-	oProps(5).Name  = &quot;padding-left&quot;
-	oProps(5).Value = CStr(iMarginaleLeft) &amp; &quot;px&quot;
-	oProps(6).Name  = &quot;position&quot;
-	oProps(6).Value = &quot;relative&quot;
-	oProps(7).Name  = &quot;border-width&quot;
-	oProps(7).Value = &quot;1px&quot;
-	oProps(8).Name  = &quot;border-color&quot;
-	oProps(8).Value = &quot;#9EADBA&quot;
-	oProps(9).Name  = &quot;border-style&quot;
-	oProps(9).Value = &quot;solid&quot;
-		
-	&apos;then get styles from the standard page style
-	oStyleFamilies = ThisComponent.StyleFamilies
-	oStyles = oStyleFamilies.getByName( &quot;PageStyles&quot; )
-	oStyle = oStyles.GetByName(&quot;Standard&quot;)	
-	
-	oProps(10).Name  = &quot;background-color&quot;
-	if oStyle.GetPropertyState(&quot;BackColor&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
-		oProps(10).Value =  GetIliasHexColorString(oStyle.BackColor)
-	else
-		oProps(10).Value = &quot;#FFFFFF&quot;
-	end if	
-	&apos;then get styles from the standard paragraph style
-	oStyles = oStyleFamilies.getByName( &quot;ParagraphStyles&quot; )
-	oStyle = oStyles.GetByName(&quot;Standard&quot;)	
-	oProps(11).Name  = &quot;color&quot;
-	oProps(11).Value =  GetIliasHexColorString(oStyle.CharColor)
-	oProps(12).Name  = &quot;font-size&quot;
-	oProps(12).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
-	oProps(13).Name  = &quot;text-decoration&quot;
-	oProps(13).Value =  GetCssUnderlineString(oStyle.CharUnderline)
-	oProps(14).Name  = &quot;text-align&quot;
-	oProps(14).Value =  GetCssAlignString(oStyle.ParaAdjust)
-	oProps(15).Name  = &quot;font-weight&quot;
-	if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
-		oProps(15).Value = &quot;bold&quot;
-	else
-		oProps(15).Value = &quot;normal&quot;
-	end if	 	
-
-	SetMoreParaStyleProperties(oStyle, oProps(), &quot;&quot;)		 
-
-	for i = 0 to ubound(oProps)
-		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
-	next i	
-	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
-		
-	GetStyleStringPageContainer = sStyleString
-end function
-
-
 function GetStyleStringListLabel(oStyle as object) as string
 dim sStyleString as string
 dim sStyleName as string
@@ -1090,6 +958,206 @@ dim iLeft as integer
 	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
 	
 	GetStyleStringListLabel = sStyleString
+end function
+
+
+function GetStyleStringOrderedList(oStyle as object) as string
+dim sStyleString as string
+dim sStyleName as string
+dim oProps(8) as new com.sun.star.beans.PropertyValue
+dim i as integer
+
+	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;ol&quot;&quot; Type=&quot;&quot;list_o&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+
+	oProps(0).Name  = &quot;margin-top&quot;
+	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(1).Name  = &quot;margin-right&quot;
+	oProps(1).Value =  CStr(Int(oStyle.ParaRightMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(2).Name  = &quot;margin-bottom&quot;
+	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(3).Name  = &quot;margin-left&quot;
+	oProps(3).Value =  CStr(Int(oStyle.ParaLeftMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(4).Name  = &quot;padding-top&quot;
+	oProps(4).Value =  &quot;0px&quot;
+	oProps(5).Name  = &quot;padding-right&quot;
+	oProps(5).Value =  &quot;0px&quot;
+	oProps(6).Name  = &quot;padding-bottom&quot;
+	oProps(6).Value =  &quot;0px&quot;
+	oProps(7).Name  = &quot;padding-left&quot;
+	oProps(7).Value =  &quot;20px&quot;
+	oProps(8).Name  = &quot;font-size&quot;
+	oProps(8).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
+	&apos;oProps(8).Name  = &quot;text-indent&quot;
+	&apos;oProps(8).Value = CStr(Int(oStyle.ParaFirstLineIndent / cFactor)) &amp; &quot;px&quot;
+
+	for i = 0 to ubound(oProps)
+		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+	next i	
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	
+	GetStyleStringOrderedList = sStyleString
+end function
+
+
+function GetStyleStringUnorderedList(oStyle as object) as string
+dim sStyleString as string
+dim sStyleName as string
+dim oProps(7) as new com.sun.star.beans.PropertyValue
+dim i as integer
+dim oNumStyle as object
+dim oNumRules as object
+dim iNumLevel as integer
+dim iLeftMargin as integer
+dim iFirstLineOffset as integer
+
+
+	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;ul&quot;&quot; Type=&quot;&quot;list_u&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+
+	oProps(0).Name  = &quot;margin-top&quot;
+	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(1).Name  = &quot;margin-right&quot;
+	oProps(1).Value =  CStr(Int(oStyle.ParaRightMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(2).Name  = &quot;margin-bottom&quot;
+	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(3).Name  = &quot;padding-top&quot;
+	oProps(3).Value =  &quot;0px&quot;
+	oProps(4).Name  = &quot;padding-right&quot;
+	oProps(4).Value =  &quot;0px&quot;
+	oProps(5).Name  = &quot;padding-bottom&quot;
+	oProps(5).Value =  &quot;0px&quot;
+	oProps(6).Name  = &quot;padding-left&quot;
+	oProps(6).Value =  &quot;20px&quot;
+	oProps(7).Name  = &quot;font-size&quot;
+	oProps(7).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
+
+
+	&apos;Get the NumberingLevel of the first fount paragraph with this Stylename
+	iNumLevel = GetNumberingLevelByStyleName(sStyleName)
+	if (iNumLevel &gt;= 0) and (oStyle.NumberingStyleName &lt;&gt; &quot;&quot;) then
+		&apos;Get the left margin from the current level of the joined Numberingstyle  
+		oNumStyle = GetNumberingStyleByName(oStyle.NumberingStyleName)
+		oNumRules = oNumStyle.NumberingRules
+		&apos;Set the left margin
+		iLeftMargin = GetNumRulesProperty(oNumRules, &quot;IndentAt&quot;, iNumLevel)
+		iFirstLineOffset = GetNumRulesProperty(oNumRules, &quot;FirstLineIndent&quot;, iNumLevel)
+		redim preserve oProps(8)
+		oProps(8).Name  = &quot;margin-left&quot;
+		oProps(8).Value =  CStr(Int(iLeftMargin / cFactor) + Int(iFirstLineOffset / cFactor)) &amp; &quot;px&quot;
+	end if	
+
+	&apos;if the left margin of this list-style is set manualy
+	&apos;if oStyle.ParaLeftMargin &gt; 0 then
+	&apos;	&apos;only set left margin, if this is the first level
+	&apos;	&apos;if oPara.NumberingLevel = 1 then
+	&apos;		redim preserve oProps(7)
+	&apos;		oProps(7).Name  = &quot;margin-left&quot;
+	&apos;		oProps(7).Value =  CStr(Int(oStyle.ParaLeftMargin / cFactor) + Int(oStyle.ParaFirstLineIndent / cFactor)) &amp; &quot;px&quot;
+	&apos;	&apos;end if	
+	&apos;end if	
+
+
+	for i = 0 to ubound(oProps)
+		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+	next i	
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	
+	GetStyleStringUnorderedList = sStyleString
+end function
+
+
+function GetStyleStringMarginaleLeft(oStyle as object) as string
+dim sStyleString as string
+dim sStyleName as string
+dim oProps(8) as new com.sun.star.beans.PropertyValue
+dim i as integer
+
+	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;text_block&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+
+	oProps(0).Name  = &quot;margin-top&quot;
+	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(1).Name  = &quot;margin-right&quot;
+	oProps(1).Value =  CStr(Int(oStyle.ParaRightMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(2).Name  = &quot;margin-bottom&quot;
+	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(3).Name  = &quot;margin-left&quot;
+	oProps(3).Value =  CStr((giMarginaleLeftWidth * -1) + 5) &amp; &quot;px&quot;
+	oProps(4).Name  = &quot;font-size&quot;
+	oProps(4).Value =  &quot;75%&quot;
+	oProps(5).Name  = &quot;position&quot;
+	oProps(5).Value =  &quot;absolute&quot;
+	oProps(6).Name  = &quot;width&quot;
+	oProps(6).Value =  CStr(giMarginaleLeftWidth - 5) &amp; &quot;px&quot;
+	oProps(7).Name  = &quot;font-weight&quot;
+	if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
+		oProps(7).Value = &quot;bold&quot;
+	else
+		oProps(7).Value = &quot;normal&quot;
+	end if	 	
+ 	oProps(8).Name  = &quot;color&quot;
+	if oStyle.CharColor = -1 then
+		oProps(8).Value = &quot;&quot;
+	else	
+		oProps(8).Value = GetIliasHexColorString(oStyle.CharColor)
+	end if 
+	
+	for i = 0 to ubound(oProps)
+		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+	next i		
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	
+	GetStyleStringMarginaleLeft = sStyleString
+end function
+
+
+function GetStyleStringMarginaleRight(oStyle as object) as string
+dim sStyleString as string
+dim sStyleName as string
+dim oProps(10) as new com.sun.star.beans.PropertyValue
+dim i as integer
+
+	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;text_block&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+
+	oProps(0).Name  = &quot;margin-top&quot;
+	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(1).Name  = &quot;margin-right&quot;
+	oProps(1).Value =  &quot;30px&quot;
+	oProps(2).Name  = &quot;margin-bottom&quot;
+	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(3).Name  = &quot;margin-left&quot;
+	oProps(3).Value = &quot;0px&quot;
+	oProps(4).Name  = &quot;font-size&quot;
+	oProps(4).Value =  &quot;75%&quot;
+	oProps(5).Name  = &quot;position&quot;
+	oProps(5).Value =  &quot;absolute&quot;
+	oProps(6).Name  = &quot;width&quot;
+	oProps(6).Value =  CStr(giMarginaleRightWidth - cFactor) &amp; &quot;px&quot;
+	oProps(7).Name  = &quot;right&quot;
+	oProps(7).Value = &quot;10px&quot;
+	oProps(8).Name  = &quot;padding&quot;
+	oProps(8).Value = &quot;0px&quot;
+	oProps(9).Name  = &quot;font-weight&quot;
+	if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
+		oProps(9).Value = &quot;bold&quot;
+	else
+		oProps(9).Value = &quot;normal&quot;
+	end if	 	
+ 	oProps(10).Name  = &quot;color&quot;
+	if oStyle.CharColor = -1 then
+		oProps(10).Value = &quot;&quot;
+	else	
+		oProps(10).Value = GetIliasHexColorString(oStyle.CharColor)
+	end if 
+	
+	for i = 0 to ubound(oProps)
+		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+	next i		
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	
+	GetStyleStringMarginaleRight = sStyleString
 end function
 
 
@@ -1291,6 +1359,113 @@ dim i as integer
 end function
 
 
+function GetIliasStyleStringTable(oParaRec) as string
+dim sStyleString as string
+dim sColor as string
+dim sBorderWidth as string
+dim sBorderColor as string
+dim sBorderStyle as string
+dim sMargin as string
+dim sPadding as string
+dim sClass as string
+
+	sColor = GetIliasHexColorString(oParaRec.TableBackColor)
+	sMargin = GetIliasCssStringByValueSet(oParaRec.TableMargins, &quot;px&quot;)
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;table&quot;&quot; Type=&quot;&quot;table&quot;&quot; Class=&quot;&quot;&quot; &amp; oParaRec.TableName &amp; &quot;&quot;&quot;&gt;&quot; &amp; gsCR
+	sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;border-collapse&quot;&quot; Value=&quot;&quot;collapse&quot;&quot;/&gt;&quot; &amp; gsCR
+	sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;background-color&quot;&quot; Value=&quot;&quot;&quot; &amp; sColor &amp; &quot;&quot;&quot;/&gt;&quot; &amp; gsCR
+	sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;margin&quot;&quot; Value=&quot;&quot;&quot; &amp; sMargin &amp; &quot;&quot;&quot;/&gt;&quot; &amp; gsCR
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+	
+	sPadding = GetIliasCssStringByValueSet(oParaRec.TableBorderDistances, &quot;px&quot;) &amp; gsCR
+	sStyleString = sStyleString &amp; &quot;&lt;Style Tag=&quot;&quot;table&quot;&quot; Type=&quot;&quot;table&quot;&quot; Class=&quot;&quot;&quot; &amp; oParaRec.TableName &amp; &quot; th&quot;&quot; &gt;&quot; &amp; gsCR
+	sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;padding&quot;&quot; Value=&quot;&quot;&quot; &amp; sPadding &amp; &quot;&quot;&quot;/&gt;&quot; &amp; gsCR
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; &amp; gsCR
+
+	sStyleString = sStyleString &amp; &quot;&lt;Style Tag=&quot;&quot;table&quot;&quot; Type=&quot;&quot;table&quot;&quot; Class=&quot;&quot;&quot; &amp; oParaRec.TableName &amp; &quot; td&quot;&quot; &gt;&quot; &amp; gsCR
+	sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;padding&quot;&quot; Value=&quot;&quot;&quot; &amp; sPadding &amp; &quot;&quot;&quot;/&gt;&quot; &amp; gsCR
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; &amp; gsCR
+
+	GetIliasStyleStringTable = sStyleString
+end function
+
+
+function GetIliasStyleStringTableStyles(oParaRec as object) as string
+&apos;this function isn&apos;t in use anymore
+dim sStyleString as string
+dim sClass as string
+dim sBorderWidth as string
+dim sBorderColor as string
+dim sPadding as string
+dim sBorderStyle as string
+
+	sClass = oParaRec.TableName &amp; &quot; td, &quot; &amp; oParaRec.TableName &amp; &quot; th&quot;
+	sBorderWidth = GetIliasCssStringByValueSet(oParaRec.TableBorderWidths, &quot;border-width&quot;)
+	sBorderColor = GetIliasCssStringByValueSet(oParaRec.TableBorderColors)
+	sBorderStyle = &quot;solid&quot; &apos;border styles are not available in LO table properties
+	sPadding = GetIliasCssStringByValueSet(oParaRec.TableBorderDistances, &quot;px&quot;)
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;table&quot;&quot; Type=&quot;&quot;table&quot;&quot; Class=&quot;&quot;&quot; &amp; sClass &amp; &quot;&quot;&quot;&gt;&quot;	
+	sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;border-width&quot;&quot; Value=&quot;&quot;&quot; &amp; sBorderWidth &amp; &quot;&quot;&quot;/&gt;&quot;
+	sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;border-style&quot;&quot; Value=&quot;&quot;&quot; &amp; sBorderStyle &amp; &quot;&quot;&quot;/&gt;&quot;
+	sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;border-color&quot;&quot; Value=&quot;&quot;&quot; &amp; sBorderColor &amp; &quot;&quot;&quot;/&gt;&quot;
+	sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;padding&quot;&quot; Value=&quot;&quot;&quot; &amp; sPadding &amp; &quot;&quot;&quot;/&gt;&quot;
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+
+	GetIliasStyleStringTableStyles = sStyleString
+end function
+
+
+function GetIliasStyleStringTableCellStyles(aBackColors(), aBorderColors(), aBorderWidths(), aBorderStyles()) as string
+dim sStyleString as string
+dim sClass as string
+dim sValue as string
+dim iCount as integer
+dim i as integer
+
+	sStyleString = &quot;&quot;
+	iCount = uBound(aBackColors())
+	for i = 0 to iCount
+		sClass = aBackColors(i)
+		sValue = GetIliasHexColorString(aBackColors(i))
+		sStyleString = sStyleString &amp; &quot;&lt;Style Tag=&quot;&quot;td&quot;&quot; Type=&quot;&quot;table_cell&quot;&quot; Class=&quot;&quot;backcolor&quot; &amp; sClass &amp; &quot;&quot;&quot;&gt;&quot; &amp; gsCR	
+		sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;background-color&quot;&quot; Value=&quot;&quot;&quot; &amp; sValue &amp; &quot;&quot;&quot;/&gt;&quot; &amp; gsCR	
+		sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; &amp; gsCR
+	next i
+	
+	iCount = uBound(aBorderColors())
+	for i = 0 to iCount
+		sClass = ReplaceString(aBorderColors(i), &quot;&quot;, &quot; &quot;)
+		sValue = GetIliasCssStringByValueSet(aBorderColors(i))
+		sStyleString = sStyleString &amp; &quot;&lt;Style Tag=&quot;&quot;td&quot;&quot; Type=&quot;&quot;table_cell&quot;&quot; Class=&quot;&quot;bordercolors&quot; &amp; sClass &amp; &quot;&quot;&quot;&gt;&quot; &amp; gsCR	
+		sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;border-color&quot;&quot; Value=&quot;&quot;&quot; &amp; sValue &amp; &quot;&quot;&quot;/&gt;&quot; &amp; gsCR	
+		sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; &amp; gsCR
+	next i
+		
+	iCount = uBound(aBorderWidths())
+	for i = 0 to iCount
+		sClass = ReplaceString(aBorderWidths(i), &quot;&quot;, &quot; &quot;)
+		sValue = GetIliasCssStringByValueSet(aBorderWidths(i), &quot;border-width&quot;)
+		sStyleString = sStyleString &amp; &quot;&lt;Style Tag=&quot;&quot;td&quot;&quot; Type=&quot;&quot;table_cell&quot;&quot; Class=&quot;&quot;borderwidths&quot; &amp; sClass &amp; &quot;&quot;&quot;&gt;&quot; &amp; gsCR	
+		sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;border-width&quot;&quot; Value=&quot;&quot;&quot; &amp; sValue &amp; &quot;&quot;&quot;/&gt;&quot; &amp; gsCR	
+		sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; &amp; gsCR
+	next i
+
+	iCount = uBound(aBorderStyles())
+	for i = 0 to iCount
+		sClass = ReplaceString(aBorderStyles(i), &quot;&quot;, &quot; &quot;)
+		sValue = GetIliasCssBorderStyles(aBorderStyles(i))
+		sStyleString = sStyleString &amp; &quot;&lt;Style Tag=&quot;&quot;td&quot;&quot; Type=&quot;&quot;table_cell&quot;&quot; Class=&quot;&quot;borderstyles&quot; &amp; sClass &amp; &quot;&quot;&quot;&gt;&quot; &amp; gsCR		
+		sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;border-style&quot;&quot; Value=&quot;&quot;&quot; &amp; sValue &amp; &quot;&quot;&quot;/&gt;&quot; &amp; gsCR	
+		sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; &amp; gsCR
+	next i
+	GetIliasStyleStringTableCellStyles = sStyleString
+end function
+
+
+&apos;******************************************************************************************
+&apos; Style related functions
+&apos;******************************************************************************************
+
 function GetParaByStyleName(sStyleName as string) as object
 dim i as long
 dim iParaCount as long
@@ -1464,6 +1639,82 @@ dim i as integer
 
 	GetNumRulesProperty = vValue
 end function
+
+
+function GetIliasCssStringByValueSet(sValueSet as string, optional sUnit as string)
+dim aValues(3)
+dim dValue as double
+dim sString as string
+dim iCount as integer
+dim i as integer
+dim iFactor as integer
+
+	aValues = ArrayOutOfString(sValueSet, &quot; &quot;)
+	sString = &quot;&quot;
+	iCount = ubound(aValues())
+
+	&apos;a missing unit parameter indicates that it is a color
+	if isMissing(sUnit) then
+		for i = 0 to iCount
+			dValue = aValues(i)
+			if dValue = 0 then 
+				aValues(i) = &quot;#000&quot;
+			else
+				aValues(i) = GetIliasHexColorString(aValues(i))
+			end if	
+			sString = sString &amp; aValues(i) &amp; &quot; &quot;
+		next i
+
+	elseif sUnit = &quot;border-style&quot; then
+		for i = 0 to iCount
+			dValue = aValues(i)
+			if dValue &lt;&gt; 0 then 
+				aValues(i) = GetIliasCssBorderStyle(aValues(i))
+			end if	
+			sString = sString &amp; aValues(i) &amp; &quot; &quot;
+		next i
+		
+	elseif sUnit = &quot;border-width&quot; then
+		iFactor = 15
+		for i = 0 to iCount
+			dValue = aValues(i)
+			if dValue = 0 then &apos; do nothing
+				aValues(i) = &quot;0&quot;
+			elseif dValue &lt; 25 then
+				aValues(i) = &quot;1px&quot;
+			else 
+				aValues(i) = cStr(int((dValue/iFactor))) &amp; &quot;px&quot;
+			end if	
+			sString = sString &amp; aValues(i) &amp; &quot; &quot;
+		next i
+		
+	else &apos;the unit is px
+		iFactor = 25
+		for i = 0 to iCount
+			dValue = aValues(i)
+			if dValue &lt;&gt; 0 then 
+				aValues(i) = cStr(int((dValue/iFactor))) &amp; sUnit
+			end if	
+			sString = sString &amp; aValues(i) &amp; &quot; &quot;
+		next i
+	end if	
+	GetIliasCssStringByValueSet = rtrim(sString)
+end function
+
+
+function GetIliasCssBorderStyle(iStyle as integer) as string
+	select case iStyle
+		case 0  : GetIliasCssBorderStyle = &quot;solid&quot;
+		case 1  : GetIliasCssBorderStyle = &quot;dotted&quot;
+		case 2  : GetIliasCssBorderStyle = &quot;dashed&quot;
+		case 10 : GetIliasCssBorderStyle = &quot;outset&quot;
+		case 11 : GetIliasCssBorderStyle = &quot;inset&quot;
+		case else
+			GetIliasCssBorderStyle = &quot;double&quot;
+	end select	
+end function
+
+
 
 
 </script:module>

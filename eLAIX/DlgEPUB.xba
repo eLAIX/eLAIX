@@ -87,6 +87,7 @@ dim i as integer
 dim sFontname as string
 dim iFontSize as integer
 dim sOS as string
+dim aStyles()
 	
 	&apos;Read the eLAIX version (has to be saved into a variable - later)
 	&apos;GetInternalDocString(&quot;elaixVersion&quot;)
@@ -100,7 +101,7 @@ dim sOS as string
 			iFontSize = 9
 			sFontname = &quot;Bitstream Vera Sans&quot;
 		case else &apos;Mac
-			iFontSize = 8
+			iFontSize = 9
 			sFontname = &quot;Lucida Grande&quot;
 	end select	
 	
@@ -109,19 +110,26 @@ dim sOS as string
 	iCount = ubound(aElements()) - 1
 	for i = 0 to iCount
 		oElement = aElements(i)
-		if oElement.Name &lt;&gt; &quot;imgLogo&quot; then
-			with oElement
-				.FontHeight = iFontSize
-				.FontName = sFontname
-				.FontStylename = &quot;Standard&quot;
-			end with	
-		end if	
+		select case oElement.Name
+			case &quot;imgLogo&quot; &apos;do nothing
+			case &quot;lblTitle&quot;
+				with oElement
+					.FontHeight = 10
+					.FontName = sFontname
+					.FontStylename = &quot;Standard&quot;
+				end with	
+			case else		
+				with oElement
+					.FontHeight = iFontSize
+					.FontName = sFontname
+					.FontStylename = &quot;Standard&quot;
+				end with	
+		end select	
 	next i
 		
-	&apos;Dialog title
-	goDlgExport.Title = &quot;Export document to EPUB file&quot;
+	&apos;Dialog logo
 	sPath = GetPackageDirURL(&quot;vnd.harryboldt.elaix&quot;)  
-	sImgPath = sPath &amp; &quot;/icons/epub-120.png&quot;
+	sImgPath = sPath &amp; &quot;/icons/dialog/epub-120.png&quot;
 	oControl = goDlgExport.getControl(&quot;imgLogo&quot;)
 	oControl.getModel().ImageURL = ConvertToURL( sImgPath )
 
@@ -225,6 +233,23 @@ dim sOS as string
 	goDlgExport.Model.txtTocTitle.Text = GetInternalDocString(&quot;epubTocTitle&quot;)
 	goDlgExport.Model.optCreateNdxFile.State = GetInternalDocString(&quot;epubCreateNdxFile&quot;)
 	
+	oControl = goDlgExport.getControl(&quot;cmbMarginalNumberStyle&quot;)
+	aStyles() = GetAppliedStylesList(&quot;ParagraphStyles&quot;, true)
+	oControl.AddItem(&quot;&quot;, 0)
+	iCount = Ubound(aStyles())
+	for i = 0 to iCount
+		if left(aStyles(i), 5) &lt;&gt; &quot;ILIAS&quot; then
+			oControl.AddItem(aStyles(i), i+1)
+		end if
+	next i
+	sString = GetInternalDocString(&quot;epubMarginalNumberStyle&quot;)
+	iPos = FindInArray(oControl.Items, sString)
+	if iPos &gt;= 0 then 
+		oControl.SelectItemPos(iPos, true)
+	else	
+		oControl.SelectItemPos(0, true)
+	end if	
+	
 end sub
 
 
@@ -287,6 +312,8 @@ dim sText as string
 
 	SetInternalDocString(&quot;epubTocTitle&quot;, goDlgExport.Model.txtTocTitle.Text)	
 	SetInternalDocString(&quot;epubCreateNdxFile&quot;, goDlgExport.Model.optCreateNdxFile.State)	
+	iPos = goDlgExport.Model.cmbMarginalNumberStyle.SelectedItems(0)
+	SetInternalDocString(&quot;epubMarginalNumberStyle&quot;, goDlgExport.Model.cmbMarginalNumberStyle.StringItemList(iPos))		
 	
 	&apos;Save last dialog page
 	SetInternalDocString(&quot;epubLastDialogPage&quot;, goDlgExport.Model.Step)	
@@ -350,10 +377,6 @@ dim sFilename as string
 dim oMedia as object
 dim oPages as object
 
-
-	&apos;Save the export options first
-	SaveEpubExportOptions
-	
 	&apos;set export status page
 	giLastEpubDialogPage = goDlgExport.Model.Step
 	oPages = goDlgExport.getControl(&quot;listPages&quot;)
@@ -379,8 +402,12 @@ dim oPages as object
 	
 	SwitchMousePointer(goDlgExport.getPeer(), false)
 	
+	&apos;Save the export options first
+	SaveEpubExportOptions
+	
 	&apos;Initialize global variables for the export
 	InitGlobals
+	SetEpubPathGlobals
 	
 	&apos;Reset the dialog elements
 	oDlgLabel1 = goDlgExport.Model.lblPosition1 &apos;prepare
@@ -403,7 +430,6 @@ dim oPages as object
 	oDlgFilename = goDlgExport.Model.lblFilename
 	oDlgResult.Text = &quot;Export is running - please wait...&quot;	
 	
-	SetEpubPathGlobals
 	
 	&apos;Export embedded Writer Graphics to the EPUB/images folder	
 	oDlgLabel2.Label = gsCheckString
@@ -425,7 +451,6 @@ dim oPages as object
 		case 1
 			&apos;The cover image is an internal image
 			oControl = goDlgExport.getControl(&quot;cmbCoverImage&quot;)
-			&apos;xray oControl
 			if oControl.SelectedItem &lt;&gt; &quot;&quot; then
 				oMedia = GetEpubExtMediaByObjectName(oControl.SelectedItem)
 				if isnull(oMedia) then
@@ -453,6 +478,7 @@ dim oPages as object
 	&apos;Read the document
 	oDlgLabel3.Label = gsCheckString
 	ReadDocument
+	SetDocPageIDs
 	
 	&apos;Write debug files if this option is checked
 	if goDlgExport.Model.optWriteDebugFiles.State = 1 then

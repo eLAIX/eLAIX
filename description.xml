@@ -17,6 +17,7 @@
 			<license-text xlink:href="registration/license_de.txt" lang="de" license-id="ID0" />
 			<license-text xlink:href="registration/license_en.txt" lang="en" license-id="ID0" />
 			<license-text xlink:href="registration/license_es.txt" lang="es" license-id="ID0" />
+			<license-text xlink:href="registration/license_nl.txt" lang="nl" license-id="ID0" />
 		</simple-license>
 	</registration>
 
@@ -24,23 +25,26 @@
 		<name xlink:href="http://elaix.org" lang="de">eLAIX Homepage</name>
 		<name xlink:href="http://elaix.org" lang="en">eLAIX Website</name>
 		<name xlink:href="http://elaix.org" lang="es">Web de eLAIX</name>
+		<name xlink:href="http://elaix.org" lang="nl">eLAIX Homepage</name>
 	</publisher>
 
 	<display-name>
 		<name lang="de">eLAIX</name>
 		<name lang="en">eLAIX</name>
 		<name lang="es">eLAIX</name>
+		<name lang="nl">eLAIX</name>
 	</display-name>
  
 	<icon>
-		<default xlink:href="icons/about.png" />
-		<high-contrast xlink:href="icons/about.png" />
+		<default xlink:href="icons/dialog/about.png" />
+		<high-contrast xlink:href="icons/dialog/about.png" />
 	</icon>
  
 	<extension-description>
 		<src xlink:href="pkg-desc/desc_de.txt" lang="de" />
 		<src xlink:href="pkg-desc/desc_en.txt" lang="en" />
 		<src xlink:href="pkg-desc/desc_es.txt" lang="es" />
+		<src xlink:href="pkg-desc/desc_nl.txt" lang="nl" />
 	</extension-description>
 
 </description>

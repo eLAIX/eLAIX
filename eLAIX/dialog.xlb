@@ -7,7 +7,6 @@
  <library:element library:name="DlgAbout"/>
  <library:element library:name="DlgTab"/>
  <library:element library:name="DlgRef"/>
- <library:element library:name="DlgMeta"/>
- <library:element library:name="DlgEPUB"/>
  <library:element library:name="DlgILIAS"/>
+ <library:element library:name="DlgEPUB"/>
 </library:library>

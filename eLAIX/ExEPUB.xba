@@ -28,6 +28,7 @@ private poPageStream as object
 private poMetadata as object
 private piBacksteps as integer
 private gsFootnotes as string
+private piPage as integer
 
 sub SetEpubPathGlobals
 dim sTempFolder as string 
@@ -37,7 +38,7 @@ dim oSFA as object
 	gsExportZIP = ConvertToURL(goDlgExport.Model.lblFilename.Label)
 	sTempFolder = GetRandomString(&quot;tmp-&quot;, 12)
 	gsExportZipDir = gsCurDir &amp; gsPathSeparator &amp; sTempFolder 
-	If Dir(gsExportZipDir, 16) &lt;&gt; &quot;&quot; then &apos; Delete existing folder
+	if Dir(gsExportZipDir, 16) &lt;&gt; &quot;&quot; then &apos; Delete existing folder
 	  oSFA = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)
 	  oSFA.setReadOnly(gsExportZipDir, false) &apos; gsExportZipDir is then not readonly
 	  RmDir(gsExportZipDir)
@@ -218,6 +219,8 @@ dim sMediaType as string
 dim sFilename as string
 dim oControl as object
 dim iPos as integer
+dim iLastPage as integer
+dim iPage as integer
 
 	oStream.writeString(&quot;&lt;manifest&gt;&quot; &amp; gsCR)
 	&apos;Write the navigation page
@@ -228,9 +231,14 @@ dim iPos as integer
 	&apos;Write chapter pages
 	iChapterCount = ubound(gaDocChapter())
 	iChapter = 0
+	iLastPage = 0
 	do while iChapter &lt; iChapterCount
 		iChapter = iChapter + 1	
-		oStream.writeString(gsTAB &amp; &quot;&lt;item id=&quot;&quot;page-&quot; &amp; iChapter &amp; &quot;&quot;&quot; href=&quot;&quot;page-&quot; &amp; iChapter &amp; &quot;.xhtml&quot;&quot; media-type=&quot;&quot;application/xhtml+xml&quot;&quot;/&gt;&quot; &amp; gsCR)
+		if gaDocChapter(iChapter).PageID &gt; iLastPage then
+			iPage = gaDocChapter(iChapter).PageID
+			oStream.writeString(gsTAB &amp; &quot;&lt;item id=&quot;&quot;page-&quot; &amp; iPage &amp; &quot;&quot;&quot; href=&quot;&quot;page-&quot; &amp; iPage &amp; &quot;.xhtml&quot;&quot; media-type=&quot;&quot;application/xhtml+xml&quot;&quot;/&gt;&quot; &amp; gsCR)
+		end if	
+		iLastPage = gaDocChapter(iChapter).PageID
 	loop
 	
 	&apos;Write Graphics
@@ -272,6 +280,7 @@ sub ExportEpubPackageSpine(oStream as object)
 dim iChapter as integer
 dim iChapterCount as long 
 dim sCover as string
+dim iLastPage as integer
 
 	oStream.writeString(&quot;&lt;spine toc=&quot;&quot;ncx&quot;&quot;&gt;&quot; &amp; gsCR)
 	&apos;sCover = GetInternalDocString(&quot;epubCoverFromDocument&quot;)
@@ -281,9 +290,13 @@ dim sCover as string
 	oStream.writeString(gsTAB &amp; &quot;&lt;itemref idref=&quot;&quot;htmltoc&quot;&quot; linear=&quot;&quot;no&quot;&quot;/&gt;&quot; &amp; gsCR)
 	iChapter = 0
 	iChapterCount = ubound(gaDocChapter())
+	iLastPage = 0
 	do while iChapter &lt; iChapterCount
-		iChapter = iChapter + 1			
-		oStream.writeString(gsTAB &amp; &quot;&lt;itemref idref=&quot;&quot;page-&quot; &amp; iChapter &amp; &quot;&quot;&quot; linear=&quot;&quot;yes&quot;&quot;/&gt;&quot; &amp; gsCR)
+		iChapter = iChapter + 1		
+		if gaDocChapter(iChapter).PageID &gt; iLastPage then
+			oStream.writeString(gsTAB &amp; &quot;&lt;itemref idref=&quot;&quot;page-&quot; &amp; gaDocChapter(iChapter).PageID &amp; &quot;&quot;&quot; linear=&quot;&quot;yes&quot;&quot;/&gt;&quot; &amp; gsCR)
+		end if	
+		iLastPage = gaDocChapter(iChapter).PageID
 	loop		
 	oStream.writeString(&quot;&lt;/spine&gt;&quot; &amp; gsCR)
 end sub
@@ -319,6 +332,7 @@ dim iChapterCount as integer
 	poNavStream.writeString(&quot;&lt;h1 class=&quot;&quot;toc_title&quot;&quot;&gt;&quot; &amp; goDlgExport.Model.txtTocTitle.Text &amp; &quot;&lt;/h1&gt;&quot; &amp; gsCR)
 	iChapterCount = ubound(gaDocChapter())
 	piBacksteps = 0
+	piPage = 1
 	ExportTocNavigationList(iChapterCount, 0)
 	poNavStream.writeString(&quot;&lt;/nav&gt;&quot; &amp; gsCR)
 	poNavStream.writeString(&quot;&lt;/body&gt;&quot; &amp; gsCR)
@@ -333,6 +347,7 @@ function ExportTocNavigationList(iChapterCount as integer, iChapter as integer) 
 dim iLevelDiff as integer
 dim sStr as string
 dim bContinue
+dim i as integer
 
 	bContinue = true
 	poNavStream.writeString(&quot;&lt;ol&gt;&quot; &amp; gsCR)
@@ -343,9 +358,10 @@ dim bContinue
 				sStr = gaDocChapter(iChapter).ListLabelString &amp; gaDocChapter(iChapter).GetString
 			else
 				sStr = gaDocChapter(iChapter).GetString
-			end if	
-			poNavStream.writeString(&quot;&lt;li id=&quot;&quot;page-&quot; &amp; iChapter &amp; &quot;&quot;&quot;&gt;&quot;)		
-			poNavStream.writeString(&quot;&lt;a href=&quot;&quot;page-&quot; &amp; iChapter &amp; &quot;.xhtml&quot;&quot;&gt;&quot; &amp; sStr &amp; &quot;&lt;/a&gt;&quot;)					
+			end if
+			
+			poNavStream.writeString(&quot;&lt;li id=&quot;&quot;nav-&quot; &amp; gaDocChapter(iChapter).ID &amp; &quot;&quot;&quot;&gt;&quot;)		
+			poNavStream.writeString(&quot;&lt;a href=&quot;&quot;page-&quot; &amp; gaDocChapter(iChapter).PageID &amp; &quot;.xhtml&quot;&quot;&gt;&quot; &amp; sStr &amp; &quot;&lt;/a&gt;&quot;)					
 
 			&apos;check if there is a next level
 			if iChapter &lt; iChapterCount then
@@ -361,9 +377,9 @@ dim bContinue
 					piBacksteps = gaDocChapter(iChapter).Level - gaDocChapter(iChapter + 1).Level - 1
 					bContinue = false
 				end if	
-			end if
-			
+			end if			
 			poNavStream.writeString(&quot;&lt;/li&gt;&quot; &amp; gsCR)	
+
 		else 
 			piBacksteps = piBacksteps - 1
 			bContinue = false
@@ -398,6 +414,7 @@ dim iChapterCount as integer
 	poNavStream.writeString(gsTAB &amp; &quot;&lt;navMap&gt;&quot; &amp; gsCR)		
 	iChapterCount = ubound(gaDocChapter())
 	piBacksteps = 0
+	piPage = 0
 	ExportNcxNavigationList(iChapterCount, 0)
 	poNavStream.writeString(gsTAB &amp; &quot;&lt;/navMap&gt;&quot; &amp; gsCR)
 	poNavStream.writeString(&quot;&lt;/ncx&gt;&quot; &amp; gsCR)
@@ -411,6 +428,8 @@ dim sStr as string
 dim sIndentPoint as string
 dim sIndentLabel as string
 dim bContinue
+dim iPage as integer
+dim i as integer
 
 	bContinue = true
 	do while (iChapter &lt; iChapterCount) and bContinue
@@ -427,13 +446,13 @@ dim bContinue
 			else	
 				sIndentPoint = GetRepeatedString(gsTab, gaDocChapter(iChapter).Level + 1)
 			end if	
-			
-			poNavStream.writeString(sIndentPoint &amp; &quot;&lt;navPoint id=&quot;&quot;page-&quot; &amp; iChapter &amp; &quot;&quot;&quot; playOrder=&quot;&quot;&quot; &amp; iChapter &amp; &quot;&quot;&quot;&gt;&quot; &amp; gsCR)
+			iPage = gaDocChapter(iChapter).PageID
+			poNavStream.writeString(sIndentPoint &amp; &quot;&lt;navPoint id=&quot;&quot;nav-&quot; &amp; gaDocChapter(iChapter).ID &amp; &quot;&quot;&quot; playOrder=&quot;&quot;&quot; &amp; iPage &amp; &quot;&quot;&quot;&gt;&quot; &amp; gsCR)
 			sIndentLabel = GetRepeatedString(gsTab, gaDocChapter(iChapter).Level + 2)
 			poNavStream.writeString(sIndentLabel &amp; &quot;&lt;navLabel&gt;&quot; &amp; gsCR
 			poNavStream.writeString(sIndentLabel &amp; gsTab &amp; &quot;&lt;text&gt;&quot; &amp; sStr &amp; &quot;&lt;/text&gt;&quot;
 			poNavStream.writeString(sIndentLabel &amp; &quot;&lt;/navLabel&gt;&quot; &amp; gsCR
-			poNavStream.writeString(sIndentLabel &amp; &quot;&lt;content src=&quot;&quot;page-&quot; &amp; iChapter &amp; &quot;.xhtml&quot;&quot;/&gt;&quot; &amp; gsCR 
+			poNavStream.writeString(sIndentLabel &amp; &quot;&lt;content src=&quot;&quot;page-&quot; &amp; iPage &amp; &quot;.xhtml&quot;&quot;/&gt;&quot; &amp; gsCR 
 
 			&apos;check if there is a next level
 			if iChapter &lt; iChapterCount then
@@ -500,10 +519,12 @@ dim oPara as object
 dim iParaCount as long
 dim i as long
 dim sCharacteristic as string
-dim iActPageID as long
+dim iPage as integer
 dim sTag as string
+dim sHeadings as string
 
-	iActPageID = 0
+	iPage = 0
+	sHeadings = &quot;&quot;
 	 
 	for iChapterNo = 1 to ubound(gaDocChapter())
 	
@@ -513,8 +534,9 @@ dim sTag as string
 		&apos;Generate a new page if this chapter is the first or follows solo-headline 
 		if oChapter.HasContent then
 		
+			iPage = iPage + 1
 			&apos;Export the page head and body starting tags
-			poPageStream = GetExportFileObject(gsExportZipDir &amp; &quot;/EPUB/page-&quot; &amp; oChapter.ID &amp; &quot;.xhtml&quot;)
+			poPageStream = GetExportFileObject(gsExportZipDir &amp; &quot;/EPUB/page-&quot; &amp; iPage &amp; &quot;.xhtml&quot;)
 			poPageStream.writeString(&quot;&lt;?xml version=&quot;&quot;1.0&quot;&quot; encoding=&quot;&quot;utf-8&quot;&quot;?&gt;&quot; &amp; gsCR)
 			poPageStream.writeString(&quot;&lt;html xml:lang=&quot;&quot;&quot; &amp; gsLang &amp; &quot;&quot;&quot; lang=&quot;&quot;&quot; &amp; gsLang &amp; _
 			 &quot;&quot;&quot; xmlns=&quot;&quot;http://www.w3.org/1999/xhtml&quot;&quot; xmlns:epub=&quot;&quot;http://www.idpf.org/2007/ops&quot;&quot;&gt;&quot; &amp; gsCR)
@@ -523,15 +545,11 @@ dim sTag as string
 			poPageStream.writeString(&quot;&lt;link rel=&quot;&quot;stylesheet&quot;&quot; type=&quot;&quot;text/css&quot;&quot; href=&quot;&quot;css/style.css&quot;&quot;/&gt;&quot; &amp; gsCR)
 			poPageStream.writeString(&quot;&lt;meta charset=&quot;&quot;utf-8&quot;&quot;/&gt;&quot; &amp; gsCR)
 			poPageStream.writeString(&quot;&lt;/head&gt;&quot; &amp; gsCR)
-			poPageStream.writeString(&quot;&lt;body id=&quot;&quot;&quot; &amp; oChapter.ID &amp; &quot;&quot;&quot; epub:type=&quot;&quot;frontmatter&quot;&quot;&gt;&quot; &amp; gsCR)
+			poPageStream.writeString(&quot;&lt;body epub:type=&quot;&quot;frontmatter&quot;&quot;&gt;&quot; &amp; gsCR)
 
 			&apos;Export the title
-			sTag = &quot;h&quot; &amp; oChapter.Level
-			if goDlgExport.Model.optIncludeChapterNumberingDoc.State = 1 then
-				poPageStream.writeString(&quot;&lt;&quot; &amp; sTag &amp; &quot;&gt;&lt;span class=&quot;&quot;label&quot;&quot;&gt;&quot; &amp; oChapter.ListLabelString &amp; &quot;&lt;/span&gt;&quot; &amp; oChapter.GetString &amp; &quot;&lt;/&quot; &amp; sTag &amp; &quot;&gt;&quot; &amp; gsCR)
-			else
-				poPageStream.writeString(&quot;&lt;&quot; &amp; sTag &amp; &quot;&gt;&quot; &amp; oChapter.GetString &amp; &quot;&lt;/&quot; &amp; sTag &amp; &quot;&gt;&quot; &amp; gsCR)
-			end if	
+			poPageStream.writeString(sHeadings &amp; GetTitleString(oChapter)
+			sHeadings = &quot;&quot;
 					
 			&apos;Enumerate all paragraphs of this chapter and export them
 			aParaSet() = GetParaSetOfChapter(oChapter.ID)	
@@ -557,10 +575,25 @@ dim sTag as string
 			
 			&apos;Close the document
 			poPageStream.closeOutput
-		end if		
+		else
+			sHeadings = sHeadings &amp; GetTitleString(oChapter)
+		end if
+				
 		
 	next iChapterNo	
 end sub	
+
+
+function GetTitleString(oChapter as object) as string
+dim sTag as string
+
+	sTag = &quot;h&quot; &amp; oChapter.Level
+	if goDlgExport.Model.optIncludeChapterNumberingDoc.State = 1 then
+		GetTitleString = &quot;&lt;&quot; &amp; sTag &amp; &quot;&gt;&lt;span class=&quot;&quot;label&quot;&quot;&gt;&quot; &amp; oChapter.ListLabelString &amp; &quot;&lt;/span&gt;&quot; &amp; oChapter.GetString &amp; &quot;&lt;/&quot; &amp; sTag &amp; &quot;&gt;&quot; &amp; gsCR
+	else
+		GetTitleString = &quot;&lt;&quot; &amp; sTag &amp; &quot;&gt;&quot; &amp; oChapter.GetString &amp; &quot;&lt;/&quot; &amp; sTag &amp; &quot;&gt;&quot; &amp; gsCR
+	end if	
+end function
 
 
 sub ExportEpubParagraph(oPara as object)
@@ -596,8 +629,7 @@ end sub
 
 
 sub ExportEpubTextPortions(oPara As Object) 
-  &apos; oPara : the paragraph to be exported
-  
+  &apos; oPara : the paragraph to be exported 
 dim sExportString as string 
 dim aPortionSet()
 dim iPortionCount as long
@@ -616,15 +648,19 @@ dim sImgFilename as string
 dim sImgAltTag as string
 dim sMediaTag as string
 dim bGraphicIsFloated as boolean
-
+dim sStylename as string
+dim bIsSingleGraphic as boolean
 
 	bGraphicIsFloated = false
 	
-	&apos;step 1: get the text portions of the paragraph
+	&apos;step 1: get the stylename and the text portions of the paragraph
+	sStylename = ReplaceUmlaut(oPara.ParaStylename)
+	sStylename = ReplaceString(sStylename, &quot;_&quot;, &quot; &quot;)
 	aPortionSet() = GetTextPortionSet(oPara.ID)
 
 	&apos;step 2: concatenate all text portions and handle media export of textportions
 	iPortionCount = ubound(aPortionSet())
+	bIsSingleGraphic = false
 	for i = 1 to iPortionCount
 		oPortion = gaDocTextPortion(aPortionSet(i))
 		sTextPortionType = oPortion.TextPortionType
@@ -685,80 +721,30 @@ dim bGraphicIsFloated as boolean
 				else			
 					sExportString = sExportString &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; sImgAltTag &amp; &quot;&quot;&quot; /&gt;&quot;
 				end if
-				&apos;poPageStream.writeString(&quot;&lt;p class=&quot;&quot;&quot; &amp; oPara.ParaStyleName &amp; &quot;&quot;&quot;&gt;&quot; &amp; sExportString &amp; &quot;&lt;/p&gt;&quot; &amp; gsCR)
+				sStylename = ReplaceUmlaut(oPara.ParaStyleName)
+				sStylename = ReplaceString(sStylename, &quot;_&quot;, &quot; &quot;)
 			else
 				&apos;a single graphic should be exported as a MediaTag and should be placed before the text
 				sMediaTag = GetEpubMediaTag(oMedia)
-				sExportString =  sMediaTag &amp; sExportString &amp; gsCR
 				&apos;check wether the graphic is left or right floated
+				bIsSingleGraphic = true
 				bGraphicIsFloated = oMedia.HoriOrient = com.sun.star.text.HoriOrientation.LEFT or oMedia.HoriOrient = com.sun.star.text.HoriOrientation.RIGHT
 			end if	
 		end if		
-
 	next i
 
-	&apos;step 3: export the concatenated text as a paragraph
-	&apos;ExportEpubParagraphTag (oPara, sExportString)
-	poPageStream.writeString(&quot;&lt;p class=&quot;&quot;para &quot; &amp; oPara.ParaStyleName &amp; &quot;&quot;&quot;&gt;&quot; &amp; sExportString &amp; &quot;&lt;/p&gt;&quot; &amp; gsCR)
+	&apos;step 3: export the concatenated text as graphic or paragraph
+	if bIsSingleGraphic then
+		poPageStream.writeString(sMediaTag &amp; sExportString)
+	else
+		poPageStream.writeString(&quot;&lt;p class=&quot;&quot;para_&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot; &amp; sExportString &amp; &quot;&lt;/p&gt;&quot;)
+	end if
 	
 	&apos;step 4: export a clear div, if a graphic is left or right floated
 	if bGraphicIsFloated then
 		poPageStream.writeString(&quot;&lt;div class=&quot;&quot;clear&quot;&quot;&gt;&lt;/div&gt;&quot; &amp; gsCR)
 	end if
 end sub
-
-
-sub ExportEpubParagraphTag(oPara as object, sExportString as string) 
-&apos;exports the text of the paragraph, pString is the prepared concatenated paragraph string
-dim sParaStyleShort as string
-dim sStyle as string
-dim sSubStyle as string
-dim sCharacterStr as string
-dim sAlign as string
-	
-	if oPara.ParaType = PARA_TYPE_LIST then
-		&apos;WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;) 
-		&apos;WriteToStream(goExportXML, &quot;&lt;Paragraph Language=&quot; &amp; gsLang &amp; &quot; Characteristic=&quot;&quot;List&quot;&quot;&gt;&quot;) &apos;write new paragraph
-		&apos;WriteToStream(goExportXML, sExportString) 
-		&apos;WriteToStream(goExportXML, &quot;&lt;/Paragraph&gt;&quot;) 
-		&apos;WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;) 
-
-	else  &apos;the paragraph is not a list
-		&apos;check the ParaStyleName of the current paragraph
-		&apos;sParaStyleShort = left(oPara.ParaStyleName, 4)  
-		&apos;if sParaStyleShort = &quot;ILIAS&quot; then
-		&apos;	sStyle = GetIliasParagraphStyleString(oPara.ParaStyleName)
-		&apos;	sSubStyle = GetIliasParagraphSubStyleString(oPara.ParaStyleName)
-		&apos;end if	
-			
-		&apos;******* added to reflect table content format *************
-		&apos;if oPara.ParaStyleName = &quot;Table Contents&quot; then
-		&apos;	sStyle = &quot;TableContent&quot;
-		&apos;	sSubStyle = &quot;&quot;
-		&apos;***********************************************************				
-		&apos;else 
-		&apos;	sStyle = oPara.ParaStyleName
-		&apos;	sSubStyle = &quot;&quot;
-		&apos;end if		
-		
-		&apos;the alignment of this paragraph could be hard formatted
-		&apos;if oPara.ParaAdjust &gt; 0 then
-		&apos;	sAlign = GetCssAlignString(oPara.ParaAdjust)
-		&apos;	sStyle = sStyle &amp; &quot; ilc_text_block_align&quot; &amp; sAlign
-		&apos;end if
-
-		&apos;sCharacterStr =  &quot;Characteristic=&quot;&quot;&quot; &amp; sStyle &amp; &quot;&quot;&quot; &quot;
-		
-		&apos;if sSubStyle &lt;&gt; &quot;&quot; then &apos; this paragraph is formatted as Code
-		&apos;	sCharacterStr = sCharacterStr &amp; &quot;SubCharacteristic=&quot;&quot;&quot; &amp; sSubStyle &amp; _
-		&apos;                           &quot;&quot;&quot; ShowLineNumbers=&quot;&quot;&quot; &amp; gsOptShowLineNo &amp;  &quot;&quot;&quot; AutoIndent=&quot;&quot;y&quot;&quot; &quot;
-		&apos;end if
-		                            
-		poPageStream.writeString(&quot;&lt;p class=&quot;&quot;&quot; &amp; oPara.ParaStyleName &amp; &quot;&quot;&quot;&gt;&quot; &amp; sExportString &amp; &quot;&lt;/p&gt;&quot; &amp; gsCR)
-
-	end if
-end sub
-
 
 
 function ExportEpubList(oPara as object, bSetClass as boolean) as object
@@ -773,6 +759,8 @@ dim sStylename as string
 dim iRow as integer
 dim iCol as integer
 dim iChapter as integer
+dim sMarginalNumberStyle as string
+dim iPos as integer
 
 	iParaCount = UBound(gaDocParagraph())
 	iListLevel = oPara.NumberingLevel
@@ -784,95 +772,106 @@ dim iChapter as integer
     sNumberingType = GetEpubListType(oPara.NumberingType)
 	
 	&apos;export the list opening tag (&lt;ul&gt; or &lt;ol&gt;)
-	ExportEpubListHeader(sStyleName, sNumberingType, bSetClass)
-
-    &apos;enumerate paragraphs that are list items (NumberingType ist not an empty string)
-	do while (oPara.NumberingType &lt;&gt; &quot;&quot;) and (oPara.NumberingLevel = iListLevel) and _
-			(oPara.NumberingType = iListType) and (oPara.ParaStylename = sStylename) and _
-			(oPara.TableRow = iRow) and (oPara.TableCol = iCol) and _
-			(oPara.ChapterID = iChapter)
 	
-		poPageStream.writeString(&quot;&lt;li&gt;&quot;)
-		ExportEpubTextPortions(oPara)
-		gaDocParagraph(oPara.ID).State = PARA_STATE_EXPORTED
+	&apos;first check, if this list is a marginal number
+	iPos = goDlgExport.Model.cmbMarginalNumberStyle.SelectedItems(0)
+	sMarginalNumberStyle = goDlgExport.Model.cmbMarginalNumberStyle.StringItemList(iPos)
+	if oPara.ParaStyleName = sMarginalNumberStyle then
+		poPageStream.writeString(&quot;&lt;div class=&quot;&quot;marginal_no&quot;&quot;&gt;&quot; &amp; oPara.NumberingLabel &amp; (&quot;&lt;/div&gt;&quot; &amp; gsCR)
+	else
+		ExportEpubListHeader(sStyleName, sNumberingType, bSetClass)
+	
+	    &apos;enumerate paragraphs that are list items (NumberingType ist not an empty string)
+		do while (oPara.NumberingType &lt;&gt; &quot;&quot;) and (oPara.NumberingLevel = iListLevel) and _
+				(oPara.NumberingType = iListType) and (oPara.ParaStylename = sStylename) and _
+				(oPara.TableRow = iRow) and (oPara.TableCol = iCol) and _
+				(oPara.ChapterID = iChapter)
 		
-		&apos;check next item to decide wether it has to be handeled within this item
-		if (oPara.ID &lt; iParaCount) then
-			iNumberingLevel = oPara.NumberingLevel
-			iNumberingType = oPara.NumberingType
-			oNextPara = gaDocParagraph(oPara.ID + 1)
+			poPageStream.writeString(&quot;&lt;li&gt;&quot;)
+			ExportEpubTextPortions(oPara)
+			gaDocParagraph(oPara.ID).State = PARA_STATE_EXPORTED
 			
-			&apos;do nothing, if the next paragraph has another Stylename
-			if oNextPara.ParaStylename &lt;&gt; sStylename then
-
-			&apos;the item has a higher level (is a new list)
-			elseif oNextPara.NumberingLevel &gt; oPara.NumberingLevel then
-				oPara = ExportEpubList(oNextPara, false)
-				&apos;gaDocParagraph(oPara.ID).State = PARA_STATE_PENDING
-				
-			&apos;the item has the same level and could be a bullet list or an unnumbered paragraph)	
-			elseif oNextPara.NumberingLevel = iNumberingLevel then
-			&apos;elseif ((oPara.NumberingType &lt;&gt; 6) and (oNextPara.NumberingType = 6)) or not (oNextPara.NumberingIsNumber) then
-				oPara = oNextPara
-				gaDocParagraph(oPara.ID).State = PARA_STATE_PENDING
-				&apos;enumerate all items with the same level
-				do while oPara.NumberingLevel = iNumberingLevel
-					&apos;the item could be an unnumbered paragraph
-					if not oPara.NumberingIsNumber then 
-						ExportEpubTextPortions(oPara)
-						gaDocParagraph(oNextPara.ID).State = PARA_STATE_EXPORTED
-					&apos;the item could be a bullet list	
-					elseif (oPara.NumberingType = 6) and (iNumberingType &lt;&gt; 6) then	
-						oPara = ExportEpubList(oPara, true)
-						&apos;gaDocParagraph(oPara.ID).State = PARA_STATE_PENDING
-					else
-						exit do	
-					end if	
-					
-					if oPara.State = PARA_STATE_EXPORTED then
-						if (oPara.ID &lt; iParaCount) then
-							oPara = gaDocParagraph(oPara.ID + 1)
-						else
-							exit do
-						end if	
-					end if
-				loop			
-			
-			end if
-			
-		end if
-		poPageStream.writeString(&quot;&lt;/li&gt;&quot;)
-		
-		if oPara.State = PARA_STATE_EXPORTED then
+			&apos;check next item to decide wether it has to be handeled within this item
 			if (oPara.ID &lt; iParaCount) then
-				oPara = gaDocParagraph(oPara.ID + 1)
-			else
-				exit do
-			end if
-		end if	
+				iNumberingLevel = oPara.NumberingLevel
+				iNumberingType = oPara.NumberingType
+				oNextPara = gaDocParagraph(oPara.ID + 1)
+				
+				&apos;do nothing, if the next paragraph has another Stylename
+				if oNextPara.ParaStylename &lt;&gt; sStylename then
 	
-	loop
-	&apos;export the list closing tag (&lt;/ul&gt; or &lt;ol&gt;)
-	ExportEpubListFooter(sNumberingType)
+				&apos;the item has a higher level (is a new list)
+				elseif oNextPara.NumberingLevel &gt; oPara.NumberingLevel then
+					oPara = ExportEpubList(oNextPara, false)
+					&apos;gaDocParagraph(oPara.ID).State = PARA_STATE_PENDING
+					
+				&apos;the item has the same level and could be a bullet list or an unnumbered paragraph)	
+				elseif oNextPara.NumberingLevel = iNumberingLevel then
+				&apos;elseif ((oPara.NumberingType &lt;&gt; 6) and (oNextPara.NumberingType = 6)) or not (oNextPara.NumberingIsNumber) then
+					oPara = oNextPara
+					gaDocParagraph(oPara.ID).State = PARA_STATE_PENDING
+					&apos;enumerate all items with the same level
+					do while oPara.NumberingLevel = iNumberingLevel
+						&apos;the item could be an unnumbered paragraph
+						if not oPara.NumberingIsNumber then 
+							ExportEpubTextPortions(oPara)
+							gaDocParagraph(oNextPara.ID).State = PARA_STATE_EXPORTED
+						&apos;the item could be a bullet list	
+						elseif (oPara.NumberingType = 6) and (iNumberingType &lt;&gt; 6) then	
+							oPara = ExportEpubList(oPara, true)
+							&apos;gaDocParagraph(oPara.ID).State = PARA_STATE_PENDING
+						else
+							exit do	
+						end if	
+						
+						if oPara.State = PARA_STATE_EXPORTED then
+							if (oPara.ID &lt; iParaCount) then
+								oPara = gaDocParagraph(oPara.ID + 1)
+							else
+								exit do
+							end if	
+						end if
+					loop			
+				
+				end if
+				
+			end if
+			poPageStream.writeString(&quot;&lt;/li&gt;&quot;)
+			
+			if oPara.State = PARA_STATE_EXPORTED then
+				if (oPara.ID &lt; iParaCount) then
+					oPara = gaDocParagraph(oPara.ID + 1)
+				else
+					exit do
+				end if
+			end if	
+		
+		loop
+		&apos;export the list closing tag (&lt;/ul&gt; or &lt;ol&gt;)
+		ExportEpubListFooter(sNumberingType)
+	end if 
+		
 	ExportEpubList = oPara
 end function
 
 
-sub ExportEpubListHeader(sStyle as string, sNumberingType as string, bSetClass as boolean)
+sub ExportEpubListHeader(sStylename as string, sNumberingType as string, bSetClass as boolean)
 
+	sStylename = ReplaceUmlaut(sStylename)
+	sStylename = ReplaceString(sStylename, &quot;_&quot;, &quot; &quot;)
     if sNumberingType = &quot;Unordered&quot; then
     	if bSetClass then
 			&apos;poPageStream.writeString(&quot;&lt;ul class=&quot;&quot;&quot; &amp; sStyle &amp; &quot;&quot;&quot; style=&quot;&quot;margin-left: 0.8em&quot;&quot;&gt;&quot;)
-			poPageStream.writeString(&quot;&lt;ul class=&quot;&quot;&quot; &amp; sStyle &amp; &quot;&quot;&quot;&gt;&quot;)
+			poPageStream.writeString(&quot;&lt;ul class=&quot;&quot;list_&quot; &amp; sStylename &amp; &quot;&quot;&quot;&gt;&quot;)
 		else
 			&apos;poPageStream.writeString(&quot;&lt;ul style=&quot;&quot;margin-left: 0.8em&quot;&quot;&gt;&quot;)
 			poPageStream.writeString(&quot;&lt;ul&gt;&quot;)
 		end if	
     else
     	if bSetClass then
-			poPageStream.writeString(&quot;&lt;ol class=&quot;&quot;&quot; &amp; sStyle &amp; &quot;&quot;&quot; style=&quot;&quot;list-style-type:&quot; &amp; sNumberingType &amp; &quot;;&quot;&quot;&gt;&quot;)
+			poPageStream.writeString(&quot;&lt;ol class=&quot;&quot;list_&quot; &amp; sStylename &amp; &quot;&quot;&quot; style=&quot;&quot;list-style-type:&quot; &amp; sNumberingType &amp; &quot;;&quot;&quot;&gt;&quot;)
 		else
-			poPageStream.writeString(&quot;&lt;ol&gt;&quot;)
+			poPageStream.writeString(&quot;&lt;ol style=&quot;&quot;list-style-type:&quot; &amp; sNumberingType &amp; &quot;;&quot;&quot;&gt;&quot;)
 		end if	
     end if  	
 
@@ -898,9 +897,21 @@ dim iActCol as long
 dim iParaCount as long
 dim aParaSet() as long
 dim i as long
-dim sBorder as string
 dim sColTag as string
 dim sColStyle as string
+
+dim aTablePadding(3)
+dim iTableColor as string
+dim sDistances as string
+dim	sPadding as string
+dim sBorderWidth as string
+dim sBorderColor as string
+dim	sBackground as string
+dim sBorder as string
+dim sAlign as string
+dim aMargins(3)
+dim sMarginTop as string
+dim sMarginBottom as string
 
 	if oPara.TableIsWidthRelative then 
 		iTableRelativeWidth = oPara.TableRelativeWidth
@@ -910,25 +921,23 @@ dim sColStyle as string
 		iTableRelativeWidth = 100
 	end if		
 	
-	if oPara.TableBorderWidth &gt; 0 then 
-		iTableBorderWidth = 1
-		sBorder = &quot;border-top:1px solid #000000; border-left:1px solid #000000;&quot;
-		sColStyle = &quot; style=&quot;&quot;border-right:1px solid #000000; border-bottom:1px solid #000000;&quot;&quot;&quot;
-	else
-		iTableBorderWidth = 0
-		sBorder = &quot;border: 0;&quot;
-		sColStyle = &quot;&quot;
-	end if
-
+	if oPara.TableBorderDistances &lt;&gt; &quot;&quot; then
+		sDistances = GetEpubCssStringByValueSet(oPara.TableBorderDistances, &quot;px&quot;)
+	end if	
+	sBackground = GetEpubHexColorString(oPara.TableBackColor)
+	sAlign = GetEpubTableAlignString(oPara.ParaAdjust)	
+	aMargins() = ArrayOutOfString(oPara.TableMargins, &quot; &quot;)
+	sMarginTop = Int(CInt(aMargins(0))/25) &amp; &quot;px&quot;
+	sMarginBottom = Int(CInt(aMargins(2))/25) &amp; &quot;px&quot;
 	aParaSet() = GetParaSetTable(oPara.ID)		
 	iParaCount = ubound(aParaSet())
-	i = 1
-	
-	poPageStream.writeString(&quot;&lt;table style=&quot;&quot;&quot; &amp; sBorder &amp; &quot; width:&quot; &amp; iTableRelativeWidth &amp; &quot;%;&quot;&quot;&gt;&quot;
+	poPageStream.writeString(&quot;&lt;div align=&quot;&quot;&quot; &amp; sAlign &amp; &quot;&quot;&quot;&gt;&quot; &amp; gsCR)
+	poPageStream.writeString(&quot;&lt;table style=&quot;&quot;margin-top:&quot; &amp; sMarginTop &amp; &quot;; margin-bottom:&quot; &amp; sMarginBottom &amp; &quot;; background-color:&quot; &amp; sBackground &amp; &quot;; width:&quot; &amp; iTableRelativeWidth &amp; &quot;%;&quot;&quot;&gt;&quot;
 	if oPara.TableCaption &lt;&gt; &quot;&quot; then
 		poPageStream.writeString(&quot;&lt;caption&gt;&quot; &amp; oPara.TableCaption &amp; &quot;&lt;/caption&gt;&quot;)
 	end if	
 
+	i = 1
 	do while i &lt;= iParaCount
 		oTablePara = gaDocParagraph(aParaSet(i))
 		if oTablePara.ParaStyleName = &quot;Table Heading&quot; then
@@ -945,6 +954,14 @@ dim sColStyle as string
 		iActRow = oTablePara.TableRow
 		do while (i &lt;= iParaCount) and (oTablePara.TableRow = iActRow)
 			iActCol = oTablePara.TableCol
+			if sDistances &lt;&gt; &quot;&quot; then
+				sPadding = &quot;padding:&quot; &amp; sDistances &amp; &quot;;&quot;
+			end if
+			if oTablePara.TableBackColor &lt;&gt; &quot;&quot; then	
+				sBackground = &quot; background-color:&quot; &amp; GetEpubHexColorString(oTablePara.TableBackColor) &amp; &quot;;&quot;
+			end if
+			sBorder = GetEpubCssBorderString(oTablePara.TableBorderWidths, oTablePara.TableBorderStyles, oTablePara.TableBorderColors)
+			sColStyle = &quot; style=&quot;&quot;&quot; &amp; sPadding &amp; sBorder &amp; sBackground &amp; &quot;&quot;&quot;&quot;
 			poPageStream.writeString(&quot;&lt;&quot; &amp; sColTag &amp; sColStyle &amp; &quot;&gt;&quot;)
 			do while (oTablePara.TableRow = iActRow) and (oTablePara.TableCol = iActCol)
 				if gaDocParagraph(aParaSet(i)).State &lt;&gt; PARA_STATE_EXPORTED then
@@ -966,9 +983,62 @@ dim sColStyle as string
 			poPageStream.writeString(&quot;&lt;/tr&gt;&quot;
 		end if
 	loop				
-	poPageStream.writeString(&quot;&lt;/table&gt;&quot;)
-End sub
+	poPageStream.writeString(&quot;&lt;/table&gt;&quot; &amp; gsCR)
+	poPageStream.writeString(&quot;&lt;/div&gt;&quot; &amp; gsCR)
+	&apos;set a clear element to finish right float if the table is right aligned
+	&apos;if (iTableRelativeWidth &lt; 100) and (sAlign = &quot;align-right&quot;) then
+	&apos;		poPageStream.writeString(&quot;&lt;div class=&quot;&quot;clear&quot;&quot;&gt;&lt;/div&gt;&quot;
+	&apos;end if	
+end sub
 
+
+function GetEpubTableAlignString(sAlign as string)
+
+	select case sAlign
+		case 1: GetEpubTableAlignString = &quot;right&quot;
+		case 2: GetEpubTableAlignString = &quot;center&quot;
+		case else GetEpubTableAlignString = &quot;left&quot;
+	end select
+end function
+
+
+function GetEpubCssBorderString(sBorderWidths as string, sBorderStyles as string, sBorderColors as string) as string
+dim aWidth(3) as long
+dim aStyle(3)
+dim aColor(3)
+dim sString as string
+const iFactor = 15
+
+	aWidth() = ArrayOutOfString(sBorderWidths, &quot; &quot;)
+	aStyle() = ArrayOutOfString(sBorderStyles, &quot; &quot;)
+	aColor() = ArrayOutOfString(sBorderColors, &quot; &quot;)
+	if aWidth(0) &lt;&gt; &quot;0&quot; then
+		sString = &quot;border-top:&quot; &amp; Int(CInt(aWidth(0))/iFactor) &amp; &quot;px &quot; &amp; GetEpubCssBorderStyle(aStyle(0)) &amp; &quot; &quot; &amp; GetEpubHexColorString(aColor(0)) &amp; &quot;; &quot;
+	end if	
+	if aWidth(1) &lt;&gt; &quot;0&quot; then
+		sString = sString &amp; &quot;border-right:&quot; &amp; Int(CInt(aWidth(1))/iFactor) &amp; &quot;px &quot; &amp; GetEpubCssBorderStyle(aStyle(1)) &amp; &quot; &quot; &amp; GetEpubHexColorString(aColor(1)) &amp; &quot;; &quot;
+	end if	
+	if aWidth(2) &lt;&gt; &quot;0&quot; then
+		sString = sString &amp; &quot;border-bottom:&quot; &amp; Int(CInt(aWidth(2))/iFactor) &amp; &quot;px &quot; &amp; GetEpubCssBorderStyle(aStyle(2)) &amp; &quot; &quot; &amp; GetEpubHexColorString(aColor(2)) &amp; &quot;; &quot;
+	end if	
+	if aWidth(3) &lt;&gt; &quot;0&quot; then
+		sString = sString &amp; &quot;border-left:&quot; &amp; Int(CInt(aWidth(3))/iFactor) &amp; &quot;px &quot; &amp; GetEpubCssBorderStyle(aStyle(3)) &amp; &quot; &quot; &amp; GetEpubHexColorString(aColor(3)) &amp; &quot;; &quot;
+	end if	
+	GetEpubCssBorderString = sString	
+end function
+
+
+function GetEpubCssBorderStyle(iStyle as integer) as string
+	select case iStyle
+		case 0  : GetEpubCssBorderStyle = &quot;solid&quot;
+		case 1  : GetEpubCssBorderStyle = &quot;dotted&quot;
+		case 2  : GetEpubCssBorderStyle = &quot;dashed&quot;
+		case 10 : GetEpubCssBorderStyle = &quot;outset&quot;
+		case 11 : GetEpubCssBorderStyle = &quot;inset&quot;
+		case else
+			GetEpubCssBorderStyle = &quot;double&quot;
+	end select	
+end function
 
 
 sub ExportEpubFrameStart(oPara as object)
@@ -992,7 +1062,9 @@ dim IsFirstAccordion as boolean
 		poPageStream.writeString(&quot;&lt;section class=&quot;&quot;accordion element&quot;&quot;&gt;&quot; &amp; gsCR)
 		
 	else
-		poPageStream.writeString(&quot;&lt;section class=&quot;&quot;&quot; &amp; oPara.FrameStylename &amp; &quot;&quot;&quot;&gt;&quot; &amp; gsCR)
+		sFrameStylename = ReplaceUmlaut(oPara.FrameStylename)
+		sFrameStylename = ReplaceString(sFrameStylename, &quot;_&quot;, &quot; &quot;)
+		poPageStream.writeString(&quot;&lt;section class=&quot;&quot;&quot; &amp; sFrameStylename &amp; &quot;&quot;&quot;&gt;&quot; &amp; gsCR)
 	end if
 end sub
 
@@ -1100,7 +1172,7 @@ dim sFootnote as string
 
 	&apos;meanwhile:
 	gsFootnotes = gsFootnotes &amp; &quot;&lt;aside epub:type=&quot;&quot;footnote&quot;&quot; id=&quot;&quot;fn&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;&lt;p&gt;&lt;span class=&quot;&quot;fn-id&quot;&quot;&gt;&quot; &amp; sId &amp; &quot;&lt;/span&gt;&quot;_
-							 &amp; sResult &amp; &quot;&lt;a class=&quot;&quot;back&quot;&quot; href=&quot;&quot;#noteref&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;↑&lt;/a&gt;&lt;/p&gt;&lt;/aside&gt;&quot;
+							 &amp; sResult &amp; &quot;&lt;a id=&quot;&quot;fn&quot; &amp; sID &amp; &quot;&quot;&quot; class=&quot;&quot;back&quot;&quot; href=&quot;&quot;#noteref&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;↑&lt;/a&gt;&lt;/p&gt;&lt;/aside&gt;&quot;
 	GetEpubFootnoteExportString = sRef
 
 end function
@@ -1144,7 +1216,7 @@ dim sHeight as string
 	sTag = &quot;&lt;figure class=&quot;&quot;image_container &quot; &amp; GetEpubAlignString(oMedia) &amp; &quot;&quot;&quot; style=&quot;&quot;width:&quot; &amp; sWidth &amp; &quot;&quot;&quot;&gt;&quot;
 	sTag = sTag &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; oMedia.Caption &amp; &quot;&quot;&quot; style=&quot;&quot;width:&quot; &amp; sWidth &amp; &quot;&quot;&quot;/&gt;&quot; 
 	if oMedia.Caption &lt;&gt; &quot;&quot; then
-		sTag = sTag &amp; &quot;&lt;br/&gt;&lt;figcaption class=&quot;&quot;para Illustration&quot;&quot;&gt;&quot; &amp; oMedia.Caption &amp; &quot;&lt;/figcaption&gt;&quot;
+		sTag = sTag &amp; &quot;&lt;br/&gt;&lt;figurecaption class=&quot;&quot;para Illustration&quot;&quot;&gt;&quot; &amp; oMedia.Caption &amp; &quot;&lt;/figurecaption&gt;&quot;
 	end if	
 	sTag = sTag &amp; &quot;&lt;/figure&gt;&quot;
 	GetEpubMediaTag = sTag
@@ -1160,7 +1232,7 @@ dim vPos as integer
 dim lCharColor as long
 dim sTextFarbe as string
 dim vParaStyle as string
-dim vCharStyle as string
+dim sCharStyle as string
 dim vEsc as integer
 dim aList()
 dim i as integer
@@ -1169,6 +1241,7 @@ dim sAnchor as string
 dim sTempStr as string
 dim iAsc as integer
 dim sType as string
+dim sStylename as string
 
 	sResult = ReplaceSymbolsCode(oPortion.GetString)
 	if sResult &lt;&gt; &quot;&quot; then
@@ -1197,8 +1270,8 @@ dim sType as string
 				sBookmark = mid(oPortion.HyperLinkURL, 2)
 				oBookmarkPortion = GetTextPortionByBookmark(sBookmark)
 				if not isnull (oBookmarkPortion) then
-					iChapterId = gaDocParagraph(oBookmarkPortion.ParaID).ChapterID
-					sResult = &quot;&lt;a href=&quot;&quot;page-&quot; &amp; iChapterID &amp; &quot;.xhtml#&quot; &amp; sBookmark &amp; &quot;&quot;&quot;&gt;&quot; &amp; oPortion.Getstring &amp; &quot;&lt;/a&gt;&quot;
+					iChapterId = gaDocChapter(gaDocParagraph(oBookmarkPortion.ParaID).ChapterID).PageID
+					sResult = &quot;&lt;a href=&quot;&quot;page-&quot; &amp; iChapterID &amp; &quot;.xhtml#&quot; &amp; sBookmark &amp; &quot;&quot;&quot;&gt;&quot; &amp; oPortion.GetString &amp; &quot;&lt;/a&gt;&quot;
 				end if    
 			end if    
 		else
@@ -1215,8 +1288,10 @@ dim sType as string
 			elseif gaDocParagraph(oPortion.ParaID).ParaFirstLineIndent &lt; 0 then
 				aList = ArrayOutOfString(sResult, chr(9))
 				if uBound(aList()) &gt; 0 then
-					if len(aList(0)) &lt;= 4 then
-						sClass = oPortion.ParaStyleName &amp; &quot;Label&quot;
+					if len(aList(0)) &lt;= 4 then						
+						sStylename = ReplaceUmlaut(oPortion.ParaStyleName)
+						sStylename = ReplaceString(sStylename, &quot;_&quot;, &quot; &quot;)
+						sClass = &quot;label_&quot; &amp; sStylename
 						sResult = &quot;&lt;span class=&quot;&quot;&quot; &amp; sClass &amp; &quot;&quot;&quot;&gt;&quot; &amp; aList(0) &amp; &quot;&lt;/span&gt;&quot;
 						for i = 1 to ubound(aList)
 							sResult = sResult &amp; aList(i)
@@ -1225,14 +1300,7 @@ dim sType as string
 				end if	
 			end if
 	
-			&apos;delete the CharStyleName here, if the text portion is hard formatted
-			&apos;if oPortion.CharFontNameState = com.sun.star.beans.PropertyState.DIRECT_VALUE  then
-			&apos;	vCharStyle = &quot;&quot;
-			&apos;else	
-				vCharStyle = oPortion.CharStyleName
-			&apos;end if   
-				
-			if vCharStyle = &quot;&quot; then
+			if oPortion.CharStyleName = &quot;&quot; and oPortion.ParaStylename = &quot;&quot; then
 				&apos;only reflect hard formatted text portions, if the character style is standard
 				if oPortion.CharWeight = com.sun.star.awt.FontWeight.BOLD then  &apos;this portion is formatted in bold
 					if len(sResult) &gt; 1 then
@@ -1270,9 +1338,12 @@ dim sType as string
 				if oPortion.CharFontPitch =  com.sun.star.awt.FontPitch.FIXED then
 			        sResult = &quot;&lt;code&gt;&quot; &amp; sResult &amp; &quot;&lt;/code&gt;&quot; 
 				end if
-			else	
-				vCharStyle = ReplaceString(vCharStyle, &quot;_&quot;, &quot; &quot;)
-				sResult = &quot;&lt;span class=&quot;&quot;&quot; &amp; vCharStyle &amp; &quot;&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/span&gt;&quot;
+			else
+				if oPortion.CharStyleName &lt;&gt; &quot;&quot; then
+					sCharStyle = ReplaceUmlaut(oPortion.CharStyleName)
+					sCharStyle = ReplaceString(sCharStyle, &quot;_&quot;, &quot; &quot;)
+					sResult = &quot;&lt;span class=&quot;&quot;&quot; &amp; sCharStyle &amp; &quot;&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/span&gt;&quot;
+				end if	
 			end if  
 
 			if (oPortion.ParaStyleName = gsMarginaleLeftStyle) or (oPortion.ParaStyleName = gsMarginaleRightStyle) then
@@ -1316,7 +1387,7 @@ dim iNumberOfNull as integer
 		&apos;first get the Paragraph to which is referenced
 		for i = 1 to ubound(gaDocChapter())
 			if gaDocChapter(i).ReferenceMark = oPortionRec.TextField then
-				sTarget = &quot;page-&quot; &amp; gaDocParagraph(i).ID &amp; &quot;.xhtml&quot;
+				sTarget = &quot;page-&quot; &amp; gaDocChapter(gaDocParagraph(i).ID).PageID &amp; &quot;.xhtml&quot;
 				exit for
 			end if
 		next i
@@ -1359,7 +1430,7 @@ dim iNumberOfNull as integer
 		end if
 		
 		if oPortionRec.CharPosture = com.sun.star.awt.FontSlant.ITALIC THEN  &apos;this portion is formatted in italic
-	        sResult = &quot;&lt;i&gt;&quot; &amp; sResult &amp; &quot;&lt;i&gt;&quot;  
+	        sResult = &quot;&lt;i&gt;&quot; &amp; sResult &amp; &quot;&lt;/i&gt;&quot;  
 		endif
 	end if	
       

@@ -1,28 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE dlg:window PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "dialog.dtd">
-<dlg:window xmlns:dlg="http://openoffice.org/2000/dialog" xmlns:script="http://openoffice.org/2000/script" dlg:id="DlgCheck" dlg:left="103" dlg:top="29" dlg:width="361" dlg:height="231" dlg:closeable="true" dlg:moveable="true" dlg:title="Check and optimize document">
+<dlg:window xmlns:dlg="http://openoffice.org/2000/dialog" xmlns:script="http://openoffice.org/2000/script" dlg:id="DlgCheck" dlg:left="103" dlg:top="29" dlg:width="329" dlg:height="231" dlg:closeable="true" dlg:moveable="true" dlg:title="Check and optimize document">
  <dlg:styles>
   <dlg:style dlg:style-id="0" dlg:border="none" dlg:font-height="8" dlg:font-weight="150"/>
-  <dlg:style dlg:style-id="1" dlg:font-height="8"/>
-  <dlg:style dlg:style-id="2" dlg:border="simple" dlg:font-height="8"/>
-  <dlg:style dlg:style-id="3" dlg:font-height="8" dlg:font-weight="100"/>
+  <dlg:style dlg:style-id="1" dlg:border="simple" dlg:font-height="8"/>
+  <dlg:style dlg:style-id="2" dlg:font-height="8" dlg:font-weight="100"/>
  </dlg:styles>
  <dlg:bulletinboard>
-  <dlg:button dlg:style-id="0" dlg:id="butCheck" dlg:tab-index="8" dlg:left="120" dlg:top="211" dlg:width="60" dlg:height="15" dlg:default="true" dlg:value="Start">
+  <dlg:button dlg:style-id="0" dlg:id="butCheck" dlg:tab-index="5" dlg:left="168" dlg:top="211" dlg:width="60" dlg:height="15" dlg:default="true" dlg:value="Start">
    <script:event script:event-name="on-performaction" script:macro-name="vnd.sun.star.script:eLAIX.Menu.DoDocCheck?language=Basic&amp;location=application" script:language="Script"/>
   </dlg:button>
-  <dlg:text dlg:style-id="1" dlg:id="Label2" dlg:tab-index="10" dlg:left="103" dlg:top="34" dlg:width="66" dlg:height="10" dlg:value="non-breaking spaces"/>
-  <dlg:img dlg:style-id="0" dlg:id="imgLogo" dlg:tab-index="11" dlg:left="330" dlg:top="10" dlg:width="23" dlg:height="29" dlg:scale-image="false"/>
-  <dlg:textfield dlg:style-id="2" dlg:id="txtStatus" dlg:tab-index="7" dlg:left="5" dlg:top="53" dlg:width="350" dlg:height="153" dlg:vscroll="true" dlg:multiline="true" dlg:readonly="true"/>
-  <dlg:textfield dlg:style-id="1" dlg:id="txtTabToSpaceCount" dlg:tab-index="3" dlg:left="87" dlg:top="33" dlg:width="12" dlg:height="10" dlg:align="center"/>
-  <dlg:checkbox dlg:style-id="1" dlg:id="chkDoubleSpaces" dlg:tab-index="1" dlg:left="9" dlg:top="22" dlg:width="137" dlg:height="10" dlg:value="Remove double spaces" dlg:checked="false"/>
-  <dlg:checkbox dlg:style-id="1" dlg:id="chkTabulators" dlg:tab-index="2" dlg:left="9" dlg:top="34" dlg:width="79" dlg:height="10" dlg:value="Replace tabulators with" dlg:checked="false"/>
-  <dlg:checkbox dlg:style-id="1" dlg:id="chkStructure" dlg:tab-index="4" dlg:left="186" dlg:top="10" dlg:width="91" dlg:height="10" dlg:value="Check/Repair structure" dlg:checked="true">
+  <dlg:img dlg:style-id="0" dlg:id="imgLogo" dlg:tab-index="7" dlg:left="280" dlg:top="7" dlg:width="41" dlg:height="36" dlg:scale-image="false"/>
+  <dlg:textfield dlg:style-id="1" dlg:id="txtStatus" dlg:tab-index="4" dlg:left="5" dlg:top="49" dlg:width="318" dlg:height="158" dlg:vscroll="true" dlg:multiline="true" dlg:readonly="true"/>
+  <dlg:checkbox dlg:style-id="1" dlg:id="chkDoubleSpaces" dlg:tab-index="0" dlg:left="143" dlg:top="29" dlg:width="120" dlg:height="10" dlg:value="Remove double spaces" dlg:checked="false"/>
+  <dlg:checkbox dlg:style-id="1" dlg:id="chkStructure" dlg:tab-index="1" dlg:left="10" dlg:top="18" dlg:width="120" dlg:height="10" dlg:value="Check/Repair structure" dlg:checked="true">
    <script:event script:event-name="on-itemstatechange" script:macro-name="vnd.sun.star.script:eLAIX.Menu.DocCheckSetElements?language=Basic&amp;location=application" script:language="Script"/>
   </dlg:checkbox>
-  <dlg:checkbox dlg:style-id="1" dlg:id="chkMetadata" dlg:tab-index="0" dlg:left="9" dlg:top="10" dlg:width="64" dlg:height="10" dlg:value="Check metadata" dlg:checked="true"/>
-  <dlg:button dlg:style-id="3" dlg:id="butClose" dlg:tab-index="9" dlg:left="184" dlg:top="211" dlg:width="60" dlg:height="15" dlg:default="true" dlg:value="Close" dlg:button-type="cancel"/>
-  <dlg:checkbox dlg:style-id="1" dlg:id="chkSyncOutlines" dlg:tab-index="5" dlg:left="186" dlg:top="22" dlg:width="117" dlg:height="10" dlg:value="Sync outlines with heading numbers" dlg:checked="true"/>
-  <dlg:checkbox dlg:style-id="1" dlg:id="chkEmptyHeadings" dlg:tab-index="6" dlg:left="186" dlg:top="34" dlg:width="111" dlg:height="10" dlg:value="Remove empty heading paragraphs" dlg:checked="true"/>
+  <dlg:button dlg:style-id="2" dlg:id="butClose" dlg:tab-index="6" dlg:left="104" dlg:top="211" dlg:width="60" dlg:height="15" dlg:default="true" dlg:value="Close" dlg:button-type="cancel"/>
+  <dlg:checkbox dlg:style-id="1" dlg:id="chkSyncOutlines" dlg:tab-index="2" dlg:left="10" dlg:top="29" dlg:width="120" dlg:height="10" dlg:value="Sync outlines with heading numbers" dlg:checked="true"/>
+  <dlg:checkbox dlg:style-id="1" dlg:id="chkEmptyHeadings" dlg:tab-index="3" dlg:left="143" dlg:top="18" dlg:width="120" dlg:height="10" dlg:value="Remove empty heading paragraphs" dlg:checked="true"/>
  </dlg:bulletinboard>
 </dlg:window>

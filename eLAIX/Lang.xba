@@ -161,7 +161,7 @@ function GetLanguageCode(sLang) as string
 		case &quot;Chinese&quot; : sLang = &quot;zh&quot;
 		case &quot;Zulu&quot; : sLang = &quot;zu&quot;
 	end select
-	GetLanguageCode = sLang
+	GetLanguageCode = LCase(sLang)
 end function
 
 

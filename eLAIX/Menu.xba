@@ -35,15 +35,6 @@ global goThisDoc as object
 private oBookmarkDialog as object
 private oStyleDialog as object
 
-Type Metadata
-	docTitle as string
-	docDescription as string
-	docLanguage as string
-	docKeywords as string
-	docAuthors as string
-	docCopyright as string
-	propOutlineNumbering as string
-End Type
 
 Type doc
 	docname as string
@@ -148,166 +139,40 @@ function DocImport()
 end function
 
 
-function GetDocMetaData() as object
-dim oMetadata as object
-
-	oMetadata = createObject(&quot;Metadata&quot;)
-	with oMetadata
-		.docTitle = GetInternalDocString(&quot;elaixDocTitle&quot;)
-		.docDescription = GetInternalDocString(&quot;elaixDocDescription&quot;)
-		.docLanguage = GetInternalDocString(&quot;elaixDocLanguage&quot;)
-		.docKeywords = GetInternalDocString(&quot;elaixDocKeywords&quot;)
-		.docAuthors = GetInternalDocString(&quot;elaixDocAuthors&quot;)
-		.docCopyright = GetInternalDocString(&quot;elaixDocCopyright&quot;)
-		.propOutlineNumbering = GetInternalDocString(&quot;elaixPropOutlineNumbering&quot;)
-	end with
-	GetDocMetaData = oMetadata
-end function
-
-
-sub SetDocMetadata (oMetadata as object)
-	SetInternalDocString(&quot;elaixDocTitle&quot;, oMetadata.docTitle)
-	SetInternalDocString(&quot;elaixDocDescription&quot;, oMetadata.docDescription)
-	SetInternalDocString(&quot;elaixDocLanguage&quot;,  oMetadata.docLanguage)
-	SetInternalDocString(&quot;elaixDocKeywords&quot;,  oMetadata.docKeywords)
-	SetInternalDocString(&quot;elaixDocAuthors&quot;,  oMetadata.docAuthors)
-	SetInternalDocString(&quot;elaixDocCopyright&quot;,  oMetadata.docCopyright)
-	SetInternalDocString(&quot;elaixPropOutlineNumbering&quot;,  oMetadata.propOutlineNumbering)
-end sub
-
-
-function GetMetaDataFromForm(oMetadata as object) as object
-dim oForm As object
-dim Ctl As object
-dim i as integer
-dim vName as string
-dim oMetadata as object
-
-	oMetaData = createObject(&quot;Metadata&quot;)
-	if ThisComponent().DrawPage.Forms.Count &gt; 0 then
-		oForm = ThisComponent().DrawPage.Forms.GetByIndex(0)
-		if oForm.Count &gt; 1 then
-			for i = 0 to oForm.Count - 1
-				Ctl = oForm.GetByIndex(i)
-				if Ctl.Name &lt;&gt; &quot;butOK&quot; then
-					vName = Ctl.Name
-					Select case vName
-						case &quot;Titel&quot; : oMetadata.docTitle = Ctl.Text
-						case &quot;Kommentar&quot; : oMetadata.docDescription = Ctl.Text
-						case &quot;Schlagworte&quot; : oMetadata.docKeywords = Ctl.Text
-						case &quot;Sprache&quot; : vName = oMetadata.docLanguage = Ctl.Text
-						case &quot;AutorName&quot; : vName = oMetadata.docAuthors = Ctl.Text
-					end select
-				else
-					exit for
-				end if  
-			next i
-		end if  
-	end if  
-	GetMetaDataFromForm = oMetadata
-end function
-
-
-sub DocMetadata()
-dim oMetadata as object
-dim oDlgFilename as object
-dim oMetaDlg as object
-dim vShowDialog as boolean
-
-	oMetaData = createObject(&quot;Metadata&quot;)
-	oMetadata = GetDocMetaData()
-	vShowDialog = true
-
-	if oMetaData.docLanguage = &quot;&quot; then  &apos;no metadata in doc
-		&apos; this might be an old eLAIX document
-		if IsOldElaixDocType then 
-			oMetaData = GetMetaDataFromForm(oMetadata)  &apos; read metadata with Doc-&gt;SetMetaDataForm
-			SetDocMetadata(oMetadata)
-			vShowDialog = UpgradeOldElaixDocType()  &apos;= true if user decided to upgrade
-		else  &apos;a non-eLAIX document -&gt; just open dialog with blank fields
-			vShowDialog = true
-		end if 
-	end if	
-
-	if vShowDialog then
-		&apos;initialize dialog and elements
-		DialogLibraries.LoadLibrary(&quot;eLAIX&quot;)
-		oMetaDlg = CreateUnoDialog( DialogLibraries.eLAIX.DlgMeta )	
-		
-		oMetaDlg.Title = &quot;Edit Document Metadata&quot;
-		oMetaDlg.getControl(&quot;edtDocTitle&quot;).SetText(oMetaData.docTitle)
-		oMetaDlg.getControl(&quot;edtDocDescription&quot;).SetText(oMetaData.docDescription)
-		oMetaDlg.getControl(&quot;cmbDocLanguage&quot;).SetText(oMetaData.docLanguage)
-		oMetaDlg.getControl(&quot;edtDocKeywords&quot;).SetText(oMetaData.docKeywords)
-		oMetaDlg.getControl(&quot;edtDocAuthors&quot;).SetText(oMetaData.docAuthors)
-		oMetaDlg.getControl(&quot;edtDocCopyright&quot;).SetText(oMetaData.docCopyright)
-		oMetaDlg.getControl(&quot;chkPropOutlineNumbering&quot;).State = (oMetaData.propOutlineNumbering)
-
-		if oMetaDlg.execute() = 1 then
-			oMetaData.docTitle = oMetaDlg.getControl(&quot;edtDocTitle&quot;).Text
-			oMetaData.docDescription = oMetaDlg.getControl(&quot;edtDocDescription&quot;).Text
-			oMetaData.docLanguage = oMetaDlg.getControl(&quot;cmbDocLanguage&quot;).Text
-			oMetaData.docKeywords = oMetaDlg.getControl(&quot;edtDocKeywords&quot;).Text
-			oMetaData.docAuthors = oMetaDlg.getControl(&quot;edtDocAuthors&quot;).Text
-			oMetaData.docCopyright = oMetaDlg.getControl(&quot;edtDocCopyright&quot;).Text
-			oMetaData.propOutlineNumbering = oMetaDlg.getControl(&quot;chkPropOutlineNumbering&quot;).State
-			SetDocMetadata(oMetadata)
-		end if			
-	end if	
-end sub
-
-
-
 sub DocCheck()
 dim oGraphic as object
 dim oControl as object
 dim sPath as string
 dim sImgPath as string
-dim oMetadata as object
 dim oStructure as object
 dim oSyncOutlines as object
 dim oEmptyHeadings as object
 dim oDoubleSpaces as object
-dim oTabulators as object
-dim oTabToSpaceCount as object
-dim vTabToSpaceCount as integer
 dim oStatus as object
 dim vState as integer
 
-	if IsOldElaixDocType then UpgradeOldElaixDocType()
 	
 	&apos;initialize dialog and elements
 	DialogLibraries.LoadLibrary( &quot;eLAIX&quot; )
 	goDlgCheck = CreateUnoDialog( DialogLibraries.eLAIX.DlgCheck )		
 	sPath = GetPackageDirURL(&quot;vnd.harryboldt.elaix&quot;)  
-	sImgPath = sPath &amp; &quot;/icons/check.png&quot;
+	sImgPath = sPath &amp; &quot;/icons/dialog/check.png&quot;
 	oControl = goDlgCheck.getControl(&quot;imgLogo&quot;)
 	oControl.getModel().ImageURL = ConvertToURL( sImgPath )
 
 	&apos;setting the dialog elements
-	oMetadata = goDlgCheck.getControl(&quot;chkMetadata&quot;)
 	oStructure = goDlgCheck.getControl(&quot;chkStructure&quot;)
 	oSyncOutlines = goDlgCheck.getControl(&quot;chkSyncOutlines&quot;)
 	oEmptyHeadings = goDlgCheck.getControl(&quot;chkEmptyHeadings&quot;)
 	oDoubleSpaces = goDlgCheck.getControl(&quot;chkDoubleSpaces&quot;)
-	oTabulators = goDlgCheck.getControl(&quot;chkTabulators&quot;)
-	oTabToSpaceCount = goDlgCheck.getControl(&quot;txtTabToSpaceCount&quot;)
 	oStatus = goDlgCheck.getControl(&quot;txtStatus&quot;)
 	oStatus.Text = &quot;Please select check-options and then start the document check and optimizing.&quot;
 	
 	&apos;get check-setting from document
-	oMetadata.State = GetInternalDocString(&quot;eLAIXCheckMetadata&quot;)
 	oStructure.State = GetInternalDocString(&quot;eLAIXCheckStructure&quot;)
 	oSyncOutlines.State = GetInternalDocString(&quot;eLAIXCheckSyncOutlines&quot;)
 	oEmptyHeadings.State = GetInternalDocString(&quot;eLAIXCheckEmptyHeadings&quot;)
 	oDoubleSpaces.State = GetInternalDocString(&quot;eLAIXCheckDoubleSpaces&quot;)
-	oTabulators.State = GetInternalDocString(&quot;eLAIXCheckTabulators&quot;)
-	vTabToSpaceCount = GetInternalDocString(&quot;eLAIXCheckTabToSpaceCount&quot;)
-	if vTabToSpaceCount &gt; 0 then 
-		oTabToSpaceCount.Text = vTabToSpaceCount
-	else
-		oTabToSpaceCount.Text = 4
-	end if	
 
 	goDlgCheck.execute	
 end sub
@@ -322,18 +187,14 @@ end sub
 
 
 sub DoDocCheck()
-dim oMetadata as object
 dim oStructure as object
 dim oSyncOutlines as object
 dim oEmptyHeadings as object
 dim oDoubleSpaces as object
-dim oTabulators as object
-dim oTabToSpaceCount as object
 dim oStatus as object
 dim oClose as object
 dim oPage as object
 dim oParagraph as object
-dim oMetadataRec as object
 dim crlf as string
 dim sStatus as string
 dim iCount as integer
@@ -344,13 +205,10 @@ dim sMsg as string
 	SwitchMousePointer(goDlgCheck.getPeer(), false)
 
 	&apos;setting the dialog elements
-	oMetadata = goDlgCheck.getControl(&quot;chkMetadata&quot;)
 	oStructure = goDlgCheck.getControl(&quot;chkStructure&quot;)
 	oSyncOutlines = goDlgCheck.getControl(&quot;chkSyncOutlines&quot;)
 	oEmptyHeadings = goDlgCheck.getControl(&quot;chkEmptyHeadings&quot;)
 	oDoubleSpaces = goDlgCheck.getControl(&quot;chkDoubleSpaces&quot;)
-	oTabulators = goDlgCheck.getControl(&quot;chkTabulators&quot;)
-	oTabToSpaceCount = goDlgCheck.getControl(&quot;txtTabToSpaceCount&quot;)
 	oStatus = goDlgCheck.getControl(&quot;txtStatus&quot;)
 	oStatus.Text = &quot;Checking document - please wait...&quot;
 		
@@ -361,23 +219,7 @@ dim sMsg as string
 		oStatus.Text = oStatus.Text &amp; crlf &amp; crlf &amp; &quot;FILENAME:&quot; &amp; crlf
 		oStatus.Text = oStatus.Text &amp; sStatus 
 	end if
-	
-	if oMetadata.State = 1 then 
-		oMetaDataRec = createObject(&quot;Metadata&quot;)
-		oMetadataRec = GetDocMetaData()
-		sStatus = &quot;METADATA:&quot; &amp; crlf
-		with oMetadataRec
-			sStatus = sStatus &amp; &quot;Document Title: &quot; &amp; .docTitle &amp; crlf
-			sStatus = sStatus &amp; &quot;Description: &quot; &amp; .docDescription &amp; crlf
-			sStatus = sStatus &amp; &quot;Language: &quot; &amp; .docLanguage &amp; crlf
-			sStatus = sStatus &amp; &quot;Keywords: &quot; &amp; .docKeywords &amp; crlf
-			sStatus = sStatus &amp; &quot;Authors: &quot; &amp; .docAuthors &amp; crlf
-			sStatus = sStatus &amp; &quot;Copyright: &quot; &amp; .docCopyright &amp; crlf
-			sStatus = sStatus &amp; &quot;Show Outline Numbering: &quot; &amp; .propOutlineNumbering &amp; crlf
-		end with
-		oStatus.Text = sStatus
-	end if
-	
+		
 	if oStructure.State = 1 then 
 		sStatus = DocCheckStructure()
 		if sStatus = &quot;&quot; then
@@ -402,28 +244,11 @@ dim sMsg as string
 		end select
 	end if
 	
-	if oTabulators.State = 1 then 
-		iCount = ReplaceTabToSpaces(Val(oTabToSpaceCount.Text))
-		select case iCount
-		case 0
-			oStatus.Text = oStatus.Text &amp; crlf &amp; crlf &amp; &quot;TABULATORS: OK&quot;
-		case 1
-			oStatus.Text = oStatus.Text &amp; crlf &amp; crlf &amp; &quot;TABULATORS:&quot;
-			oStatus.Text = oStatus.Text &amp; crlf &amp; &quot;1 occurrence removed.&quot;
-		case else
-			oStatus.Text = oStatus.Text &amp; crlf &amp; crlf &amp; &quot;TABULATORS:&quot;
-			oStatus.Text = oStatus.Text &amp; crlf &amp; CStr(iCount) &amp; &quot; occurrences removed.&quot;
-		end select
-	end if
-	
 	&apos;Save check-settings to document
-	SetInternalDocString(&quot;eLAIXCheckMetadata&quot;, oMetadata.State)
 	SetInternalDocString(&quot;eLAIXCheckStructure&quot;, oStructure.State)
 	SetInternalDocString(&quot;eLAIXCheckSyncOutlines&quot;, oSyncOutlines.State)
 	SetInternalDocString(&quot;eLAIXCheckEmptyHeadings&quot;, oEmptyHeadings.State)
 	SetInternalDocString(&quot;eLAIXCheckDoubleSpaces&quot;, oDoubleSpaces.State)
-	SetInternalDocString(&quot;eLAIXCheckTabulator&quot;, oTabulators.State)
-	SetInternalDocString(&quot;eLAIXCheckTabToSpaceCount&quot;, oTabToSpaceCount.Text)
 
 	oClose = goDlgCheck.getControl(&quot;butClose&quot;)
 	oClose.setFocus()
@@ -722,6 +547,7 @@ dim i as integer
 dim iCount as integer
 dim sFilename as string
 dim sPath as string
+dim sOS as string
 
 	filterNames(0) = &quot;*.*&quot;
 	aFilenames() = GetOpenFileNames(filterNames())
@@ -730,7 +556,7 @@ dim sPath as string
 		&apos;msgbox &quot;Files selected.&quot;
 		SetFrameStyleFileList &apos;Create the FrameStyle for the download list
 		SetParaStylesFileList &apos;Create the ParagraphStyle for the caption of the download list
-
+		
 		Dim oDoc As Object
 		Dim oViewCursor As Object
 		Dim oTextCursor As Object
@@ -755,16 +581,33 @@ dim sPath as string
 		oFrameCursor.ParaStyleName = &quot;ILIAS FileList Caption&quot;
 		oFrame.Text.insertControlCharacter(oFrameCursor, com.sun.star.text.ControlCharacter.PARAGRAPH_BREAK, False)
 		oFrameCursor.ParaStyleName = &quot;ILIAS FileList Element&quot;
-		for i = 0 to iCount
-			sPath = ConvertToURL(aFilenames(i))
-			sFilename = ConvertFromUrl(FileNameOutOfPath(sPath))
-			oFrame.Text.insertString(oFrameCursor, sFilename, true)
-			oFrameCursor.hyperlinkurl = sPath
-			if i &lt; iCount then
-				oFrameCursor.GotoEndOfParagraph(false)
-				oFrame.Text.insertControlCharacter(oFrameCursor, com.sun.star.text.ControlCharacter.PARAGRAPH_BREAK, false)
-			end if	
-		next i	
+		
+		&apos;get the current operating system
+		sOS = GetCurrentSystem
+		if sOS = &quot;Mac&quot; then
+			sPath = ConvertToURL(aFilenames(0))
+			for i = 1 to iCount
+				&apos;sFilename = ConvertFromUrl(FileNameOutOfPath(sPath))
+				sFilename = aFilenames(i)
+				oFrame.Text.insertString(oFrameCursor, sFilename, true)
+				oFrameCursor.hyperlinkurl = sPath &amp; sFilename
+				if i &lt; iCount then
+					oFrameCursor.GotoEndOfParagraph(false)
+					oFrame.Text.insertControlCharacter(oFrameCursor, com.sun.star.text.ControlCharacter.PARAGRAPH_BREAK, false)
+				end if	
+			next i	
+		else
+			for i = 0 to iCount
+				sPath = ConvertToURL(aFilenames(i))
+				sFilename = ConvertFromUrl(FileNameOutOfPath(sPath))
+				oFrame.Text.insertString(oFrameCursor, sFilename, true)
+				oFrameCursor.hyperlinkurl = sPath
+				if i &lt; iCount then
+					oFrameCursor.GotoEndOfParagraph(false)
+					oFrame.Text.insertControlCharacter(oFrameCursor, com.sun.star.text.ControlCharacter.PARAGRAPH_BREAK, false)
+				end if	
+			next i	
+		end if	
 	end if
 end sub
 
@@ -928,7 +771,7 @@ dim sParaStyleName as string
 	&apos;oPath = CreateUnoService(&quot;com.sun.star.util.PathSettings&quot;)
 	&apos;sImgPath = oPath.UserConfig &amp; &quot;/elaix/about.png&quot;
 	&apos;sPath = GetPackageDirURL(&quot;vnd.harryboldt.elaix&quot;) 
-	&apos;sImgPath = sPath &amp; &quot;/icons/about.png&quot;
+	&apos;sImgPath = sPath &amp; &quot;/icons/dialog/about.png&quot;
 	&apos;oControl = oDialog.getControl(&quot;imgLogo&quot;)
 	&apos;oControl.getModel().ImageURL = ConvertToURL( sImgPath )
 
@@ -2725,7 +2568,7 @@ dim sImgPath as string
 	&apos;oPath = CreateUnoService(&quot;com.sun.star.util.PathSettings&quot;)
 	&apos;sImgPath = oPath.UserConfig &amp; &quot;/elaix/about.png&quot;
 	sPath = GetPackageDirURL(&quot;vnd.harryboldt.elaix&quot;) 
-	sImgPath = sPath &amp; &quot;/icons/about.png&quot;
+	sImgPath = sPath &amp; &quot;/icons/dialog/about.png&quot;
 	oControl = oDialog.getControl(&quot;imgLogo&quot;)
 	oControl.getModel().ImageURL = ConvertToURL( sImgPath )
 	oDialog.execute

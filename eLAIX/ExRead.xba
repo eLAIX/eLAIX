@@ -30,11 +30,16 @@ Option Explicit
 type docTable
 	TableID as long
 	Row as integer
-	Col as integer	
+	Col as integer
+	BackColor as long	
+	BorderWidths as string
+	BorderColors as string
+	BorderStyles as string
 end type
 
 type docChapter
 	ID as long
+	PageID as integer
 	ChapterType as integer
 	GetString as string
 	Level as integer
@@ -60,13 +65,19 @@ type docParagraph
 	NumberingType as string
 	NumberingLevel as string
 	NumberingIsNumber as boolean
+	NumberingLabel as string
 	BreakType as integer
 	PageInnerWidth as long  &apos;must be long
 	TableName as string
 	TableWidth as long  &apos;must be long!
 	TableIsWidthRelative as boolean
 	TableRelativeWidth as integer
-	TableBorderWidth as integer
+	TableBorderWidths as string
+	TableBorderDistances as string
+	TableBorderColors as string
+	TableBorderStyles as string
+	TableMargins as string
+	TableBackColor as long
 	TableCaption as string
 	TableParentID as long &apos;the docParagraph.ID of the table to which this table-element belongs
 	TableRow as integer
@@ -216,7 +227,6 @@ dim oPara as object
 end sub
 
 
-
 sub ReadGraphics
 dim oDocument as object
 dim oGraphics as object
@@ -323,6 +333,24 @@ const c_BreakAfter = 5  &apos;com.sun.star.style.BreakType.PAGE_AFTER
 end sub	
 	
 
+sub SetDocPageIDs
+dim iChapterCount as integer
+dim iChapter as integer
+dim iPageID as integer
+
+	iChapterCount = ubound(gaDocChapter())
+	iChapter = 1
+	iPageID = 1
+	do while (iChapter &lt;= iChapterCount)
+		gaDocChapter(iChapter).PageID = iPageID
+		if gaDocChapter(iChapter).HasContent then
+			iPageID = iPageID + 1
+		end if
+		iChapter = iChapter + 1
+	loop
+end sub
+
+
 sub ReadParagraph(oPara as object, iPageArea as integer, iActChapterID as long, optional oTableRec as object)
 &apos;oPara      : document paragraph object
 &apos;iPageArea  : PAGE_AREA_HEADER, PAGE_AREA_TEXT or PAGE_AREA_FOOTER
@@ -359,7 +387,8 @@ dim oRules as object
 			&apos;create a new paragraph record
 			iActParaID = ubound(gaDocParagraph()) + 1
 
-			&apos;if (iActParaID = 139) then
+			&apos;if (iActParaID = 14) then
+			&apos;	xray oPara
 			&apos;end if
 
 			oParaRec = createObject(&quot;docParagraph&quot;)
@@ -376,16 +405,17 @@ dim oRules as object
 				.NumberingType = GetNumberingType(oPara)
 				.NumberingLevel = oPara.NumberingLevel
 				.NumberingIsNumber = oPara.NumberingIsNumber
+				.NumberingLabel = oPara.ListLabelString
 				.BreakType = oPara.BreakType
 				.State = PARA_STATE_PENDING
+				
 			end with	
+						
 			&apos;check if oPara is part of a table
 			if not isMissing(oTableRec) then
-				oParaRec.TableParentID = oTableRec.TableID
-				oParaRec.TableRow = oTableRec.Row
-				oParaRec.TableCol = oTableRec.Col
+				SetParaTableProps(oParaRec, oTableRec)
 			end if
-						
+
 			&apos;append ParaRec to the array of paragraphs
 			redim preserve gaDocParagraph(iActParaID)
 			goDlgExport.Model.lblCountRead.Label = iActParaID
@@ -411,12 +441,6 @@ dim oRules as object
 				.ParaStyleName = sParaStyleName
 				.State = PARA_STATE_PENDING
 				.BreakType = oPara.BreakType
-				&apos;check if oPara is part of a table
-				if not isMissing(oTableRec) then
-					.TableParentID = oTableRec.TableID
-					.TableRow = oTableRec.Row
-					.TableCol = oTableRec.Col
-				end if
 				if left(sParaStyleName, 14) = &quot;ILIAS_FileList&quot; then
 					.ParaType = PARA_TYPE_FILELIST
 				else	
@@ -426,6 +450,12 @@ dim oRules as object
 					.ParaAdjust = oPara.ParaAdjust
 				end if
 			end with
+
+			&apos;check if oPara is part of a table
+			if not isMissing(oTableRec) then
+				SetParaTableProps(oParaRec, oTableRec)
+			end if
+
 			&apos;append oParaRec to the array of paragraphs
 			redim preserve gaDocParagraph(iActParaID)
 			gaDocParagraph(iActParaID) = oParaRec	
@@ -442,33 +472,51 @@ dim oRules as object
 	&apos;check if the paragraph is a table		
 	elseif oPara.supportsService(&quot;com.sun.star.text.TextTable&quot;) Then
 		iActParaID = ubound(gaDocParagraph()) + 1
-			oParaRec = createObject(&quot;docParagraph&quot;)
-			with oParaRec
-				.ID = iActParaID
-				.ChapterID = iActChapterID
-				.PageArea = iPageArea
-				.ParaType = PARA_TYPE_TABLE
-				.BreakType = oPara.BreakType
-				.PageInnerWidth = GetInnerPageWidth(oPara)	
-				.TableName = oPara.GetName
-				.TableWidth = oPara.Width 
-				.TableIsWidthRelative = oPara.IsWidthRelative
-				.TableRelativeWidth = oPara.RelativeWidth
-				.TableBorderWidth = oPara.getCellByPosition(0,0).LeftBorder.OuterLineWidth
-				.State = PARA_STATE_PENDING
-				&apos;check if oPara is part of a table
-				if not isMissing(oTableRec) then
-					.TableParentID = oTableRec.TableID
-					.TableRow = oTableRec.Row
-					.TableCol = oTableRec.Col
-				end if
-			end with
+		oParaRec = createObject(&quot;docParagraph&quot;)
+		with oParaRec
+			.ID = iActParaID
+			.ChapterID = iActChapterID
+			.PageArea = iPageArea
+			.ParaType = PARA_TYPE_TABLE
+			.ParaAdjust = oPara.HoriOrient
+			.BreakType = oPara.BreakType
+			.PageInnerWidth = GetInnerPageWidth(oPara)	
+			.TableName = oPara.GetName
+			.TableWidth = oPara.Width 
+			.TableIsWidthRelative = oPara.IsWidthRelative
+			.TableRelativeWidth = oPara.RelativeWidth
+			.TableBackColor = oPara.BackColor
+			.TableBorderWidths = oPara.TableBorder.TopLine.OuterlineWidth &amp; &quot; &quot; &amp; oPara.TableBorder.RightLine.OuterlineWidth &amp; &quot; &quot; &amp; oPara.TableBorder.BottomLine.OuterlineWidth &amp; &quot; &quot; &amp; oPara.TableBorder.LeftLine.OuterlineWidth
+			.TableBorderDistances = oPara.TableBorderDistances.TopDistance &amp; &quot; &quot; &amp; oPara.TableBorderDistances.RightDistance &amp; &quot; &quot; &amp; oPara.TableBorderDistances.BottomDistance &amp; &quot; &quot; &amp; oPara.TableBorderDistances.LeftDistance
+			.TableBorderColors = oPara.TableBorder.TopLine.Color &amp; &quot; &quot; &amp; oPara.TableBorder.RightLine.Color &amp; &quot; &quot; &amp; oPara.TableBorder.BottomLine.Color &amp; &quot; &quot; &amp; oPara.TableBorder.LeftLine.Color
+			.TableMargins = oPara.TopMargin &amp; &quot; &quot; &amp; oPara.RightMargin &amp; &quot; &quot; &amp; oPara.BottomMargin &amp; &quot; &quot; &amp; oPara.LeftMargin
+			.State = PARA_STATE_PENDING
+		end with
+
+		&apos;check if oPara is part of a table
+		if not isMissing(oTableRec) then
+			SetParaTableProps(oParaRec, oTableRec)
+		end if
+
 		&apos;append ParaRec to the array of paragraphs
 		redim preserve gaDocParagraph(iActParaID)
 		gaDocParagraph(iActParaID) = oParaRec	
 		goDlgExport.Model.lblCountRead.Label = iActParaID		
 		ReadTable(oPara, oParaRec)
 	end if  
+end sub
+
+
+sub SetParaTableProps(oParaRec as object, oTableRec as object)
+	with oParaRec
+		.TableParentID = oTableRec.TableID
+		.TableRow = oTableRec.Row
+		.TableCol = oTableRec.Col
+		.TableBackColor = oTableRec.BackColor 
+		.TableBorderColors = oTableRec.BorderColors
+		.TableBorderWidths = oTableRec.BorderWidths
+		.TableBorderStyles = oTableRec.BorderStyles
+	end with
 end sub
 
 
@@ -826,35 +874,75 @@ dim oCellObj as object
 dim oCellEnum as object
 dim oCellPara as object
 dim iColCount as integer
+dim sOfficeVersion as string
 	
 	on error goto ErrorHandler
 	oRows = oTable.getRows().getCount()
 	oCols = oTable.getColumns().getCount()
-	For iRow = 0 To (oRows - 1)
-		iColCount = UBound(oTable.getRows().getByIndex(iRow).TableColumnSeparators) + 1
-		For iCol = 0 To iColCount
-			oTableRec = createObject(&quot;docTable&quot;)
-			with oTableRec
-				.TableID = oParaRec.ID
-				.Row = iRow
-				.Col = iCol
-			end with
-			&apos;MsgBox &quot;(row, col) = (&quot; &amp; row &amp; &quot;, &quot; &amp; col &amp; &quot;)&quot;
+
+	&apos;fist check if LibreOffice of OpenOffice is running
+	&apos; OpenOffice doesn&apos;t have the LineStyle property
+	sOfficeVersion = GetCurrentOfficeVersion()
+	if sOfficeVersion = &quot;LibreOffice&quot; then
+		for iRow = 0 To (oRows - 1)
+			iColCount = UBound(oTable.getRows().getByIndex(iRow).TableColumnSeparators) + 1
+			for iCol = 0 To iColCount
 				oCellObj = oTable.getCellByPosition(iCol, iRow)
+				oTableRec = createObject(&quot;docTable&quot;)
+				with oTableRec
+					.TableID = oParaRec.ID
+					.Row = iRow
+					.Col = iCol
+					.BackColor = oCellObj.BackColor
+					.BorderWidths = oCellObj.TopBorder.OuterLineWidth + oCellObj.TopBorder.InnerLineWidth &amp; &quot; &quot;  &amp; _
+									oCellObj.RightBorder.OuterLineWidth + oCellObj.RightBorder.InnerLineWidth &amp; &quot; &quot; &amp; _
+									oCellObj.BottomBorder.OuterLineWidth + oCellObj.BottomBorder.InnerLineWidth &amp; &quot; &quot; &amp; _ 
+									oCellObj.LeftBorder.OuterLineWidth + oCellObj.LeftBorder.InnerLineWidth
+					.BorderColors = oCellObj.TopBorder.Color &amp; &quot; &quot;  &amp; oCellObj.RightBorder.Color &amp; &quot; &quot; &amp; oCellObj.BottomBorder.Color &amp; &quot; &quot; &amp; oCellObj.LeftBorder.Color 
+					.BorderStyles = oCellObj.TopBorder.LineStyle &amp; &quot; &quot;  &amp; oCellObj.RightBorder.LineStyle &amp; &quot; &quot; &amp; oCellObj.BottomBorder.LineStyle &amp; &quot; &quot; &amp; oCellObj.LeftBorder.LineStyle 
+				end with
+				&apos;MsgBox &quot;(row, col) = (&quot; &amp; row &amp; &quot;, &quot; &amp; col &amp; &quot;)&quot;
 				oCellEnum = oCellObj.getText().createEnumeration() 
 				do while oCellEnum.hasMoreElements()
 	 				oCellPara = oCellEnum.nextElement() 
 					ReadParagraph(oCellPara, oParaRec.PageArea, oParaRec.ChapterID, oTableRec)
 				loop	
-		next
-	next
+			next iCol
+		next iRow
+	else &apos; it is OpenOffice
+		for iRow = 0 To (oRows - 1)
+			iColCount = UBound(oTable.getRows().getByIndex(iRow).TableColumnSeparators) + 1
+			for iCol = 0 To iColCount
+				oCellObj = oTable.getCellByPosition(iCol, iRow)
+				oTableRec = createObject(&quot;docTable&quot;)
+				with oTableRec
+					.TableID = oParaRec.ID
+					.Row = iRow
+					.Col = iCol
+					.BackColor = oCellObj.BackColor
+					.BorderWidths = oCellObj.TopBorder.OuterLineWidth + oCellObj.TopBorder.InnerLineWidth &amp; &quot; &quot;  &amp; _
+									oCellObj.RightBorder.OuterLineWidth + oCellObj.RightBorder.InnerLineWidth &amp; &quot; &quot; &amp; _
+									oCellObj.BottomBorder.OuterLineWidth + oCellObj.BottomBorder.InnerLineWidth &amp; &quot; &quot; &amp; _ 
+									oCellObj.LeftBorder.OuterLineWidth + oCellObj.LeftBorder.InnerLineWidth
+					.BorderColors = oCellObj.TopBorder.Color &amp; &quot; &quot;  &amp; oCellObj.RightBorder.Color &amp; &quot; &quot; &amp; oCellObj.BottomBorder.Color &amp; &quot; &quot; &amp; oCellObj.LeftBorder.Color 
+					.BorderStyles = &quot;0 0 0 0&quot; 
+				end with
+				oCellEnum = oCellObj.getText().createEnumeration() 
+				do while oCellEnum.hasMoreElements()
+	 				oCellPara = oCellEnum.nextElement() 
+					ReadParagraph(oCellPara, oParaRec.PageArea, oParaRec.ChapterID, oTableRec)
+				loop	
+			next iCol
+		next iRow
+	end if
+
 	exit sub	
 	
 	ErrorHandler:
 	gsEnumErrors = gsEnumErrors &amp; Chr(13) &amp; Chr(13)
 	gsEnumErrors = gsEnumErrors &amp; &quot;Table &quot; &amp; oTable.Name &amp; &quot; could not be exported.&quot; &amp; chr(13)
 	gsEnumErrors = gsEnumErrors &amp; &quot;Error &quot; &amp; Err &amp; &quot;: &quot; &amp; Error$ &amp; &quot; (line : &quot; &amp; Erl &amp; &quot;)&quot; &amp; chr(13)
-End sub 
+end sub 
 
 
 &apos;just to show how to access the cells of complex tables by name
@@ -1348,6 +1436,7 @@ dim oOutputStream as object
 	sStrg = &quot;ARRAY gaDocChapter:&quot; &amp; sCR &amp; sCR
 	for i = 1 to ubound(gaDocChapter())
 		sStrg = sStrg &amp; &quot;ID: &quot; &amp; gaDocChapter(i).ID &amp; sCR
+		sStrg = sStrg &amp; &quot;PageID: &quot; &amp; gaDocChapter(i).PageID &amp; sCR
 		sStrg = sStrg &amp; &quot;ChapterType: &quot; &amp; gaDocChapter(i).ChapterType &amp; sCR
 		sStrg = sStrg &amp; &quot;Level: &quot; &amp; gaDocChapter(i).Level &amp; sCR
 		sStrg = sStrg &amp; &quot;ListLabelString: &quot; &amp; gaDocChapter(i).ListLabelString &amp; sCR
@@ -1378,13 +1467,19 @@ dim oOutputStream as object
 		sStrg = sStrg &amp; &quot;NumberingType: &quot; &amp; gaDocParagraph(i).NumberingType &amp; sCR
 		sStrg = sStrg &amp; &quot;NumberingLevel: &quot; &amp; gaDocParagraph(i).NumberingLevel &amp; sCR
 		sStrg = sStrg &amp; &quot;NumberingIsNumber: &quot; &amp; gaDocParagraph(i).NumberingIsNumber &amp; sCR
+		sStrg = sStrg &amp; &quot;NumberingLabel: &quot; &amp; gaDocParagraph(i).NumberingLabel &amp; sCR
 		sStrg = sStrg &amp; &quot;BreakType: &quot; &amp; gaDocParagraph(i).BreakType &amp; sCR
 		sStrg = sStrg &amp; &quot;PageInnerWidth: &quot; &amp; gaDocParagraph(i).PageInnerWidth &amp; sCR
 		sStrg = sStrg &amp; &quot;TableName: &quot; &amp; gaDocParagraph(i).TableName &amp; sCR
 		sStrg = sStrg &amp; &quot;TableWidth: &quot; &amp; gaDocParagraph(i).TableWidth &amp; sCR		
 		sStrg = sStrg &amp; &quot;TableIsWidthRelative: &quot; &amp; gaDocParagraph(i).TableIsWidthRelative &amp; sCR
 		sStrg = sStrg &amp; &quot;TableRelativeWidth: &quot; &amp; gaDocParagraph(i).TableRelativeWidth &amp; sCR
-		sStrg = sStrg &amp; &quot;TableBorderWidth: &quot; &amp; gaDocParagraph(i).TableBorderWidth &amp; sCR
+		sStrg = sStrg &amp; &quot;TableBorderWidths: &quot; &amp; gaDocParagraph(i).TableBorderWidths &amp; sCR
+		sStrg = sStrg &amp; &quot;TableBorderDistances: &quot; &amp; gaDocParagraph(i).TableBorderDistances &amp; sCR
+		sStrg = sStrg &amp; &quot;TableBorderColors: &quot; &amp; gaDocParagraph(i).TableBorderColors &amp; sCR
+		sStrg = sStrg &amp; &quot;TableBorderStyles: &quot; &amp; gaDocParagraph(i).TableBorderStyles &amp; sCR
+		sStrg = sStrg &amp; &quot;TableMargins: &quot; &amp; gaDocParagraph(i).TableMargins &amp; sCR
+		sStrg = sStrg &amp; &quot;TableBackColor: &quot; &amp; gaDocParagraph(i).TableBackColor &amp; sCR
 		sStrg = sStrg &amp; &quot;TableCaption: &quot; &amp; gaDocParagraph(i).TableCaption &amp; sCR
 		sStrg = sStrg &amp; &quot;TableParentID: &quot; &amp; gaDocParagraph(i).TableParentID &amp; sCR
 		sStrg = sStrg &amp; &quot;TableRow: &quot; &amp; gaDocParagraph(i).TableRow &amp; sCR

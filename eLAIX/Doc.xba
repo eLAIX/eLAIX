@@ -612,7 +612,6 @@ dim i as integer
 			If InStr(sImgNames(i), sURL) = 1 Then
 				sURL = sImgNames(i)
 				oGraphic = oStorage.GetByName(sURL)
-				xray oGraphic
 			End If
 		Next
 	end if	
@@ -851,61 +850,6 @@ Sub removeCurrentPage()
   End If
 End Sub
 
-function IsOldElaixDocType as boolean
-dim oDoc
-dim oTables 
-
-	oDoc = thisComponent()
-	oTables = oDoc.getTextTables()
-	IsOldElaixDocType = oTables.HasByName(&quot;DatenderLerneinheit&quot;)
-end function
-
-function UpgradeOldElaixDocType as boolean
-dim vMsg as string
-dim vTitle as string
-dim oText as object
-dim oDrawPage as object
-dim oTables as object
-dim oTable as object
-dim oRows as object
-dim vLabel1 as string
-dim vLabel2 as string
-dim i as integer
-
-	vMsg = &quot;This document was created with an old eLAIX (iLEX) version. Should it be converted into a new one? (This will remove the metadata formular and all macros within the current documents)&quot;
-	vTitle = &quot;eLAIX document conversion&quot;
-	if msgbox (vMsg, 36, vTitle) = 6 then
-
-		&apos;loop though document tables
-		oTables = ThisComponent.getTextTables
-		if oTables.hasElements() Then
-			&apos;find first metadata table (name is &quot;DatenderLerneinheit&quot;)
-			for i = 0 to oTables.Count
-				oTable = oTables.GetByIndex(i)
-				if oTable.Name = &quot;DatenderLerneinheit&quot; then
-					&apos;delete this table
-					oRows = oTable.GetRows()
-					oRows.removeByIndex(0, oRows.Count)
-					&apos;reload tables, Author table now has the same index
-					oTables = ThisComponent.getTextTables()
-					oTable = oTables.GetByIndex(i)
-					oRows = oTable.GetRows()
-					oRows.removeByIndex(0, oRows.Count)
-					DeleteFirstEmptyPage
-					exit for
-				end if
-			next i
-		end if	
-		&apos;vMsg = &quot;This old eLAIX version contains macros that are now obsolete. Should the macro module be removed?&quot;
-		&apos;vTitle = &quot;eLAIX document conversion&quot;
-		&apos;if msgbox (vMsg, 36, vTitle) = 6 then 
-		DeleteDocModule( &quot;Standard&quot;, &quot;Main&quot; )
-		&apos;end if	
-		UpgradeOldElaixDocType = true	
-	else
-		UpgradeOldElaixDocType = false
-	end if
-end function
 
 sub DeleteFirstEmptyPage
 dim document   as object

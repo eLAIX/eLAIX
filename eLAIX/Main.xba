@@ -78,7 +78,6 @@ global giActNumberingLevel as integer
 &apos;Export Dialog
 Global gsCheckString as string
 Global gbAskForOverwrite as boolean
-Global gbOptDelTmpFiles as boolean
 Global gbOptNoScaleGraphics as boolean
 Global gsOptShowLineNo as string
 Global gbOptIncludeHeader as boolean
@@ -113,6 +112,7 @@ end type
 
 sub InitGlobals()
   
+	
 	&apos;---- enumeration arrays ----------------------&apos;
 	redim gaDocChapter(0)
 	redim gaDocParagraph(0)
@@ -204,12 +204,14 @@ end sub
 
 
 function GetDefaultFilename() as string
+dim sCurDir as string
 dim sFileName as string
 dim sFileFolder as string
 
+	sCurDir = DirectoryNameOutOfPath(thisComponent.Location, gsPathSeparator)
 	sFilename = FilenameOutOfPath(thisComponent.Location, gsPathSeparator) &apos; the Filename of this document
 	sFileFolder = GetFilenameWithoutExtension(sFileName) &apos; the Filename of this document without extension
-	GetDefaultFilename = ConvertFromURL(gsCurDir &amp; gsPathSeparator &amp; sFileFolder &amp; gsExtensionZIP) &apos;will be proposed in export dialog
+	GetDefaultFilename = ConvertFromURL(sCurDir &amp; gsPathSeparator &amp; sFileFolder &amp; gsExtensionZIP) &apos;will be proposed in export dialog
 end function
 
 
