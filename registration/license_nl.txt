@@ -1,0 +1,20 @@
+**********************************************************************
+ eLAIX   : Creëer ILIAS leer modules en eBooks (ePUB 3) met 
+           LibreOffice of OpenOffice.org Writer.
+ Auteur  : Harry Boldt - h.boldt@boldt-media.de - http://elaix.org
+ Licentie : GPL
+**********************************************************************
+
+eLAIX is vrije software. U kunt het onder de regels van de GNU, 
+General Public License, en onder die van de Free Software Foundation 
+gebruiken, doorgegeven en/of modificeren, of volgens 
+Versie 3 van de Licentie of (als u wilt) elke oudere versie.
+
+Ik hoop dat het gebruik van dit Programma u van nut kan zijn, 
+maar zonder ENIGE GARANTIE, zelfs zonder de impliciete garantie op 
+bruikbaarheid of om het te kunnen gebruiken voor een BEPAALD DOEL.
+Details vindt u in de GNU General Public Licentie.
+
+Als het goed is heeft u een exemplaar van de GNU General Public Licentie 
+sammen met dit Programma gekregen. Indien dit niet het geval is
+kunt u dit vinden op <http://www.gnu.org/licenses/>. 

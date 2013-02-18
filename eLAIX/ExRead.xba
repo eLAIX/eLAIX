@@ -31,6 +31,8 @@ type docTable
 	TableID as long
 	Row as integer
 	Col as integer
+	HAlign as integer
+	VAlign as integer
 	BackColor as long	
 	BorderWidths as string
 	BorderColors as string
@@ -46,6 +48,7 @@ type docChapter
 	ListLabelString as string
 	ReferenceMark as string
 	HasContent as boolean
+	HasPageBreak as boolean
 end type
 
 type docParagraph
@@ -76,6 +79,8 @@ type docParagraph
 	TableBorderDistances as string
 	TableBorderColors as string
 	TableBorderStyles as string
+	TableHAlign as integer
+	TableVAlign as integer
 	TableMargins as string
 	TableBackColor as long
 	TableCaption as string
@@ -340,22 +345,27 @@ dim iPageID as integer
 
 	iChapterCount = ubound(gaDocChapter())
 	iChapter = 1
-	iPageID = 1
+	if gaDocChapter(1).HasPageBreak then
+		iPageID = 0
+	else 	
+		iPageID = 1
+	end if
 	do while (iChapter &lt;= iChapterCount)
-		gaDocChapter(iChapter).PageID = iPageID
-		if gaDocChapter(iChapter).HasContent then
+		if gaDocChapter(iChapter).HasPageBreak then
 			iPageID = iPageID + 1
+			gaDocChapter(iChapter).PageID = iPageID
 		end if
+		gaDocChapter(iChapter).PageID = iPageID			
 		iChapter = iChapter + 1
 	loop
 end sub
 
 
 sub ReadParagraph(oPara as object, iPageArea as integer, iActChapterID as long, optional oTableRec as object)
-&apos;oPara      : document paragraph object
-&apos;iPageArea  : PAGE_AREA_HEADER, PAGE_AREA_TEXT or PAGE_AREA_FOOTER
-&apos;iActChapterID : actual chapter no
-&apos;oTableRec  : Table information if oPara is part of a table
+&apos;oPara         : document paragraph object
+&apos;iPageArea     : PAGE_AREA_HEADER, PAGE_AREA_TEXT or PAGE_AREA_FOOTER
+&apos;iActChapterID : current chapter no
+&apos;oTableRec     : Table information if oPara is part of a table
 dim sParaStyleName as string
 dim sNumberingStyle as string
 dim oParaRec as docParagraph
@@ -367,6 +377,12 @@ dim oRules as object
 
 	&apos;A paragraph can be a standard paragraph or a table. First check if it&apos;s a paragraph
 	if oPara.supportsService(&quot;com.sun.star.text.Paragraph&quot;) then
+
+		&apos;iActParaID = ubound(gaDocParagraph())
+		&apos;if iActParaID = 845 then
+		&apos;	iActParaId = iActParaID
+		&apos;	xray oPara
+		&apos;end if
 
 		&apos; first reset list in code view to standard paragraph
 		sParaStyleName =  ReplaceString(oPara.ParaStyleName, &quot;_&quot;, &quot; &quot;)
@@ -386,10 +402,6 @@ dim oRules as object
 			          
 			&apos;create a new paragraph record
 			iActParaID = ubound(gaDocParagraph()) + 1
-
-			&apos;if (iActParaID = 14) then
-			&apos;	xray oPara
-			&apos;end if
 
 			oParaRec = createObject(&quot;docParagraph&quot;)
 			with oParaRec
@@ -516,6 +528,8 @@ sub SetParaTableProps(oParaRec as object, oTableRec as object)
 		.TableBorderColors = oTableRec.BorderColors
 		.TableBorderWidths = oTableRec.BorderWidths
 		.TableBorderStyles = oTableRec.BorderStyles
+		.TableHAlign = oTableRec.HAlign
+		.TableVAlign = oTableRec.VAlign
 	end with
 end sub
 
@@ -880,7 +894,7 @@ dim sOfficeVersion as string
 	oRows = oTable.getRows().getCount()
 	oCols = oTable.getColumns().getCount()
 
-	&apos;fist check if LibreOffice of OpenOffice is running
+	&apos;fist check if LibreOffice or OpenOffice is running
 	&apos; OpenOffice doesn&apos;t have the LineStyle property
 	sOfficeVersion = GetCurrentOfficeVersion()
 	if sOfficeVersion = &quot;LibreOffice&quot; then
@@ -888,6 +902,9 @@ dim sOfficeVersion as string
 			iColCount = UBound(oTable.getRows().getByIndex(iRow).TableColumnSeparators) + 1
 			for iCol = 0 To iColCount
 				oCellObj = oTable.getCellByPosition(iCol, iRow)
+				&apos;if iCol = 0 and iRow = 0 then
+				&apos;	xray oCellObj
+				&apos;end if
 				oTableRec = createObject(&quot;docTable&quot;)
 				with oTableRec
 					.TableID = oParaRec.ID
@@ -900,6 +917,8 @@ dim sOfficeVersion as string
 									oCellObj.LeftBorder.OuterLineWidth + oCellObj.LeftBorder.InnerLineWidth
 					.BorderColors = oCellObj.TopBorder.Color &amp; &quot; &quot;  &amp; oCellObj.RightBorder.Color &amp; &quot; &quot; &amp; oCellObj.BottomBorder.Color &amp; &quot; &quot; &amp; oCellObj.LeftBorder.Color 
 					.BorderStyles = oCellObj.TopBorder.LineStyle &amp; &quot; &quot;  &amp; oCellObj.RightBorder.LineStyle &amp; &quot; &quot; &amp; oCellObj.BottomBorder.LineStyle &amp; &quot; &quot; &amp; oCellObj.LeftBorder.LineStyle 
+					.HAlign = oCellObj.Start.ParaAdjust
+					.VAlign = oCellObj.VertOrient
 				end with
 				&apos;MsgBox &quot;(row, col) = (&quot; &amp; row &amp; &quot;, &quot; &amp; col &amp; &quot;)&quot;
 				oCellEnum = oCellObj.getText().createEnumeration() 
@@ -926,6 +945,8 @@ dim sOfficeVersion as string
 									oCellObj.LeftBorder.OuterLineWidth + oCellObj.LeftBorder.InnerLineWidth
 					.BorderColors = oCellObj.TopBorder.Color &amp; &quot; &quot;  &amp; oCellObj.RightBorder.Color &amp; &quot; &quot; &amp; oCellObj.BottomBorder.Color &amp; &quot; &quot; &amp; oCellObj.LeftBorder.Color 
 					.BorderStyles = &quot;0 0 0 0&quot; 
+					.HAlign = oCellObj.Start.ParaAdjust
+					.VAlign = oCellObj.VertOrient
 				end with
 				oCellEnum = oCellObj.getText().createEnumeration() 
 				do while oCellEnum.hasMoreElements()
@@ -1384,8 +1405,10 @@ dim oPortion as object
 dim sString as string
 dim iNumberingLevel as integer
 dim iOutlineLevel as integer
+dim oRules as object
+dim oRule as object
 
-	iNewPos = ubound(gaDocChapter()) + 1
+	iNewPos = ubound(gaDocChapter()) + 1	
 	oChapterRec = createObject(&quot;docChapter&quot;)
 	iOutlineLevel = oPara.OutlineLevel
 	iNumberingLevel = oPara.NumberingLevel
@@ -1395,7 +1418,15 @@ dim iOutlineLevel as integer
 		.Level = oPara.OutlineLevel
 		.ListLabelString = oPara.ListLabelString
 		.HasContent = false
+		.HasPageBreak = oPara.BreakType = com.sun.star.style.BreakType.PAGE_BEFORE
 	end with	
+	
+	&apos;check if an existing ListLabel ends width a blank
+	if oChapterRec.ListLabelString &lt;&gt; &quot;&quot; then
+		if right(oPara.ListLabelString, 1) &lt;&gt; &quot; &quot; then
+			oChapterRec.ListLabelString = oChapterRec.ListLabelString &amp; &quot; &quot;
+		end if
+	end if
 	
 	oEnum = oPara.createEnumeration()
 	sString = &quot;&quot;	
@@ -1443,6 +1474,7 @@ dim oOutputStream as object
 		sStrg = sStrg &amp; &quot;GetString: &quot; &amp; gaDocChapter(i).GetString &amp; sCR
 		sStrg = sStrg &amp; &quot;ReferenceMark: &quot; &amp; gaDocChapter(i).ReferenceMark &amp; sCR
 		sStrg = sStrg &amp; &quot;HasContent: &quot; &amp; gaDocChapter(i).HasContent &amp; sCR
+		sStrg = sStrg &amp; &quot;HasPageBreak: &quot; &amp; gaDocChapter(i).HasPageBreak &amp; sCR
 		oFile.writeString(sStrg &amp; sCR)
 		sStrg = &quot;&quot;
 	next i
@@ -1480,6 +1512,8 @@ dim oOutputStream as object
 		sStrg = sStrg &amp; &quot;TableBorderStyles: &quot; &amp; gaDocParagraph(i).TableBorderStyles &amp; sCR
 		sStrg = sStrg &amp; &quot;TableMargins: &quot; &amp; gaDocParagraph(i).TableMargins &amp; sCR
 		sStrg = sStrg &amp; &quot;TableBackColor: &quot; &amp; gaDocParagraph(i).TableBackColor &amp; sCR
+		sStrg = sStrg &amp; &quot;TableHAlign: &quot; &amp; gaDocParagraph(i).TableHAlign &amp; sCR
+		sStrg = sStrg &amp; &quot;TableVAlign: &quot; &amp; gaDocParagraph(i).TableVAlign &amp; sCR
 		sStrg = sStrg &amp; &quot;TableCaption: &quot; &amp; gaDocParagraph(i).TableCaption &amp; sCR
 		sStrg = sStrg &amp; &quot;TableParentID: &quot; &amp; gaDocParagraph(i).TableParentID &amp; sCR
 		sStrg = sStrg &amp; &quot;TableRow: &quot; &amp; gaDocParagraph(i).TableRow &amp; sCR

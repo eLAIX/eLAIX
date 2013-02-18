@@ -8,7 +8,10 @@
 			<node oor:name="private:resource/toolbar/addon_eLAIX.OfficeToolBar" oor:op="replace">
 				<prop oor:name="UIName" oor:type="xs:string">
 					<value>eLAIX Toolbar</value>
-					<value xml:lang="de-DE">eLAIX Toolbar</value>
+					<value xml:lang="en">eLAIX Toolbar</value>
+					<value xml:lang="de">eLAIX Toolbar</value>
+					<value xml:lang="es">eLAIX Toolbar</value>
+					<value xml:lang="nl">eLAIX Toolbar</value>
 				</prop>
 			</node>
 		</node>

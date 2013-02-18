@@ -55,15 +55,15 @@ sub ExportEpubStandardStyles(oStream as object)
 	oStream.writeString(&quot;.footnotes .separator{width:150px;border-top:2px solid #000;margin-top:25px;padding-top:15px}&quot; &amp; gsCR)
 	oStream.writeString(&quot;.footnotes .fn-id{padding-right:20px;}&quot; &amp; gsCR)
 	oStream.writeString(&quot;.footnotes a.back {text-decoration:none;}&quot; &amp; gsCR) 
-	oStream.writeString(&quot;figure{margin:0;padding:0;display:inline-block;}&quot; &amp; gsCR) 
+	oStream.writeString(&quot;figure{margin:0;padding:0;}&quot; &amp; gsCR) 
 	oStream.writeString(&quot;figure.left-float{float:left; margin-right:15px;}&quot; &amp; gsCR) 
 	oStream.writeString(&quot;figure.right-float{float:right; margin-left:15px;}&quot; &amp; gsCR) 
 	oStream.writeString(&quot;figure.center{text-align:center;}&quot; &amp; gsCR) 
 	oStream.writeString(&quot;ul{padding-top:0;}&quot; &amp; gsCR) 
 	oStream.writeString(&quot;.clear{clear:both;}&quot; &amp; gsCR) 
 	oStream.writeString(&quot;table{border-spacing:0;}&quot; &amp; gsCR) 
-	oStream.writeString(&quot;.marginal_no{position:absolute;left:-15px;}&quot; &amp; gsCR  &amp; gsCR) 
-	oStream.writeString(&quot;.align-center{margin:auto;}&quot; &amp; gsCR  &amp; gsCR) 
+	oStream.writeString(&quot;.marginal_no{position:absolute;left:-15px;}&quot; &amp; gsCR) 
+	oStream.writeString(&quot;.align-center{margin:auto;}&quot; &amp; gsCR) 
 	oStream.writeString(&quot;.align-right{float:right;}&quot; &amp; gsCR  &amp; gsCR) 
 end sub
 
@@ -279,11 +279,12 @@ dim oNumRules as object
 dim iNumLevel as integer
 dim iLeftMargin as integer
 dim iFirstLineOffset as integer
+dim sPadding as string
 
-	&apos;STEP 1: set the list itself (ul tag)
+	&apos;STEP 1: set the list itself (ol tag)
 	sStylename = ReplaceUmlaut(oStyle.Name)
 	sStylename = ReplaceString(sStylename, &quot;_&quot;, &quot; &quot;)
-	sStyleString = &quot;ol.&quot; &amp; sStyleName &amp; &quot; {&quot; &amp; gsCR
+	sStyleString = &quot;ol.list_&quot; &amp; sStyleName &amp; &quot; {&quot; &amp; gsCR
 	sStyleString = sStylestring &amp; &quot;font-size: &quot; &amp;  CInt(oStyle.CharHeight) &amp; &quot;pt;&quot; &amp; gsCR
 
 	&apos;Get the NumberingLevel of the first found paragraph with this Stylename
@@ -295,7 +296,8 @@ dim iFirstLineOffset as integer
 		&apos;Set the left margin
 		iLeftMargin = GetEpubNumRulesProperty(oNumRules, &quot;IndentAt&quot;, iNumLevel)
 		iFirstLineOffset = GetEpubNumRulesProperty(oNumRules, &quot;FirstLineIndent&quot;, iNumLevel)
-		sStyleString = sStylestring &amp; &quot;padding-left: &quot; &amp; GetEpubFormattedPixelString(Int(iLeftMargin / cFactor) + Int(iFirstLineOffset / cFactor) &amp; &quot;pt;&quot; &amp; gsCR
+		sPadding = GetEpubFormattedPixelString(25 + Int(iLeftMargin/cFactor + 0.5) + Int(iFirstLineOffset/cFactor + 0.5)
+		sStyleString = sStylestring &amp; &quot;padding-left: &quot; &amp; sPadding &amp; gsCR
 	end if	
 	sStyleString = sStylestring &amp; &quot;}&quot; &amp; gsCR &amp; gsCR
 
@@ -572,36 +574,46 @@ dim oProps(2) as new com.sun.star.beans.PropertyValue
 dim oProp as new com.sun.star.beans.PropertyValue
 dim i as integer
 dim iCount as integer
+dim oStandard as object
 
-	&apos;oPara = GetEpubParaByStyleName(sStyleName)
+	oStandard = GetStyleByName(&quot;ParagraphStyles&quot;, &quot;Standard&quot;)
 	sStylename = ReplaceUmlaut(oStyle.Name)
 	sStylename = ReplaceString(sStylename, &quot;_&quot;, &quot; &quot;)
 	
 	if Left(sStylename, 7) = &quot;Heading&quot; then
 		sStyleString = &quot;h&quot; &amp; mid(sStyleName, 9) &amp; &quot;{&quot; &amp; gsCR
 		oProps(0).Name  = &quot;margin-top&quot;
-		oProps(0).Value =  GetEpubFormattedPixelString(0)
+		&apos;set no margin-top on top of a page
+		if oStyle.BreakType = 4 then 
+			oProps(0).Value =  0
+		else	
+			oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / cFactor))
+		end if	
 		oProps(1).Name  = &quot;margin-left&quot;
-		oProps(1).Value =  GetEpubFormattedPixelString(0)
+		oProps(1).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaLeftMargin / cFactor))
+		
+		&apos;if sStylename = &quot;Heading_1&quot; then
+		&apos;	xray oStyle
+		&apos;end if
 		
 	elseif sStylename = &quot;ILIAS_FileList_Caption&quot; then
 		sStyleString = &quot;.FileListHeading {&quot; &amp; gsCR
 		oProps(0).Name  = &quot;margin-top&quot;
-		oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / cFactor * 2))
+		oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / cFactor))
 		oProps(1).Name  = &quot;margin-left&quot;
 		oProps(1).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaLeftMargin / cFactor))
 		
 	elseif sStylename = &quot;ILIAS_FileList_Element&quot; then
 		sStyleString = &quot;li.FileListItem {&quot; &amp; gsCR
 		oProps(0).Name  = &quot;margin-top&quot;
-		oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / cFactor * 2))
+		oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / cFactor))
 		oProps(1).Name  = &quot;margin-left&quot;
 		oProps(1).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaLeftMargin / cFactor))
 		
 	else
 		sStyleString = &quot;.para_&quot; &amp; sStyleName &amp; &quot; {&quot; &amp; gsCR
 		oProps(0).Name  = &quot;margin-top&quot;
-		oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / cFactor * 2))
+		oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / cFactor))
 		oProps(1).Name  = &quot;margin-left&quot;
 		oProps(1).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaLeftMargin / cFactor))
 	end if
@@ -609,6 +621,13 @@ dim iCount as integer
 	oProps(2).Name  = &quot;position&quot;
 	oProps(2).Value =  &quot;relative&quot;	
 	
+	if oStyle.ParaFirstLineIndent &lt;&gt; 0 then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;text-indent&quot;
+		oProps(iCount).Value = GetEpubFormattedPixelString(Int(oStyle.ParaFirstLineIndent / cFactor))
+	end if
+
 	&apos;if oStyle.GetPropertyState(&quot;ParaRightMargin&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
@@ -620,31 +639,31 @@ dim iCount as integer
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;margin-bottom&quot;
-		oProps(iCount).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaBottomMargin / cFactor * 2))
+		oProps(iCount).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaBottomMargin / cFactor))
 	&apos;end if
 		
-	&apos;if oStyle.GetPropertyState(&quot;CharColor&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+	if oStyle.CharColor &lt;&gt; oStandard.CharColor then
 		if oStyle.CharColor &lt;&gt; -1 then
 			iCount = uBound(oProps) + 1
 			redim preserve oProps(iCount)
 			oProps(iCount).Name  = &quot;color&quot;
 			oProps(iCount).Value =  GetEpubHexColorString(oStyle.CharColor)
 		end if	
-	&apos;end if
+	end if
 		
-	&apos;if oStyle.GetPropertyState(&quot;CharHeight&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+	if (oStyle.CharHeight &lt;&gt; oStandard.CharHeight) or (Left(sStylename, 7) = &quot;Heading&quot;) then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;font-size&quot;
 		oProps(iCount).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
-	&apos;end if
+	end if
 
-	&apos;if oStyle.GetPropertyState(&quot;CharUnderline&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+	if oStyle.CharUnderline &lt;&gt; oStandard.CharUnderline then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;text-decoration&quot;
 		oProps(iCount).Value =  GetEpubCssUnderlineString(oStyle.CharUnderline)
-	&apos;end if
+	end if
 
 	&apos;if oStyle.GetPropertyState(&quot;ParaAdjust&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
 		iCount = uBound(oProps) + 1
@@ -716,7 +735,7 @@ dim iCount as integer
 		oProps(iCount).Value =  GetEpubFormattedPixelString(Int(oStyle.LeftBorderDistance / cFactor))
 	end if
 
-	&apos;if oStyle.GetPropertyState(&quot;CharWeight&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+	if oStyle.CharWeight &lt;&gt; oStandard.CharWeight then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;font-weight&quot;
@@ -725,7 +744,11 @@ dim iCount as integer
 		else
 			oProps(iCount).Value = &quot;normal&quot;
 		end if	 	
-	&apos;end if
+	end if
+
+	&apos;if sStylename = &quot;Heading_1&quot; then
+	&apos;	xray oStyle
+	&apos;end if	
 
 	if not oStyle.ParaSplit then
 		iCount = uBound(oProps) + 1
@@ -734,6 +757,62 @@ dim iCount as integer
 		oProps(iCount).Value =  &quot;inline-block&quot;
 	end if
 		
+	if oStyle.ParaKeepTogether then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;page-break-after&quot;
+		oProps(iCount).Value =  &quot;avoid&quot;
+	end if
+
+	if oStyle.ParaIsHyphenation then
+		iCount = uBound(oProps)
+		redim preserve oProps(iCount + 20)
+		oProps(iCount + 1).Name  = &quot;hyphens&quot;
+		oProps(iCount + 1).Value =  &quot;auto&quot;
+		oProps(iCount + 2).Name  = &quot;hyphenate-limit-lines&quot;
+		oProps(iCount + 2).Value =  CStr(oStyle.ParaHyphenationMaxHyphens)		
+		oProps(iCount + 3).Name  = &quot;hyphenate-limit-before&quot;
+		oProps(iCount + 3).Value =  CStr(oStyle.ParaHyphenationMaxLeadingChars)		
+		oProps(iCount + 4).Name  = &quot;hyphenate-limit-after&quot;
+		oProps(iCount + 4).Value =  CStr(oStyle.ParaHyphenationMaxTrailingChars)		
+		oProps(iCount + 5).Name  = &quot;hyphenate-limit-last&quot;
+		oProps(iCount + 5).Value =  &quot;page&quot;		
+
+		oProps(iCount + 6).Name  = &quot;-webkit-hyphens&quot;
+		oProps(iCount + 6).Value =  &quot;auto&quot;
+		oProps(iCount + 7).Name  = &quot;-webkit-hyphenate-limit-lines&quot;
+		oProps(iCount + 7).Value =  CStr(oStyle.ParaHyphenationMaxHyphens)		
+		oProps(iCount + 8).Name  = &quot;-webkit-hyphenate-limit-before&quot;
+		oProps(iCount + 8).Value =  CStr(oStyle.ParaHyphenationMaxLeadingChars)		
+		oProps(iCount + 9).Name  = &quot;-webkit-hyphenate-limit-after&quot;
+		oProps(iCount + 9).Value =  CStr(oStyle.ParaHyphenationMaxTrailingChars)		
+		oProps(iCount + 10).Name  = &quot;-webkit-hyphenate-limit-last&quot;
+		oProps(iCount + 10).Value =  &quot;page&quot;		
+
+		oProps(iCount + 11).Name  = &quot;-moz-hyphens&quot;
+		oProps(iCount + 11).Value =  &quot;auto&quot;
+		oProps(iCount + 12).Name  = &quot;-moz-hyphenate-limit-lines&quot;
+		oProps(iCount + 12).Value =  CStr(oStyle.ParaHyphenationMaxHyphens)		
+		oProps(iCount + 13).Name  = &quot;-moz-hyphenate-limit-before&quot;
+		oProps(iCount + 13).Value =  CStr(oStyle.ParaHyphenationMaxLeadingChars)		
+		oProps(iCount + 14).Name  = &quot;-moz-hyphenate-limit-after&quot;
+		oProps(iCount + 14).Value =  CStr(oStyle.ParaHyphenationMaxTrailingChars)		
+		oProps(iCount + 15).Name  = &quot;-moz-hyphenate-limit-last&quot;
+		oProps(iCount + 15).Value =  &quot;page&quot;		
+
+		oProps(iCount + 16).Name  = &quot;-ms-hyphens&quot;
+		oProps(iCount + 16).Value =  &quot;auto&quot;
+		oProps(iCount + 17).Name  = &quot;-ms-hyphenate-limit-lines&quot;
+		oProps(iCount + 17).Value =  CStr(oStyle.ParaHyphenationMaxHyphens)		
+		oProps(iCount + 18).Name  = &quot;-ms-hyphenate-limit-before&quot;
+		oProps(iCount + 18).Value =  CStr(oStyle.ParaHyphenationMaxLeadingChars)		
+		oProps(iCount + 19).Name  = &quot;-ms-hyphenate-limit-after&quot;
+		oProps(iCount + 19).Value =  CStr(oStyle.ParaHyphenationMaxTrailingChars)		
+		oProps(iCount + 20).Name  = &quot;-ms-hyphenate-limit-last&quot;
+		oProps(iCount + 20).Value =  &quot;page&quot;		
+
+	end if
+
 	SetEpubMoreParaStyleProperties(oStyle, oProps(), sGraphicName)	
 	 
 	for i = 0 to ubound(oProps)
@@ -1111,9 +1190,11 @@ dim iLeft as integer
 
 	sStylename = ReplaceUmlaut(oStyle.Name)
 	sStylename = ReplaceString(sStylename, &quot;_&quot;, &quot; &quot;)
-	iLeft = Int((oStyle.ParaFirstLineIndent) / cFactor)
-	sStyleString = &quot;.label_&quot; &amp; sStyleName &amp; &quot; {&quot; &amp; gsCR &amp; &quot;left: &quot; &amp; iLeft &amp; &quot;px;&quot; &amp; gsCR
-	sStyleString = sStylestring &amp; &quot;position: absolute;&quot; &amp; gsCR &amp; &quot;}&quot; &amp; gsCR	
+	iLeft = abs(Int((oStyle.ParaFirstLineIndent) / cFactor))
+	sStyleString = &quot;.label_&quot; &amp; sStyleName &amp; &quot; {&quot; &amp; gsCR
+	sStyleString = sStyleString &amp; &quot;display: inline-block;&quot; &amp; gsCR 
+	sStyleString = sStyleString &amp; &quot;float: left;&quot; &amp; gsCR
+	sStyleString = sStyleString &amp; &quot;width:&quot; &amp; iLeft &amp; &quot;px;&quot; &amp; gsCR &amp; &quot;}&quot; &amp; gsCR	
 	GetEpubStyleStringListLabel = sStyleString
 end function
 
@@ -1439,18 +1520,24 @@ dim sBorder as string
 dim sColor as string
 dim iWidth as integer
 dim sWidth as string
+dim sOfficeVersion as string
+dim sLineStyle as string
 
 	&apos;first check if this paragraph has a border at all
 	if oBorder.OuterLineWidth = 0 then
 		sBorder = GetEpubFormattedPixelString(0)
 	else
-		iWidth = Int(oBorder.OuterLineWidth / 15)
-		if iWidth = 0 then 
-			iWidth = 1
-		end if	
+		iWidth = Int(oBorder.OuterLineWidth/15 + 1) &apos; add 1 because Int is cutting decimal places 
 		sWidth = GetEpubFormattedPixelString(iWidth)		
 		sColor = GetEpubHexColorString(oBorder.Color)
-		sBorder = sWidth &amp; &quot; solid &quot; &amp; sColor
+		&apos;if LibreOffice is running, there is a line style
+		sOfficeVersion = GetCurrentOfficeVersion()
+		if sOfficeVersion = &quot;LibreOffice&quot; then
+			sLineStyle = GetEpubCssBorderStyle(oBorder.LineStyle)
+			sBorder = sWidth &amp; &quot; &quot; &amp; sLineStyle &amp; &quot; &quot; &amp; sColor
+		else
+			sBorder = sWidth &amp; &quot; solid &quot; &amp; sColor
+		end if	
 	end if	
 	GetEpubCssBorderString = sBorder
 end function

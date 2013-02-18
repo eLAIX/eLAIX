@@ -101,9 +101,10 @@ dim aStyles()
 			iFontSize = 9
 			sFontname = &quot;Bitstream Vera Sans&quot;
 		case else &apos;Mac
-			iFontSize = 9
+			iFontSize = 8
 			sFontname = &quot;Lucida Grande&quot;
 	end select	
+	
 	
 	&apos;set font size for dialog elements according to the operation system
 	aElements = goDlgExport.getModel.getControlModels
@@ -119,6 +120,7 @@ dim aStyles()
 					.FontStylename = &quot;Standard&quot;
 				end with	
 			case else		
+				&apos;xray oElement
 				with oElement
 					.FontHeight = iFontSize
 					.FontName = sFontname

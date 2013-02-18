@@ -161,7 +161,7 @@ dim oStartButton as object
 	oControl = goDlgExport.getControl(&quot;listPageHeader&quot;)
 	sString = GetInternalDocString(&quot;iliasPageHeader&quot;)
 	if sString = &quot;&quot; then
-		iPos = 2
+		iPos = 0
 	else
 		iPos = int(sString)
 	end if
@@ -302,8 +302,15 @@ dim oStartButton as object
 		goDlgExport.getControl(&quot;txtMarginaleRightWidth&quot;).Text = &quot;0&quot;
 	end if	
 	
-	sString = GetInternalDocString(&quot;iliasNoScaleGraphics&quot;)
-	if sString &lt;&gt; &quot;&quot; then goDlgExport.getControl(&quot;optNoScaleGraphics&quot;).State = sString
+	&apos;Image
+	sString = GetInternalDocString(&quot;iliasMaxImageWidth&quot;)
+	if sString &lt;&gt; &quot;&quot; then 
+		goDlgExport.getControl(&quot;txtMaxImageWidth&quot;).Text = sString
+	else	
+		goDlgExport.getControl(&quot;txtMaxImageWidth&quot;).Text = &quot;0&quot;
+	end if	
+	sString = GetInternalDocString(&quot;iliasActivateFullSize&quot;)
+	if sString &lt;&gt; &quot;&quot; then goDlgExport.getControl(&quot;optActivateFullSize&quot;).State = sString
 		
 	&apos;Export
 	oDlgResult = goDlgExport.getControl(&quot;txtResult&quot;)
@@ -373,7 +380,8 @@ dim sText as string
 	SetInternalDocString(&quot;iliasMarginaleRightStyle&quot;, goDlgExport.Model.listMarginaleRightStyle.StringItemList(iPos))
 	SetInternalDocString(&quot;iliasMarginaleRightWidth&quot;, goDlgExport.Model.txtMarginaleRightWidth.Text)
 
-	SetInternalDocString(&quot;iliasNoScaleGraphics&quot;, goDlgExport.Model.optNoScaleGraphics.State)
+	SetInternalDocString(&quot;iliasMaxImageWidth&quot;, goDlgExport.Model.txtMaxImageWidth.Text)
+	SetInternalDocString(&quot;iliasActivateFullSize&quot;, goDlgExport.Model.optActivateFullSize.State)
 	
 	&apos;Save last dialog page
 	SetInternalDocString(&quot;iliasLastDialogPage&quot;, goDlgExport.Model.Step)	
@@ -398,7 +406,7 @@ end sub
 
 sub DlgIliasExportClick
 dim oDlgFilename as object
-dim oOptNoScaleGraphics as object
+dim oOptActivateFullSize as object
 dim oOptIncludeHeader as object
 dim oOptIncludeFooter as object
 dim oMarginaleLeftStyle as object
@@ -481,8 +489,8 @@ dim oPages as object
 	
 	&apos;Initialize options from the dialog elements	
 	    
-	oOptNoScaleGraphics = goDlgExport.Model.optNoScaleGraphics
-	gbOptNoScaleGraphics = oOptNoScaleGraphics.State = 1   
+	oOptActivateFullSize = goDlgExport.Model.optActivateFullSize
+	gbOptActivateFullSize = oOptActivateFullSize.State = 1   
 	
 	oOptIncludeHeader = goDlgExport.Model.optIncludeHeader
 	gbOptIncludeHeader = oOptIncludeHeader.State = 1 

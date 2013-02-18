@@ -1274,6 +1274,13 @@ dim aStyles() as string
 end function
 
 
+function GetStyleByName(sFamily as string, sStylename as string) as object
+dim oStyleFamilies as object
+dim oStyles as object
 
+	oStyleFamilies = ThisComponent.StyleFamilies
+	oStyles = oStyleFamilies.getByName(sFamily)
+	GetStyleByName = oStyles.GetByName(sStylename)	
+end function
 
 </script:module>

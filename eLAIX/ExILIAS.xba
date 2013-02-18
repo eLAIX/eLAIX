@@ -864,10 +864,14 @@ dim sIdent as string
 dim sPurpose as string
 dim sLayout as string
 dim sAlign as string
+dim iMediaWidth as integer
+dim iMaxWidth as integer
 
 	sIdent = &quot;il_0_mob_&quot; &amp; CStr(oMedia.ID) &amp; &quot;&quot;&quot;&quot;
 	sPurpose = &quot;&quot;&quot;Standard&quot;&quot;&quot;	
-	if gbOptNoScaleGraphics then
+	iMediaWidth = Int(oMedia.Width / 26.459)
+	iMaxWidth = Int(goDlgExport.Model.txtMaxImageWidth.Text)
+	if iMediaWidth &lt;= iMaxWidth then
 		sLayout = &quot;&quot;
 	else
 		sLayout = GetMediaLayoutString(oMedia)
@@ -879,12 +883,16 @@ dim sAlign as string
 	WriteToStream(goExportXML, GetTag(&quot;MediaAlias&quot;, &quot;OriginId=&quot;&quot;&quot; &amp; sIdent, &quot;&quot;, true))
 	WriteToStream(goExportXML, GetTag(&quot;MediaAliasItem&quot;, &quot;Purpose=&quot; &amp; sPurpose, &quot;&quot;, false))
 	WriteToStream(goExportXML, GetTag(&quot;Layout&quot;, sLayout &amp; &quot; &quot; &amp; sAlign, &quot;&quot;, true))
+	
 	if oMedia.Caption &lt;&gt; &quot;&quot; then
 		WriteToStream(goExportXML, GetTag(&quot;Caption&quot;, &quot;Align=&quot;&quot;bottom&quot;&quot;&quot;, oMedia.Caption, true))
 	end if
 	WriteToStream(goExportXML, &quot;&lt;/MediaAliasItem&gt;&quot;)
-	if not gbOptNoScaleGraphics and oMedia.IsScaled then
-		WriteToStream(goExportXML, GetTag(&quot;MediaAliasItem&quot;, &quot;Purpose=&quot;&quot;&quot; &amp; &quot;Fullscreen&quot;&quot;&quot;, &quot;&quot;, true))
+
+	if gbOptActivateFullSize then
+		if iMediaWidth &gt; iMaxWidth then
+			WriteToStream(goExportXML, GetTag(&quot;MediaAliasItem&quot;, &quot;Purpose=&quot;&quot;&quot; &amp; &quot;Fullscreen&quot;&quot;&quot;, &quot;&quot;, true))
+		end if
 	end if
 	WriteToStream(goExportXML, &quot;&lt;/MediaObject&gt;&quot;)
 	WriteToStream(goExportXML, &quot;&lt;/PageContent&gt;&quot;)
@@ -989,14 +997,15 @@ dim sType as string
 				vCharStyle = vCharStyle
 			end if
 	
+			&apos;only reflect hard formatted text portions, if the character style is standard
 			if vCharStyle = &quot;&quot; then
-				&apos;only reflect hard formatted text portions, if the character style is standard
 				if oPortion.CharWeight = com.sun.star.awt.FontWeight.BOLD then  &apos;this portion is formatted in bold
-					if len(sResult) &gt; 1 then
-						sResult = &quot;&lt;Strong&gt;&quot; &amp; sResult &amp; &quot;&lt;/Strong&gt;&quot; 
-					elseif asc(sResult) &lt;&gt; 9 and sResult &lt;&gt; &quot; &quot; then
-						sResult = &quot;&lt;Strong&gt;&quot; &amp; sResult &amp; &quot;&lt;/Strong&gt;&quot; 
-					end if    
+					select case sResult
+						case gsTab &apos; do nothing
+						case &quot; &quot; &apos; do nothing
+						case else 
+							sResult = &quot;&lt;Strong&gt;&quot; &amp; sResult &amp; &quot;&lt;/Strong&gt;&quot; 
+					end select	
 				end if    
 		
 				&apos;check textcolor other than black
@@ -1335,6 +1344,8 @@ dim iWidth as integer
 dim iHeight as integer
 dim iMediaType as integer
 dim sExtension as string
+dim iPropHeight as integer
+dim iMaxWidth as integer
 
 	iMediaType = gaExtMedia(oMedia.ExtMediaID).MediaType
 	
@@ -1360,13 +1371,15 @@ dim sExtension as string
 
 	&apos;for graphics and embbeded elements
 	else
-		if oMedia.Width &gt; 0 then
-			iWidth = CStr(Int(oMedia.Width / 26.459))
-			iHeight = CStr(Int(oMedia.Height / 26.459))
-			GetMediaLayoutString = &quot;Width=&quot;&quot;&quot; &amp; iWidth &amp; &quot;&quot;&quot; Height=&quot;&quot;&quot; &amp; iHeight &amp; &quot;&quot;&quot;&quot;
+		iMaxWidth = Int(goDlgExport.Model.txtMaxImageWidth.Text)
+		iWidth = CStr(Int(oMedia.Width / 26.459))
+		iHeight = CStr(Int(oMedia.Height / 26.459))
+		if iWidth &gt; iMaxWidth then
+			iPropHeight = Int(iMaxWidth * iHeight / iWidth)
+			GetMediaLayoutString = &quot;Width=&quot;&quot;400&quot;&quot; Height=&quot;&quot;&quot; &amp; iPropHeight &amp; &quot;&quot;&quot;&quot;	
 		else
-			GetMediaLayoutString = &quot;&quot;
-		end if  
+			GetMediaLayoutString = &quot;Width=&quot;&quot;&quot; &amp; iWidth &amp; &quot;&quot;&quot; Height=&quot;&quot;&quot; &amp; iHeight &amp; &quot;&quot;&quot;&quot;
+		end if 
 	end if			
 end function
 
@@ -1452,6 +1465,8 @@ dim sExtension as string
 dim sImageTyp as string
 dim iMediaType as integer
 dim iPos as integer
+dim iMediaWidth as integer
+dim iMaxWidth as integer
 
 	iPos = 0
 	iCount = ubound(gaDocMedia())
@@ -1466,11 +1481,7 @@ dim iPos as integer
 				sTitle = gaDocMedia(i).MediaName
 				sFileName = FileNameOutOfPath(gaExtMedia(gaDocMedia(i).ExtMediaID).FileName)
 				sIdent = &quot;&quot;&quot;il_0_mob_&quot; &amp; CStr(i) &amp; &quot;&quot;&quot;&quot;
-				if gbOptNoScaleGraphics then
-					sLayout = &quot;&quot;
-				else
-					sLayout = GetMediaLayoutString(gaDocMedia(i))
-				end if  
+				sLayout = GetMediaLayoutString(gaDocMedia(i))
 				sAlign = &quot;HorizontalAlign=&quot; &amp; GetIliasAlignString(gaDocMedia(i))
 				sExtension = GetFileNameExtension(sFileName)
 				if sExtension &lt;&gt; &quot;jpg&quot; then

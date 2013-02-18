@@ -61,6 +61,7 @@ dim sLocation as string
 	WriteToStream(oStyleXML, &quot;&lt;StyleSheet&gt;&quot;)
 	WriteToStream(oStyleXML, &quot;&lt;Title&gt;&quot; &amp; sFileFolder &amp; &quot;&lt;/Title&gt;&lt;Description&gt;&lt;/Description&gt;&quot;)	
 
+	ExportGeneralStyles(oStyleXML)
 	ExportPageStyles(oStyleXML)
 	ExportSectionStyles(oStyleXML, sStyleImageFolder)
 	ExportParagraphStyles(oStyleXML, sStyleImageFolder)
@@ -74,6 +75,14 @@ dim sLocation as string
 end sub
 
 	
+sub ExportGeneralStyles(oStyleXML as object)
+dim sStyleString as string
+
+	sStyleString = GetStyleStringGeneral()
+	WriteToStream(oStyleXML, sStyleString)
+end sub
+
+
 sub ExportPageStyles(oStyleXML as object)
 dim sStyleString as string
 
@@ -342,6 +351,36 @@ end sub
 &apos; Building the export strings
 &apos;******************************************************************************************
 
+function GetStyleStringGeneral() as string
+dim oStyleFamilies as object
+dim oStyles as object
+dim oStyle as object
+dim sStyleString as string
+dim iMarginaleLeft as integer
+dim iMarginaleRight as integer
+dim sStyleName as string
+dim oPara as object
+dim oProps(2) as new com.sun.star.beans.PropertyValue
+dim i as integer
+
+	&apos;first set default values
+	sStyleString = &quot;&lt;Style Tag=&quot;&quot;table&quot;&quot; Type=&quot;&quot;media_cont&quot;&quot; Class=&quot;&quot;MediaContainer&quot;&quot;&gt;&quot;
+	oProps(0).Name  = &quot;background-color&quot;
+	oProps(0).Value = &quot;transparent&quot;
+	oProps(1).Name  = &quot;border-width&quot;
+	oProps(1).Value = &quot;0&quot;
+	oProps(2).Name  = &quot;margin&quot;
+	oProps(2).Value = &quot;0&quot;
+
+	for i = 0 to ubound(oProps)
+		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;
+	next i	
+	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
+		
+	GetStyleStringGeneral = sStyleString
+end function
+
+
 function GetStyleStringPageContainer() as string
 dim oStyleFamilies as object
 dim oStyles as object
@@ -510,8 +549,9 @@ dim oProps(2) as new com.sun.star.beans.PropertyValue
 dim oProp as new com.sun.star.beans.PropertyValue
 dim i as integer
 dim iCount as integer
+dim oStandard as object
 
-	&apos;oPara = GetParaByStyleName(sStyleName)
+	oStandard = GetStyleByName(&quot;ParagraphStyles&quot;, &quot;Standard&quot;)
 	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
 	
 	if sStyleName = gsPageTitleStyle then
@@ -536,6 +576,13 @@ dim iCount as integer
 		oProps(1).Name  = &quot;margin-left&quot;
 		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / cFactor)) &amp; &quot;px&quot;
 		
+	elseif sStylename = &quot;Footnote&quot; then
+		sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;page_fn&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+		oProps(0).Name  = &quot;margin-top&quot;
+		oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
+		oProps(1).Name  = &quot;margin-left&quot;
+		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / cFactor)) &amp; &quot;px&quot;
+
 	else
 		sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;text_block&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
 		oProps(0).Name  = &quot;margin-top&quot;
@@ -547,6 +594,13 @@ dim iCount as integer
 	oProps(2).Name  = &quot;position&quot;
 	oProps(2).Value =  &quot;relative&quot;	
 	
+	if oStyle.ParaFirstLineIndent &lt;&gt; 0 then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;text-indent&quot;
+		oProps(iCount).Value = CStr(Int(oStyle.ParaFirstLineIndent / cFactor)) &amp; &quot;px&quot;
+	end if
+
 	if oStyle.GetPropertyState(&quot;ParaRightMargin&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
@@ -561,21 +615,21 @@ dim iCount as integer
 		oProps(iCount).Value = CStr(Int(oStyle.ParaBottomMargin / cFactor)) &amp; &quot;px&quot;
 	end if
 		
-	if oStyle.GetPropertyState(&quot;CharColor&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+	if oStyle.CharColor &lt;&gt; oStandard.CharColor then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;color&quot;
 		oProps(iCount).Value =  GetIliasHexColorString(oStyle.CharColor)
 	end if
 		
-	if oStyle.GetPropertyState(&quot;CharHeight&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+	if oStyle.CharHeight &lt;&gt; oStandard.CharHeight then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;font-size&quot;
 		oProps(iCount).Value = CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
 	end if
 
-	if oStyle.GetPropertyState(&quot;CharUnderline&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+	if oStyle.CharUnderline &lt;&gt; oStandard.CharUnderline then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;text-decoration&quot;
@@ -652,7 +706,7 @@ dim iCount as integer
 		oProps(iCount).Value = CStr(Int(oStyle.LeftBorderDistance / cFactor)) &amp; &quot;px&quot;
 	end if
 
-	if oStyle.GetPropertyState(&quot;CharWeight&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+	if oStyle.CharWeight &lt;&gt; oStandard.CharWeight then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
 		oProps(iCount).Name  = &quot;font-weight&quot;
@@ -951,10 +1005,11 @@ dim sStyleName as string
 dim iLeft as integer
 
 	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
-	iLeft = Int((oStyle.ParaFirstLineIndent) / cFactor)
+	iLeft = abs(Int((oStyle.ParaFirstLineIndent) / cFactor))
 	sStyleString = &quot;&lt;Style Tag=&quot;&quot;span&quot;&quot; Type=&quot;&quot;text_inline&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;Label&quot;&quot;&gt;&quot;
-	sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;position&quot;&quot; Value=&quot;&quot;absolute&quot;&quot;/&gt;&quot;
-	sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;left&quot;&quot; Value=&quot;&quot;&quot; &amp; CStr(iLeft) &amp; &quot;px&quot;&quot;/&gt;&quot;
+	sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;display&quot;&quot; Value=&quot;&quot;inline-block&quot;&quot;/&gt;&quot;
+	sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;float&quot;&quot; Value=&quot;&quot;left&quot;&quot;/&gt;&quot;
+	sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;width&quot;&quot; Value=&quot;&quot;&quot; &amp; CStr(iLeft) &amp; &quot;px&quot;&quot;/&gt;&quot;
 	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
 	
 	GetStyleStringListLabel = sStyleString
@@ -1713,7 +1768,6 @@ function GetIliasCssBorderStyle(iStyle as integer) as string
 			GetIliasCssBorderStyle = &quot;double&quot;
 	end select	
 end function
-
 
 
 

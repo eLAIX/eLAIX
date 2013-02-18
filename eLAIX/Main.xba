@@ -78,7 +78,7 @@ global giActNumberingLevel as integer
 &apos;Export Dialog
 Global gsCheckString as string
 Global gbAskForOverwrite as boolean
-Global gbOptNoScaleGraphics as boolean
+Global gbOptActivateFullSize as boolean
 Global gsOptShowLineNo as string
 Global gbOptIncludeHeader as boolean
 Global gbOptIncludeFooter as boolean

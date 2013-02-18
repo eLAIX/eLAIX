@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE dlg:window PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "dialog.dtd">
-<dlg:window xmlns:dlg="http://openoffice.org/2000/dialog" xmlns:script="http://openoffice.org/2000/script" dlg:id="DlgILIAS" dlg:left="60" dlg:top="0" dlg:width="333" dlg:height="231" dlg:page="5" dlg:closeable="true" dlg:moveable="true" dlg:title="Export to ILIAS">
+<dlg:window xmlns:dlg="http://openoffice.org/2000/dialog" xmlns:script="http://openoffice.org/2000/script" dlg:id="DlgILIAS" dlg:left="60" dlg:top="0" dlg:width="333" dlg:height="231" dlg:page="4" dlg:closeable="true" dlg:moveable="true" dlg:title="Export to ILIAS">
  <dlg:styles>
   <dlg:style dlg:style-id="0" dlg:font-height="8" dlg:font-weight="100"/>
   <dlg:style dlg:style-id="1" dlg:text-color="0x800000" dlg:font-name="Arial" dlg:font-height="11" dlg:font-stylename="Fett" dlg:font-family="swiss" dlg:font-weight="150"/>
@@ -204,7 +204,7 @@
     <dlg:menuitem dlg:value="Metadata"/>
     <dlg:menuitem dlg:value="Settings"/>
     <dlg:menuitem dlg:value="General"/>
-    <dlg:menuitem dlg:value="Layout"/>
+    <dlg:menuitem dlg:value="Content"/>
     <dlg:menuitem dlg:value="Export"/>
    </dlg:menupopup>
    <script:event script:event-name="on-itemstatechange" script:macro-name="vnd.sun.star.script:eLAIX.DlgILIAS.SetIliasExportDialogPage?language=Basic&amp;location=application" script:language="Script"/>
@@ -224,28 +224,27 @@
   <dlg:text dlg:id="LabelPropLayout" dlg:tab-index="69" dlg:left="85" dlg:top="27" dlg:width="76" dlg:height="9" dlg:page="2" dlg:value="Layout"/>
   <dlg:text dlg:id="labelpageHeader" dlg:tab-index="70" dlg:left="85" dlg:top="43" dlg:width="76" dlg:height="9" dlg:page="2" dlg:value="Page Header"/>
   <dlg:text dlg:id="labelPropTocMode" dlg:tab-index="71" dlg:left="85" dlg:top="59" dlg:width="76" dlg:height="9" dlg:page="2" dlg:value="Table of Contents Items"/>
-  <dlg:titledbox dlg:id="FrameControl3" dlg:tab-index="72" dlg:left="85" dlg:top="91" dlg:width="240" dlg:height="46" dlg:page="4">
+  <dlg:titledbox dlg:id="FrameControl3" dlg:tab-index="72" dlg:left="85" dlg:top="87" dlg:width="240" dlg:height="46" dlg:page="4">
    <dlg:title dlg:value="Marginales"/>
   </dlg:titledbox>
-  <dlg:text dlg:id="Label3" dlg:tab-index="73" dlg:left="91" dlg:top="105" dlg:width="62" dlg:height="9" dlg:page="4" dlg:value="Left style and width"/>
-  <dlg:text dlg:id="Label14" dlg:tab-index="74" dlg:left="91" dlg:top="120" dlg:width="62" dlg:height="9" dlg:page="4" dlg:value="Right style and width"/>
+  <dlg:text dlg:id="Label3" dlg:tab-index="73" dlg:left="91" dlg:top="101" dlg:width="62" dlg:height="9" dlg:page="4" dlg:value="Left style and width"/>
+  <dlg:text dlg:id="Label14" dlg:tab-index="74" dlg:left="91" dlg:top="116" dlg:width="62" dlg:height="9" dlg:page="4" dlg:value="Right style and width"/>
   <dlg:text dlg:id="Label36" dlg:tab-index="75" dlg:left="91" dlg:top="40" dlg:width="61" dlg:height="9" dlg:page="4" dlg:value="Title style"/>
-  <dlg:titledbox dlg:id="FrameControl7" dlg:tab-index="76" dlg:left="85" dlg:top="26" dlg:width="240" dlg:height="58" dlg:page="4">
+  <dlg:titledbox dlg:id="FrameControl7" dlg:tab-index="76" dlg:left="85" dlg:top="26" dlg:width="240" dlg:height="55" dlg:page="4">
    <dlg:title dlg:value="Page"/>
   </dlg:titledbox>
-  <dlg:titledbox dlg:id="FrameControl1" dlg:tab-index="77" dlg:left="85" dlg:top="144" dlg:width="240" dlg:height="30" dlg:page="4">
+  <dlg:titledbox dlg:id="FrameControl1" dlg:tab-index="77" dlg:left="85" dlg:top="138" dlg:width="240" dlg:height="40" dlg:page="4">
    <dlg:title dlg:value="Images"/>
   </dlg:titledbox>
-  <dlg:checkbox dlg:style-id="3" dlg:id="optNoScaleGraphics" dlg:tab-index="38" dlg:left="157" dlg:top="157" dlg:width="150" dlg:height="11" dlg:page="4" dlg:value="Show images in original size" dlg:checked="true"/>
-  <dlg:checkbox dlg:style-id="3" dlg:id="optIncludeHeader" dlg:tab-index="31" dlg:left="157" dlg:top="57" dlg:width="150" dlg:height="11" dlg:page="4" dlg:value="Include standard header" dlg:checked="false"/>
-  <dlg:checkbox dlg:style-id="3" dlg:id="optIncludeFooter" dlg:tab-index="32" dlg:left="157" dlg:top="68" dlg:width="150" dlg:height="11" dlg:page="4" dlg:value="Include standard footer" dlg:checked="false"/>
+  <dlg:checkbox dlg:style-id="3" dlg:id="optIncludeHeader" dlg:tab-index="31" dlg:left="157" dlg:top="56" dlg:width="150" dlg:height="11" dlg:page="4" dlg:value="Include standard header" dlg:checked="false"/>
+  <dlg:checkbox dlg:style-id="3" dlg:id="optIncludeFooter" dlg:tab-index="32" dlg:left="157" dlg:top="67" dlg:width="150" dlg:height="11" dlg:page="4" dlg:value="Include standard footer" dlg:checked="false"/>
   <dlg:checkbox dlg:id="optActiveLMMenu" dlg:tab-index="10" dlg:left="164" dlg:top="90" dlg:width="158" dlg:height="12" dlg:page="2" dlg:value="LM Menu" dlg:checked="true"/>
   <dlg:checkbox dlg:id="optActiveTOC" dlg:tab-index="11" dlg:left="164" dlg:top="102" dlg:width="158" dlg:height="12" dlg:page="2" dlg:value="Show TOC" dlg:checked="true"/>
   <dlg:checkbox dlg:id="optActivePrintView" dlg:tab-index="12" dlg:left="164" dlg:top="114" dlg:width="158" dlg:height="12" dlg:page="2" dlg:value="Print View" dlg:checked="true"/>
   <dlg:checkbox dlg:id="optCleanFrames" dlg:tab-index="13" dlg:left="164" dlg:top="126" dlg:width="158" dlg:height="12" dlg:page="2" dlg:value="Synchronize Frames" dlg:checked="true"/>
-  <dlg:checkbox dlg:id="optPublicNotes" dlg:tab-index="14" dlg:left="164" dlg:top="138" dlg:width="158" dlg:height="12" dlg:page="2" dlg:value="Comments (Public Notes)" dlg:checked="false"/>
+  <dlg:checkbox dlg:id="optPublicNotes" dlg:tab-index="14" dlg:left="164" dlg:top="138" dlg:width="158" dlg:height="12" dlg:page="2" dlg:value="Comments (Public Notes)" dlg:checked="true"/>
   <dlg:checkbox dlg:id="optHistoryUserComments" dlg:tab-index="15" dlg:left="164" dlg:top="150" dlg:width="158" dlg:height="12" dlg:page="2" dlg:value="Enable user comments in history" dlg:checked="false"/>
-  <dlg:checkbox dlg:style-id="3" dlg:id="optShowLineNumbersInCodeView" dlg:tab-index="16" dlg:left="164" dlg:top="162" dlg:width="158" dlg:height="11" dlg:page="2" dlg:value="Show line numbers in code view" dlg:checked="true"/>
+  <dlg:checkbox dlg:style-id="3" dlg:id="optShowLineNumbersInCodeView" dlg:tab-index="16" dlg:left="164" dlg:top="162" dlg:width="158" dlg:height="11" dlg:page="2" dlg:value="Show line numbers in code view" dlg:checked="false"/>
   <dlg:textfield dlg:style-id="2" dlg:id="txtMetaDescription" dlg:tab-index="5" dlg:left="134" dlg:top="161" dlg:width="190" dlg:height="39" dlg:page="1" dlg:multiline="true"/>
   <dlg:menulist dlg:style-id="9" dlg:id="listLayout" dlg:tab-index="6" dlg:left="164" dlg:top="26" dlg:width="160" dlg:height="12" dlg:page="2" dlg:spin="true" dlg:linecount="16">
    <dlg:menupopup>
@@ -274,15 +273,19 @@
   <dlg:checkbox dlg:style-id="2" dlg:id="optWriteDebugFiles" dlg:tab-index="24" dlg:left="91" dlg:top="146" dlg:width="200" dlg:height="11" dlg:page="3" dlg:value="Write Debug Files (internal eLAIX database)" dlg:checked="true"/>
   <dlg:checkbox dlg:style-id="2" dlg:id="optKeepTempFiles" dlg:tab-index="23" dlg:left="91" dlg:top="132" dlg:width="200" dlg:height="11" dlg:page="3" dlg:value="Keep temporary files after export" dlg:checked="true"/>
   <dlg:menulist dlg:id="listPageTitleStyle" dlg:tab-index="30" dlg:left="157" dlg:top="39" dlg:width="162" dlg:height="12" dlg:page="4" dlg:spin="true" dlg:linecount="16"/>
-  <dlg:menulist dlg:id="listMarginaleLeftStyle" dlg:tab-index="33" dlg:left="157" dlg:top="104" dlg:width="138" dlg:height="12" dlg:page="4" dlg:spin="true" dlg:linecount="16"/>
-  <dlg:menulist dlg:id="listMarginaleRightStyle" dlg:tab-index="35" dlg:left="157" dlg:top="119" dlg:width="138" dlg:height="12" dlg:page="4" dlg:spin="true" dlg:linecount="16"/>
-  <dlg:textfield dlg:id="txtMarginaleLeftWidth" dlg:tab-index="34" dlg:left="297" dlg:top="104" dlg:width="20" dlg:height="12" dlg:page="4"/>
-  <dlg:textfield dlg:id="txtMarginaleRightWidth" dlg:tab-index="36" dlg:left="297" dlg:top="119" dlg:width="20" dlg:height="11" dlg:page="4"/>
+  <dlg:menulist dlg:id="listMarginaleLeftStyle" dlg:tab-index="33" dlg:left="157" dlg:top="100" dlg:width="138" dlg:height="12" dlg:page="4" dlg:spin="true" dlg:linecount="16"/>
+  <dlg:menulist dlg:id="listMarginaleRightStyle" dlg:tab-index="35" dlg:left="157" dlg:top="115" dlg:width="138" dlg:height="12" dlg:page="4" dlg:spin="true" dlg:linecount="16"/>
+  <dlg:textfield dlg:id="txtMarginaleLeftWidth" dlg:tab-index="34" dlg:left="297" dlg:top="100" dlg:width="20" dlg:height="12" dlg:page="4"/>
+  <dlg:textfield dlg:id="txtMarginaleRightWidth" dlg:tab-index="36" dlg:left="297" dlg:top="115" dlg:width="20" dlg:height="12" dlg:page="4"/>
   <dlg:menulist dlg:style-id="9" dlg:id="listFromChapter" dlg:tab-index="20" dlg:left="157" dlg:top="78" dlg:width="162" dlg:height="12" dlg:page="3" dlg:spin="true" dlg:linecount="16"/>
   <dlg:menulist dlg:style-id="9" dlg:id="listToChapter" dlg:tab-index="22" dlg:left="157" dlg:top="92" dlg:width="162" dlg:height="12" dlg:page="3" dlg:spin="true" dlg:linecount="16"/>
   <dlg:button dlg:style-id="3" dlg:id="btnDefault" dlg:tab-index="78" dlg:left="110" dlg:top="208" dlg:width="50" dlg:height="15" dlg:page="2" dlg:value="Set Default">
    <script:event script:event-name="on-performaction" script:macro-name="vnd.sun.star.script:eLAIX.DlgILIAS.SetDefaultSettings?language=Basic&amp;location=application" script:language="Script"/>
   </dlg:button>
-  <dlg:checkbox dlg:id="optChapterNumeration" dlg:tab-index="9" dlg:left="164" dlg:top="78" dlg:width="158" dlg:height="12" dlg:page="2" dlg:value="Chapter Numeration" dlg:checked="true"/>
+  <dlg:checkbox dlg:id="optChapterNumeration" dlg:tab-index="9" dlg:left="164" dlg:top="78" dlg:width="158" dlg:height="12" dlg:page="2" dlg:value="Chapter Numeration" dlg:checked="false"/>
+  <dlg:text dlg:id="Label12" dlg:tab-index="80" dlg:left="91" dlg:top="151" dlg:width="59" dlg:height="9" dlg:page="4" dlg:value="Max. image width"/>
+  <dlg:text dlg:style-id="8" dlg:id="Label18" dlg:tab-index="81" dlg:left="190" dlg:top="152" dlg:width="132" dlg:height="9" dlg:page="4" dlg:value="Pixel (larger images will be scaled)"/>
+  <dlg:textfield dlg:style-id="2" dlg:id="txtMaxImageWidth" dlg:tab-index="79" dlg:left="157" dlg:top="150" dlg:width="30" dlg:height="12" dlg:page="4"/>
+  <dlg:checkbox dlg:style-id="3" dlg:id="optActivateFullSize" dlg:tab-index="38" dlg:left="157" dlg:top="166" dlg:width="150" dlg:height="11" dlg:page="4" dlg:value="Activate full-size view for larger images" dlg:checked="true"/>
  </dlg:bulletinboard>
 </dlg:window>
