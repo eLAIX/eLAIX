@@ -491,8 +491,8 @@ dim oPages as object
 	oDlgLabel4.Label = gsCheckString
 	ExportToEPUB
 	
-	&apos;Build the package
-	oDlgLabel5.Label = gsCheckString
+	&apos;Build the package	
+	&apos;oDlgLabel5.Label = gsCheckString 
 	if FileExists(oDlgFilename.Label) then
 	   	kill oDlgFilename.Label
 	end if   	

@@ -670,7 +670,7 @@ Sub ZipFolderToFile(source as string, cible as string, sMimetype as string)
 	dim retour() as string
 	
 	&apos;création de l&apos;instance du fichier Zip
-	LeFichierZip=createUnoService(&quot;com.sun.star.packages.Package&quot;)
+	LeFichierZip = createUnoService(&quot;com.sun.star.packages.Package&quot;)
 
 	&apos;Dim aArg As New com.sun.star.beans.NamedValue
 	&apos;aArg.Name = &quot;PackageFormat&quot;
@@ -695,38 +695,43 @@ Sub ZipFolderToFile(source as string, cible as string, sMimetype as string)
 		decoupe=split(mid(retour(i),len(repbase)+1),getPathSeparator)
 		repZip=decoupe(UBound(decoupe))
 		azipper=LeFichierZip.createInstanceWithArguments(argsDir())
-	If len(chaine)&lt;&gt;len(repZip) then
-		RepPere=left(chaine,len(chaine)-len(repZip)-1)
-		RepPere=RemplaceChaine(reppere, getpathseparator, &quot;/&quot;, false)
-	Else
-		RepPere=&quot;&quot;
-	Endif
-	
-	RepPereZip=LeFichierZip.getByHierarchicalName(RepPere)
-	RepPereZip.insertbyname(repzip, azipper)
+		If len(chaine)&lt;&gt;len(repZip) then
+			RepPere=left(chaine,len(chaine)-len(repZip)-1)
+			RepPere=RemplaceChaine(reppere, getpathseparator, &quot;/&quot;, false)
+		Else
+			RepPere=&quot;&quot;
+		Endif	
+		RepPereZip=LeFichierZip.getByHierarchicalName(RepPere)
+		RepPereZip.insertbyname(repzip, azipper)
 	Next i
 	&apos;insertion des fichiers dans les bons repertoires
 	
-	LeFichierZip.getByHierarchicalName(&quot;&quot;).setPropertyValue(&quot;MediaType&quot;, sMimetype)
-	
-	dim args2(0)
-	
+	LeFichierZip.getByHierarchicalName(&quot;&quot;).setPropertyValue(&quot;MediaType&quot;, sMimetype)	
+	dim args2(0)	
 	args2(0)=false
 	oUcb = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)
-	for i=1 to UBound(retour)
-	chaine=mid(retour(i),len(repbase)+2)
+	for i = 2 to UBound(retour)
 	
-	repzip=remplacechaine(chaine, getpathseparator, &quot;/&quot;, false)
-	fichier=dir(retour(i)+getPathSeparator,0)
-	
-	While fichier&lt;&gt;&quot;&quot;
-	azipper=LeFichierZip.createInstanceWithArguments(args2())
-	oFile = oUcb.OpenFileRead(ConvertToURL(retour(i)+&quot;/&quot;+fichier))
-	azipper.SetInputStream(ofile)
-	RepPere=LeFichierZip.getByHierarchicalName(repZip)
-	RepPere.insertbyname(fichier, azipper)
-	fichier=dir()
-	Wend
+		&apos;just testing the mid function in LO 4.0
+ 		&apos;strg = mid(&quot;Hallo&quot;, 7)
+		&apos;if retour(i) = repbase then
+		&apos;	chaine = repbase
+		&apos;else	 
+		&apos;	chaine = mid(retour(i), len(repbase) + 2)	
+		&apos;end if	
+		
+		chaine = mid(retour(i), len(repbase) + 2)	
+		repzip = remplacechaine(chaine, getpathseparator, &quot;/&quot;, false)
+		fichier = dir(retour(i)+getPathSeparator,0)
+		
+		While fichier&lt;&gt;&quot;&quot;
+			azipper = LeFichierZip.createInstanceWithArguments(args2())
+			oFile = oUcb.OpenFileRead(ConvertToURL(retour(i)+&quot;/&quot;+fichier))
+			azipper.SetInputStream(ofile)
+			RepPere = LeFichierZip.getByHierarchicalName(repZip)
+			RepPere.insertbyname(fichier, azipper)
+			fichier = dir()
+		Wend
 	next i
 	&apos;Valide les changements
 	LeFichierZip.commitChanges()

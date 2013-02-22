@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE dlg:window PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "dialog.dtd">
-<dlg:window xmlns:dlg="http://openoffice.org/2000/dialog" xmlns:script="http://openoffice.org/2000/script" dlg:id="DlgEPUB" dlg:left="60" dlg:top="0" dlg:width="333" dlg:height="230" dlg:page="5" dlg:closeable="true" dlg:moveable="true" dlg:title="Export to ePUB 3">
+<dlg:window xmlns:dlg="http://openoffice.org/2000/dialog" xmlns:script="http://openoffice.org/2000/script" dlg:id="DlgEPUB" dlg:left="60" dlg:top="0" dlg:width="333" dlg:height="230" dlg:page="6" dlg:closeable="true" dlg:moveable="true" dlg:title="Export to ePUB 3">
  <dlg:styles>
   <dlg:style dlg:style-id="0" dlg:font-height="8" dlg:font-weight="100"/>
   <dlg:style dlg:style-id="1" dlg:text-color="0x800000" dlg:font-name="Arial" dlg:font-height="11" dlg:font-stylename="Fett" dlg:font-family="swiss" dlg:font-weight="150"/>
@@ -30,7 +30,7 @@
   </dlg:titledbox>
   <dlg:text dlg:style-id="0" dlg:id="Label7" dlg:tab-index="40" dlg:left="103" dlg:top="61" dlg:width="100" dlg:height="10" dlg:page="6" dlg:value="Reading document paragraphs"/>
   <dlg:text dlg:style-id="0" dlg:id="Label8" dlg:tab-index="41" dlg:left="103" dlg:top="72" dlg:width="100" dlg:height="10" dlg:page="6" dlg:value="Exporting document paragraphs"/>
-  <dlg:text dlg:style-id="0" dlg:id="Label11" dlg:tab-index="44" dlg:left="103" dlg:top="83" dlg:width="100" dlg:height="10" dlg:page="6" dlg:value="Packing to ePUB document"/>
+  <dlg:text dlg:style-id="0" dlg:id="Label11" dlg:tab-index="44" dlg:left="103" dlg:top="83" dlg:width="100" dlg:height="10" dlg:page="6" dlg:value="Building the ePUB document"/>
   <dlg:text dlg:style-id="0" dlg:id="Label13" dlg:tab-index="46" dlg:left="103" dlg:top="94" dlg:width="100" dlg:height="10" dlg:page="6" dlg:value="Finishing export"/>
   <dlg:text dlg:style-id="0" dlg:id="Label15" dlg:tab-index="48" dlg:left="103" dlg:top="50" dlg:width="100" dlg:height="10" dlg:page="6" dlg:value="Exporting graphics and media"/>
   <dlg:text dlg:id="Label21" dlg:tab-index="52" dlg:left="91" dlg:top="81" dlg:width="60" dlg:height="9" dlg:page="4" dlg:value="From Chapter"/>

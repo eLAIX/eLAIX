@@ -62,7 +62,7 @@ sub ExportEpubStandardStyles(oStream as object)
 	oStream.writeString(&quot;ul{padding-top:0;}&quot; &amp; gsCR) 
 	oStream.writeString(&quot;.clear{clear:both;}&quot; &amp; gsCR) 
 	oStream.writeString(&quot;table{border-spacing:0;}&quot; &amp; gsCR) 
-	oStream.writeString(&quot;.marginal_no{position:absolute;left:-15px;}&quot; &amp; gsCR) 
+	oStream.writeString(&quot;.marginal_no{float:left;margin-left:-25px;}&quot; &amp; gsCR) 
 	oStream.writeString(&quot;.align-center{margin:auto;}&quot; &amp; gsCR) 
 	oStream.writeString(&quot;.align-right{float:right;}&quot; &amp; gsCR  &amp; gsCR) 
 end sub
@@ -81,7 +81,7 @@ dim sMarginalNumberStyle as string
 	iPos = goDlgExport.Model.cmbMarginalNumberStyle.SelectedItems(0)
 	sMarginalNumberStyle = goDlgExport.Model.cmbMarginalNumberStyle.StringItemList(iPos)
 	if iPos &gt; 0 then
-		oStream.writeString(&quot;body{margin-left:20px;position:relative;}&quot; &amp; gsCR)
+		oStream.writeString(&quot;#wrapper{padding-left: 30px;}&quot; &amp; gsCR)
 	end if
 end sub
 
@@ -112,6 +112,7 @@ dim oGraphic as object
 			if sGraphicName &lt;&gt; &quot;&quot; then
 				&apos;oGraphic = GetGraphicByURL(sGraphicName)
 				sGraphicName = ExportGraphicByURL(oStyle.BackGraphicURL, sStyleImageFolder)
+				AppendFileToExtMediaByName(MEDIA_TYPE_MEDIA, sGraphicName, sGraphicName)
 				if sGraphicName = &quot;save_again&quot; then
 					oDocument = ThisComponent()
 					oDocument.Store
@@ -180,6 +181,7 @@ dim sStylename as string
 				if sGraphicName &lt;&gt; &quot;&quot; then
 					&apos;oGraphic = GetGraphicByURL(sGraphicName)
 					sGraphicName = ExportGraphicByURL(oStyle.ParaBackGraphicURL, sStyleImageFolder)
+					AppendFileToExtMediaByName(MEDIA_TYPE_MEDIA, sGraphicName, sGraphicName)
 					if sGraphicName = &quot;save_again&quot; then
 						oDocument = ThisComponent()
 						oDocument.Store
@@ -379,7 +381,7 @@ dim iFirstLineOffset as integer
 	oProps(5).Name  = &quot;padding-bottom&quot;
 	oProps(5).Value =  GetEpubFormattedPixelString(0)
 	oProps(6).Name  = &quot;padding-left&quot;
-	oProps(6).Value =  abs(Int(iFirstLineOffset/cFactor)) - 15 &amp; &quot;px;&quot;
+	oProps(6).Value =  abs(Int(iFirstLineOffset/cFactor)) - 15 &amp; &quot;px&quot;
 
 	&apos;if the left margin of this list-style is set manually
 	&apos;if oStyle.ParaLeftMargin &gt; 0 then
@@ -420,10 +422,12 @@ dim i as integer
 	oProps(3).Value =  GetEpubFormattedPixelString((giMarginaleLeftWidth * -1) + 5)
 	oProps(4).Name  = &quot;font-size&quot;
 	oProps(4).Value =  &quot;75%&quot;
-	oProps(5).Name  = &quot;position&quot;
-	oProps(5).Value =  &quot;absolute&quot;
-	oProps(6).Name  = &quot;width&quot;
-	oProps(6).Value =  GetEpubFormattedPixelString(giMarginaleLeftWidth - 5)
+	oProps(5).Name  = &quot;float&quot;
+	oProps(5).Value =  &quot;left&quot;
+	oProps(6).Name  = &quot;margin-left&quot;
+	oProps(6).Value =  &quot;-25px&quot;
+	&apos;oProps(6).Name  = &quot;width&quot;
+	&apos;oProps(6).Value =  GetEpubFormattedPixelString(giMarginaleLeftWidth - 5)
 	oProps(7).Name  = &quot;font-weight&quot;
 	if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
 		oProps(7).Value = &quot;bold&quot;
@@ -510,6 +514,7 @@ dim iCount as integer
 	&apos;oPara = GetEpubParaByStyleName(sStyleName)
 	sStylename = ReplaceUmlaut(oStyle.Name)
 	sStylename = ReplaceString(sStylename, &quot;_&quot;, &quot; &quot;)
+	sStylename = ReplaceString(sStylename, &quot;p&quot;, &quot;+&quot;)
 	
 	oProps(0).Name  = &quot;margin-top&quot;
 	oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.TopMargin / cFactor))
@@ -579,12 +584,13 @@ dim oStandard as object
 	oStandard = GetStyleByName(&quot;ParagraphStyles&quot;, &quot;Standard&quot;)
 	sStylename = ReplaceUmlaut(oStyle.Name)
 	sStylename = ReplaceString(sStylename, &quot;_&quot;, &quot; &quot;)
+	sStylename = ReplaceString(sStylename, &quot;p&quot;, &quot;+&quot;)
 	
-	if Left(sStylename, 7) = &quot;Heading&quot; then
-		sStyleString = &quot;h&quot; &amp; mid(sStyleName, 9) &amp; &quot;{&quot; &amp; gsCR
-		oProps(0).Name  = &quot;margin-top&quot;
-		&apos;set no margin-top on top of a page
-		if oStyle.BreakType = 4 then 
+	if (Left(sStylename, 7) = &quot;Heading&quot;) and (sStylename &lt;&gt; &quot;Heading&quot;) then
+		sStyleString = &quot;.para_&quot; &amp; sStyleName &amp; &quot; {&quot; &amp; gsCR
+	&apos;	sStyleString = &quot;h&quot; &amp; mid(sStyleName, 9) &amp; &quot;{&quot; &amp; gsCR
+		oProps(0).Name  = &quot;margin-top&quot;		
+		if oStyle.BreakType = 4 then &apos;set no margin-top on top of a page
 			oProps(0).Value =  0
 		else	
 			oProps(0).Value =  GetEpubFormattedPixelString(Int(oStyle.ParaTopMargin / cFactor))
@@ -951,6 +957,7 @@ dim iCount as integer
 	&apos;oPara = GetEpubParaByStyleName(sStyleName)
 	sStylename = ReplaceUmlaut(oStyle.Name)
 	sStylename = ReplaceString(sStylename, &quot;_&quot;, &quot; &quot;)
+	sStylename = ReplaceString(sStylename, &quot;p&quot;, &quot;+&quot;)
 	sStyleString = &quot;span.&quot; &amp; sStyleName &amp;  &quot;, a.&quot; &amp; sStyleName &amp; &quot; {&quot; &amp; gsCR
 
 	if oStyle.GetPropertyState(&quot;CharColor&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then

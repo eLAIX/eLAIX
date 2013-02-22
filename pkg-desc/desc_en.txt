@@ -1,2 +1,2 @@
-Create ILIAS learning modules and ePUB 3 documents.
+Create ILIAS learning modules and ebooks (ePUB 3).
 Copyright (c) 2004-2012 Harry Boldt

@@ -1,2 +1,2 @@
-Creeer ILIAS leer modules en ePUB 3 documenten.
+Creeer ILIAS leer modules en eBooks (ePUB 3).
 Copyright (c) 2004-2012 Harry Boldt

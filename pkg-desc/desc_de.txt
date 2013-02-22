@@ -1,3 +1,3 @@
-ILIAS Lerneinheiten und ePUB 3 Dokumente erstellen.
+ILIAS Lerneinheiten und eBooks (ePUB 3) erstellen.
 Copyright (c) 2004-2012 Harry Boldt
 

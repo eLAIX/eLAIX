@@ -50,15 +50,16 @@ Sub ExportToEPUB
 dim sImageDir as string
 dim oStream as object
 
+    ExportEpubDocument    
+    goDlgExport.Model.lblPosition5.Label = gsCheckString
+	ExportEpubStyles	
 	ExportEpubMimeType
 	ExportEpubContainer	
 	ExportEpubPackage
 	ExportEpubNavigation
-    ExportEpubDocument
     &apos;ExportEpubMedia    
     &apos;ExportEpubDocProperties
     &apos;ExportEpubFootnotes
-	ExportEpubStyles	
 End Sub
 
 
@@ -329,7 +330,10 @@ dim iChapterCount as integer
 	&apos;Generate a structured link list for all chapters and subchapters in the body section
 	poNavStream.writeString(&quot;&lt;body&gt;&quot; &amp; gsCR)		
 	poNavStream.writeString(&quot;&lt;nav id=&quot;&quot;toc&quot;&quot; xmlns:epub=&quot;&quot;http://www.idpf.org/2007/ops&quot;&quot; epub:type=&quot;&quot;toc&quot;&quot;&gt;&quot; &amp; gsCR)
-	poNavStream.writeString(&quot;&lt;h1 class=&quot;&quot;toc_title&quot;&quot;&gt;&quot; &amp; goDlgExport.Model.txtTocTitle.Text &amp; &quot;&lt;/h1&gt;&quot; &amp; gsCR)
+	
+    sTitle = goDlgExport.Model.txtTocTitle.Text
+    if sTitle = &quot;&quot; then sTitle = &quot;Content&quot;
+	poNavStream.writeString(&quot;&lt;h1 class=&quot;&quot;toc_title&quot;&quot;&gt;&quot; &amp; sTitle &amp; &quot;&lt;/h1&gt;&quot; &amp; gsCR)
 	iChapterCount = ubound(gaDocChapter())
 	piBacksteps = 0
 	piPage = 1
@@ -548,6 +552,8 @@ dim iCount as integer
 		poPageStream.writeString(&quot;&lt;meta charset=&quot;&quot;utf-8&quot;&quot;/&gt;&quot; &amp; gsCR)
 		poPageStream.writeString(&quot;&lt;/head&gt;&quot; &amp; gsCR)
 		poPageStream.writeString(&quot;&lt;body epub:type=&quot;&quot;frontmatter&quot;&quot;&gt;&quot; &amp; gsCR)
+		poPageStream.writeString(&quot;&lt;div id=&quot;&quot;wrapper&quot;&quot;&gt;&quot; &amp; gsCR)
+
 
 		do while iChapterNo &lt;= iCount 
 			gsFootnotes = &quot;&quot;
@@ -585,6 +591,7 @@ dim iCount as integer
 			
 
 		&apos;Export the body and html closing tags
+		poPageStream.writeString(&quot;&lt;/div&gt;&quot; &amp; gsCR)
 		poPageStream.writeString(&quot;&lt;/body&gt;&quot; &amp; gsCR)
 		poPageStream.writeString(&quot;&lt;/html&gt;&quot; &amp; gsCR)
 		
@@ -599,13 +606,13 @@ dim sTag as string
 dim sLevel as string
 dim sLabel as string
 
-	sTag = &quot;&lt;div id=&quot;&quot;chapter-&quot; &amp; oChapter.ID &amp; &quot;&quot;&quot;&gt;&lt;h&quot; &amp; oChapter.Level &amp; &quot;&gt;&quot;
 	sLevel = oChapter.Level
 	sLabel = oChapter.ListLabelString
-	if goDlgExport.Model.optIncludeChapterNumberingDoc.State = 1 then
+	sTag = &quot;&lt;div id=&quot;&quot;chapter-&quot; &amp; oChapter.ID &amp; &quot;&quot;&quot; class=&quot;&quot;para_Heading_&quot; &amp; oChapter.Level &amp; &quot;&quot;&quot;&gt;&quot;
+	if (goDlgExport.Model.optIncludeChapterNumberingDoc.State = 1) and (sLabel &lt;&gt; &quot;&quot;) then
 		sTag = sTag &amp; &quot;&lt;span class=&quot;&quot;label_Heading_&quot; &amp; sLevel &amp; &quot;&quot;&quot;&gt;&quot; &amp; sLabel &amp; &quot;&lt;/span&gt;&quot;
 	end if
-	GetTitleString = sTag &amp; oChapter.GetString &amp; &quot;&lt;/h&quot; &amp; oChapter.Level &amp; &quot;&gt;&lt;/div&gt;&quot; &amp; gsCR
+	GetTitleString = sTag &amp; oChapter.GetString &amp; &quot;&lt;/div&gt;&quot; &amp; gsCR
 end function
 
 
@@ -949,7 +956,7 @@ dim sVAlign as string
 	sMarginBottom = Int(CInt(aMargins(2))/25) &amp; &quot;px&quot;
 	aParaSet() = GetParaSetTable(oPara.ID)		
 	iParaCount = ubound(aParaSet())
-	poPageStream.writeString(&quot;&lt;div align=&quot;&quot;&quot; &amp; sAlign &amp; &quot;&quot;&quot;&gt;&quot; &amp; gsCR)
+	poPageStream.writeString(&quot;&lt;div style=&quot;&quot;align: &quot; &amp; sAlign &amp; &quot;;&quot;&quot;&gt;&quot; &amp; gsCR)
 	poPageStream.writeString(&quot;&lt;table style=&quot;&quot;margin-top:&quot; &amp; sMarginTop &amp; &quot;; margin-bottom:&quot; &amp; sMarginBottom &amp; &quot;; background-color:&quot; &amp; sBackground &amp; &quot;; width:&quot; &amp; iTableRelativeWidth &amp; &quot;%;&quot;&quot;&gt;&quot;
 	if oPara.TableCaption &lt;&gt; &quot;&quot; then
 		poPageStream.writeString(&quot;&lt;caption&gt;&quot; &amp; oPara.TableCaption &amp; &quot;&lt;/caption&gt;&quot;)
@@ -1210,7 +1217,8 @@ dim sFootnote as string
 
 	&apos;meanwhile:
 	gsFootnotes = gsFootnotes &amp; &quot;&lt;aside epub:type=&quot;&quot;footnote&quot;&quot; id=&quot;&quot;fn&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;&lt;p&gt;&lt;span class=&quot;&quot;fn-id&quot;&quot;&gt;&quot; &amp; sId &amp; &quot;&lt;/span&gt;&quot;_
-							 &amp; sResult &amp; &quot;&lt;a id=&quot;&quot;fn&quot; &amp; sID &amp; &quot;&quot;&quot; class=&quot;&quot;back&quot;&quot; href=&quot;&quot;#noteref&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;↑&lt;/a&gt;&lt;/p&gt;&lt;/aside&gt;&quot;
+							  &amp; sResult &amp; &quot;&lt;a class=&quot;&quot;back&quot;&quot; href=&quot;&quot;#noteref&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;↑&lt;/a&gt;&lt;/p&gt;&lt;/aside&gt;&quot;
+							  &apos;&amp; sResult &amp; &quot;&lt;a id=&quot;&quot;fn-&quot; &amp; sID &amp; &quot;&quot;&quot; class=&quot;&quot;back&quot;&quot; href=&quot;&quot;#noteref&quot; &amp; sID &amp; &quot;&quot;&quot;&gt;↑&lt;/a&gt;&lt;/p&gt;&lt;/aside&gt;&quot;
 	GetEpubFootnoteExportString = sRef
 
 end function
@@ -1258,7 +1266,7 @@ dim sHeight as string
 	sTag = &quot;&lt;figure class=&quot;&quot;image_container &quot; &amp; GetEpubAlignString(oMedia) &amp; &quot;&quot;&quot;&gt;&quot;
 	sTag = sTag &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; oMedia.Caption &amp; &quot;&quot;&quot; style=&quot;&quot;width:&quot; &amp; sWidth &amp; &quot;&quot;&quot;/&gt;&quot; 
 	if oMedia.Caption &lt;&gt; &quot;&quot; then
-		sTag = sTag &amp; &quot;&lt;br/&gt;&lt;figurecaption class=&quot;&quot;para Illustration&quot;&quot;&gt;&quot; &amp; oMedia.Caption &amp; &quot;&lt;/figurecaption&gt;&quot;
+		sTag = sTag &amp; &quot;&lt;figcaption class=&quot;&quot;para Illustration&quot;&quot;&gt;&quot; &amp; oMedia.Caption &amp; &quot;&lt;/figcaption&gt;&quot;
 	end if	
 	sTag = sTag &amp; &quot;&lt;/figure&gt;&quot;
 	GetEpubMediaTag = sTag
@@ -1353,14 +1361,6 @@ dim sStylename as string
 					end select	
 				end if    
 		
-				&apos;check textcolor other than black
-				lCharColor = oPortion.CharColor
-				if (lCharColor &lt;&gt; -1) and (oPortion.HyperLinkURL = &quot;&quot;) and (oPortion.CharStyleName = &quot;&quot;) _
-				and (oPortion.ParaStylename &lt;&gt; gsMarginaleLeftStyle) and (oPortion.ParaStylename &lt;&gt; gsMarginaleRightStyle) then
-					sTextFarbe = GetEpubHexColorString(lCharColor)
-					sResult = &quot;&lt;font color=&quot;&quot;&quot; &amp; sTextFarbe &amp; &quot;&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/font&gt;&quot;
-				end if
-		
 				&apos;check subscript and superscript formatting
 				vEsc = oPortion.CharEscapement
 				if oPortion.CharEscapement &lt; 0 then  &apos;this portion is formatted in subscript
@@ -1381,6 +1381,15 @@ dim sStylename as string
 				if oPortion.CharFontPitch =  com.sun.star.awt.FontPitch.FIXED then
 			        sResult = &quot;&lt;code&gt;&quot; &amp; sResult &amp; &quot;&lt;/code&gt;&quot; 
 				end if
+
+				&apos;check textcolor other than black
+				lCharColor = oPortion.CharColor
+				if (lCharColor &lt;&gt; -1) and (oPortion.HyperLinkURL = &quot;&quot;) and (oPortion.CharStyleName = &quot;&quot;) _
+				and (oPortion.ParaStylename &lt;&gt; gsMarginaleLeftStyle) and (oPortion.ParaStylename &lt;&gt; gsMarginaleRightStyle) then
+					sTextFarbe = GetEpubHexColorString(lCharColor)
+					sResult = &quot;&lt;span style=&quot;&quot;color: &quot; &amp; sTextFarbe &amp; &quot;&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/span&gt;&quot;
+				end if		
+
 			else
 				if oPortion.CharStyleName &lt;&gt; &quot;&quot; then
 					sCharStyle = ReplaceUmlaut(oPortion.CharStyleName)

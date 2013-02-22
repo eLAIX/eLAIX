@@ -6,7 +6,7 @@
 
 	<identifier value="vnd.harryboldt.elaix"/>
 
-	<version value="4.0.0"/>
+	<version value="4.0.2"/>
 
 	<dependencies>
 		<OpenOffice.org-minimal-version value="3.1.0" dep:name="OpenOffice.org 3.1.0"/>

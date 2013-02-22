@@ -2175,7 +2175,7 @@ Sub SetParagraphStyle( sStyleName as string )
       oSel.ParaStyleName = sStyleName
       if sStyleName = &quot;Text body&quot; then
       	  oSel.NumberingStyleName = &quot;&quot;
-	      oSel.CharStyleName = &quot;Standard&quot;
+	      &apos;oSel.CharStyleName = &quot;Standard&quot;
 	  end if
   else	  
 	  lSelCount = oSelections.getCount()
