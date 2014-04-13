@@ -78,7 +78,7 @@
 						<value>%origin%/icons/exportEPUB</value>
 					</prop>
 					<prop oor:name="Title" oor:type="xs:string">
-						<value xml:lang="en">Export EPUP Document...</value>
+						<value xml:lang="en">Export EPUB Document...</value>
 						<value xml:lang="de">EPUB-Dokument exportieren...</value>
 						<value xml:lang="es">Exportar EPUB...</value>
 						<value xml:lang="nl">EPUB-Document exporteren...</value>
