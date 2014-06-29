@@ -304,11 +304,11 @@ dim oStartButton as object
 	
 	&apos;Image
 	sString = GetInternalDocString(&quot;iliasMaxImageWidth&quot;)
-	if sString &lt;&gt; &quot;&quot; then 
+	&apos;if sString &lt;&gt; &quot;&quot; then 
 		goDlgExport.getControl(&quot;txtMaxImageWidth&quot;).Text = sString
-	else	
-		goDlgExport.getControl(&quot;txtMaxImageWidth&quot;).Text = &quot;0&quot;
-	end if	
+	&apos;else	
+	&apos;	goDlgExport.getControl(&quot;txtMaxImageWidth&quot;).Text = &quot;0&quot;
+	&apos;end if	
 	sString = GetInternalDocString(&quot;iliasActivateFullSize&quot;)
 	if sString &lt;&gt; &quot;&quot; then goDlgExport.getControl(&quot;optActivateFullSize&quot;).State = sString
 		
@@ -435,6 +435,8 @@ dim oPages as object
 
 	&apos;set export status page
 	giLastIliasDialogPage = goDlgExport.Model.Step
+	&apos;Save the export options first
+	SaveIliasExportOptions
 	oPages = goDlgExport.getControl(&quot;listPages&quot;)
 	oPages.SelectItemPos(4, true)
 
@@ -458,9 +460,6 @@ dim oPages as object
 	
 	SwitchMousePointer(goDlgExport.getPeer(), false)
 	
-	&apos;Save the export options first
-	SaveIliasExportOptions
-
 	&apos;Initialize global variables for the export
 	InitGlobals
 	SetIliasPathGlobals(ConvertToURL(oDlgFilename.Label))

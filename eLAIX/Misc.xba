@@ -225,18 +225,27 @@ function ReplaceSymbolsFootnote(psString) as string
 end function
 
 function ReplaceSymbolsCode(psString) as string
-dim vSpace as string
+dim snbsp as string
 
-  vSpace = Chr(160)
   &apos; this function replaces special characters in Code formatted paragraphs
-  psString = ReplaceString(psString, &quot;&quot;, vSpace  ) 
-  psString = ReplaceString(psString, &quot;&amp;amp;amp;&quot;, &quot;&amp;&quot;  ) &apos;&amp;amp;  &amp;#38;  Ampersand  U+0026
-  psString = ReplaceString(psString, &quot;&amp;lt;&quot;, &quot;&lt;&quot;  ) &apos;&amp;lt;  &amp;#60;  weniger als  U+003C  
-  psString = ReplaceString(psString, &quot;&amp;gt;&quot;, &quot;&gt;&quot;  ) &apos;&amp;gt;  &amp;#62;  mehr als  U+003E
+  psString = ReplaceString(psString, &quot;&amp;amp;amp;&quot;, &quot;&amp;&quot;) &apos;&amp;amp;  &amp;#38;  Ampersand  U+0026
+  psString = ReplaceString(psString, &quot;&amp;#160;&quot;,  Chr(160)) &apos;check for non-breaking space
+  psString = ReplaceString(psString, &quot;&amp;lt;&quot;, &quot;&lt;&quot;) &apos;&amp;lt;  &amp;#60;  weniger als  U+003C  
+  psString = ReplaceString(psString, &quot;&amp;gt;&quot;, &quot;&gt;&quot;) &apos;&amp;gt;  &amp;#62;  mehr als  U+003E
   psString = ReplaceString(psString, &quot;&lt;br/&gt;&quot;, gsLF  ) &apos;LF = chr(10)
   ReplaceSymbolsCode = psString
 end function
 
+
+function ReplaceSymbolsEpub(psString) as string 
+  psString = ReplaceString(psString, &quot;&amp;amp;&quot;, &quot;&amp;&quot;  ) &apos;first! &amp;amp;  &amp;#38;  Ampersand  U+0026
+  psString = ReplaceString(psString, &quot;&amp;#160;&quot;,  Chr(160))  &apos;then! check for non-breaking space
+  psString = ReplaceString(psString, &quot;&amp;#8209;&quot;,  Chr(8209))  &apos;then! check for non-breaking space
+  psString = ReplaceString(psString, &quot;&amp;lt;&quot;, &quot;&lt;&quot;) &apos;&amp;lt;  &amp;#60;  less than  U+003C  
+  psString = ReplaceString(psString, &quot;&amp;gt;&quot;, &quot;&gt;&quot;) &apos;&amp;gt;  &amp;#62;  greater than  U+003E
+  psString = ReplaceString(psString, &quot;&lt;br/&gt;&quot;, gsLF) &apos;LF = chr(10)
+  ReplaceSymbolsEpub = psString
+end function
 
 function ReplaceHTMLToUmlaut(psString) as string
   psString = ReplaceString(psString, &quot;ä&quot;, &quot;&amp;auml;&quot; ) 

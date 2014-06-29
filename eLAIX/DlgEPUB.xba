@@ -227,8 +227,18 @@ dim aStyles()
 		iPos = int(sPos)
 	end if
 	oControl.SelectItemPos(iPos, true)
+	
+	oControl = goDlgExport.getControl(&quot;listScaleGraphics&quot;)
+	sPos = GetInternalDocString(&quot;epubScaleGraphics&quot;)
+	if sPos = &quot;&quot; then
+		iPos = 0
+	else
+		iPos = int(sPos)
+	end if
+	oControl.SelectItemPos(iPos, true)
+	
 
-	goDlgExport.Model.txtMaxImageWidth.Text = GetInternalDocString(&quot;epubMaxImageWidth&quot;)
+	&apos;goDlgExport.Model.txtMaxImageWidth.Text = GetInternalDocString(&quot;epubMaxImageWidth&quot;)
 	goDlgExport.Model.optIncludeChapterNumberingToc.State = GetInternalDocString(&quot;epubIncludeChapterNumberingToc&quot;)
 	goDlgExport.Model.optIncludeChapterNumberingDoc.State = GetInternalDocString(&quot;epubIncludeChapterNumberingDoc&quot;)
 
@@ -307,7 +317,10 @@ dim sText as string
 	end if	
 	SetInternalDocString(&quot;epubCoverFromFile&quot;, goDlgExport.Model.fileCoverImage.Text)
 	
-	SetInternalDocString(&quot;epubMaxImageWidth&quot;, goDlgExport.Model.txtMaxImageWidth.Text)
+	oControl = goDlgExport.getControl(&quot;listScaleGraphics&quot;)
+	SetInternalDocString(&quot;epubScaleGraphics&quot;, oControl.SelectedItemPos)
+	
+	&apos;SetInternalDocString(&quot;epubMaxImageWidth&quot;, goDlgExport.Model.txtMaxImageWidth.Text)
 	
 	SetInternalDocString(&quot;epubIncludeChapterNumberingToc&quot;, goDlgExport.Model.optIncludeChapterNumberingToc.State)
 	SetInternalDocString(&quot;epubIncludeChapterNumberingDoc&quot;, goDlgExport.Model.optIncludeChapterNumberingDoc.State)
@@ -357,6 +370,17 @@ end sub
 &apos;-----------------------------------------------------------
 
 sub DlgEpubExportClick
+dim aList()
+
+	aList = GetAppliedHeadingsList(false)
+	if aList(0) &lt;&gt; &quot;&quot; then
+		DlgEpubExport
+	else
+		msgbox &quot;Please structure your document by headings. You need at least one heading. To do so, put the cursor into the first line of your document and click on &quot;&quot;Format as Heading 1&quot;&quot; in the eLAIX Toolbar.&quot;		
+	end if	
+end sub
+
+sub DlgEpubExport
 dim oDlgFilename as object
 dim oDlgResult as object
 dim oDlgLabel1 as object
@@ -381,6 +405,8 @@ dim oPages as object
 
 	&apos;set export status page
 	giLastEpubDialogPage = goDlgExport.Model.Step
+	&apos;Save the export options first
+	SaveEpubExportOptions	
 	oPages = goDlgExport.getControl(&quot;listPages&quot;)
 	oPages.SelectItemPos(5, true)
 
@@ -404,12 +430,14 @@ dim oPages as object
 	
 	SwitchMousePointer(goDlgExport.getPeer(), false)
 	
-	&apos;Save the export options first
-	SaveEpubExportOptions
-	
 	&apos;Initialize global variables for the export
 	InitGlobals
 	SetEpubPathGlobals
+	&apos;Create folders
+	&apos;MkDir(gsExportZipDir)
+	sImageDir = gsExportZipDir &amp; &quot;/EPUB/images/&quot;
+	MkDir(sImageDir)
+
 	
 	&apos;Reset the dialog elements
 	oDlgLabel1 = goDlgExport.Model.lblPosition1 &apos;prepare
@@ -435,7 +463,6 @@ dim oPages as object
 	
 	&apos;Export embedded Writer Graphics to the EPUB/images folder	
 	oDlgLabel2.Label = gsCheckString
-	sImageDir = gsExportZipDir &amp; &quot;/EPUB/images/&quot;
 	ExtractWriterGraphics(sImageDir)
 	
 	&apos;Add the filenames of the exported graphics to the extMedia object list
@@ -493,11 +520,12 @@ dim oPages as object
 	
 	&apos;Build the package	
 	&apos;oDlgLabel5.Label = gsCheckString 
+	On Error goto ErrorHandler1
 	if FileExists(oDlgFilename.Label) then
 	   	kill oDlgFilename.Label
 	end if   	
 	ZipFolderToFile(ConvertFromURL(gsExportZipDir), ConvertFromURL(gsExportZIP), &quot;application/epub+zip&quot;)
-
+  	
 	&apos;Delete temporary files if optKeepTempFiles is unchecked
 	if goDlgExport.Model.optKeepTempFiles.State &lt;&gt; 1 then
 	  DeleteExportFiles
@@ -505,14 +533,28 @@ dim oPages as object
 
 	&apos;ThisComponent.unlockControllers() &apos;unlock screen controls
 	oDlgResult.Text = GetResultString
-  	
 	oDlgLabel6.Label = gsCheckString
-
 	&apos;Reactivate OK-Button and set the focus to the cancel-button
 	oStartButton.setEnable(true)
 	oCancelButton = goDlgExport.getControl(&quot;butCancel&quot;)
-	oCancelButton.setFocus()
-	
+	oCancelButton.setFocus()	
+	SwitchMousePointer(goDlgExport.getPeer(), true)
+	Beep
+	Exit sub 
+ 
+  	ErrorHandler1:
+  	gbDocIsOpen = true	
+	&apos;Delete temporary files if optKeepTempFiles is unchecked
+	if goDlgExport.Model.optKeepTempFiles.State &lt;&gt; 1 then
+	  DeleteExportFiles
+	end if  
+	&apos;ThisComponent.unlockControllers() &apos;unlock screen controls
+	oDlgResult.Text = GetResultString  	
+	oDlgLabel6.Label = gsCheckString
+	&apos;Reactivate OK-Button and set the focus to the cancel-button
+	oStartButton.setEnable(true)
+	oCancelButton = goDlgExport.getControl(&quot;butCancel&quot;)
+	oCancelButton.setFocus()	
 	SwitchMousePointer(goDlgExport.getPeer(), true)
 	Beep
 end sub
@@ -527,6 +569,7 @@ dim iCount as long
 dim iPos as integer
 dim iExtMediaID as long
 dim sFilename as string
+dim sShortName as string
 
 	&apos;read linked graphics
 	oGraphics = ThisComponent.getGraphicObjects()
@@ -543,7 +586,8 @@ dim sFilename as string
 			end if	
 			AppendFileToExtMediaByName(MEDIA_TYPE_IMAGE, oGraphic.Name, sFilename)
 			&apos;copy the file to the image dir
-			FileCopy(sFilename, sTargetDir)			
+			sShortName = FileNameOutOfPath(sFilename)
+			FileCopy(sFilename, sTargetDir &amp; sShortName)			
 		end if
 	next i
 end sub

@@ -402,7 +402,7 @@ dim iLevel as integer
 		case PARA_TYPE_FILELIST
 			ExportFileList(oPara)
 		
-		end select
+	end select
 	&apos;check if there&apos;s a pagebreak after the paragraph
 	&apos;if (oPara.ID &lt; ubound(gaDocParagraph())) and (oPara.BreakType = com.sun.star.style.BreakType.PAGE_AFTER) then
 	&apos;	ExportPageBreak(oPara)
@@ -687,13 +687,10 @@ dim i as long
 			iActCol = oTablePara.TableCol
 						
 			sBackColor = oTablePara.TableBackColor
-			sBorderWidths = ReplaceString(oTablePara.TableBorderWidths, &quot;&quot;, &quot; &quot;)
 			sBorderColors = ReplaceString(oTablePara.TableBorderColors, &quot;&quot;, &quot; &quot;)
+			sBorderWidths = ReplaceString(oTablePara.TableBorderWidths, &quot;&quot;, &quot; &quot;)
 			sBorderStyles = ReplaceString(oTablePara.TableBorderStyles, &quot;&quot;, &quot; &quot;)
-			sClass =  	&quot;ilc_backcolor&quot; &amp; sBackColor &amp; _
-						&quot; ilc_table_cell_borderwidths&quot; &amp; sBorderWidths &amp; _
-						&quot; ilc_table_cell_bordercolors&quot; &amp; sBorderColors &amp; _
-						&quot; ilc_table_cell_borderstyles&quot; &amp; sBorderStyles
+			sClass = sBackColor &amp; sBorderColors &amp; sBorderWidths &amp; sBorderStyles
 			WriteToStream(goExportXML, &quot;&lt;TableData Class=&quot;&quot;&quot; &amp; sClass &amp; &quot;&quot;&quot;&gt;&quot;)
 			
 			do while (oTablePara.TableRow = iActRow) and (oTablePara.TableCol = iActCol)
@@ -870,12 +867,12 @@ dim iMaxWidth as integer
 	sIdent = &quot;il_0_mob_&quot; &amp; CStr(oMedia.ID) &amp; &quot;&quot;&quot;&quot;
 	sPurpose = &quot;&quot;&quot;Standard&quot;&quot;&quot;	
 	iMediaWidth = Int(oMedia.Width / 26.459)
-	iMaxWidth = Int(goDlgExport.Model.txtMaxImageWidth.Text)
-	if iMediaWidth &lt;= iMaxWidth then
-		sLayout = &quot;&quot;
-	else
+	&apos;iMaxWidth = Int(goDlgExport.Model.txtMaxImageWidth.Text)
+	&apos;if (iMaxWidth = 0) or (iMediaWidth &lt;= iMaxWidth) then
+	&apos;	sLayout = &quot;&quot;
+	&apos;else
 		sLayout = GetMediaLayoutString(oMedia)
-	end if  
+	&apos;end if  
 	sAlign = &quot;HorizontalAlign=&quot; &amp; GetIliasAlignString(oMedia)
 
 	WriteToStream(goExportXML, &quot;&lt;PageContent&gt;&quot;)
@@ -976,7 +973,7 @@ dim sType as string
 			elseif gaDocParagraph(oPortion.ParaID).ParaFirstLineIndent &lt; 0 then
 				aList = ArrayOutOfString(sResult, chr(9))
 				if uBound(aList()) &gt; 0 then
-					if len(aList(0)) &lt;= 4 then
+					if len(aList(0)) &lt;= 5 then
 						sClass = oPortion.ParaStyleName &amp; &quot;Label&quot;
 						sResult = &quot;&amp;lt;span class=&quot;&quot;ilc_text_inline_&quot; &amp; sClass &amp; &quot;&quot;&quot;&amp;gt;&quot; &amp; aList(0) &amp; &quot;&amp;lt;/span&amp;gt;&quot;
 						for i = 1 to ubound(aList)
@@ -1319,10 +1316,10 @@ dim sAlign as string
 		end if		
 		
 		&apos;the alignment of this paragraph could be hard formatted
-		if oPara.ParaAdjust &gt; 0 then
-			sAlign = GetCssAlignString(oPara.ParaAdjust)
-			sStyle = sStyle &amp; &quot; ilc_text_block_align&quot; &amp; sAlign
-		end if
+		&apos;if oPara.ParaAdjust &gt; 0 then
+		&apos;	sAlign = GetCssAlignString(oPara.ParaAdjust)
+		&apos;	sStyle = sStyle &amp; &quot; ilc_text_block_align&quot; &amp; sAlign
+		&apos;end if
 
 		sCharacterStr =  &quot;Characteristic=&quot;&quot;&quot; &amp; sStyle &amp; &quot;&quot;&quot; &quot;
 		
@@ -1371,12 +1368,14 @@ dim iMaxWidth as integer
 
 	&apos;for graphics and embbeded elements
 	else
-		iMaxWidth = Int(goDlgExport.Model.txtMaxImageWidth.Text)
 		iWidth = CStr(Int(oMedia.Width / 26.459))
 		iHeight = CStr(Int(oMedia.Height / 26.459))
-		if iWidth &gt; iMaxWidth then
+		iMaxWidth = Int(goDlgExport.Model.txtMaxImageWidth.Text)		
+		if iMaxWidth = 0 then
+			GetMediaLayoutString = &quot;&quot;
+		elseif iMaxWidth &lt; iWidth then
 			iPropHeight = Int(iMaxWidth * iHeight / iWidth)
-			GetMediaLayoutString = &quot;Width=&quot;&quot;400&quot;&quot; Height=&quot;&quot;&quot; &amp; iPropHeight &amp; &quot;&quot;&quot;&quot;	
+			GetMediaLayoutString = &quot;Width=&quot;&quot;&quot; &amp; iMaxWidth &amp; &quot;&quot;&quot; Height=&quot;&quot;&quot; &amp; iPropHeight &amp; &quot;&quot;&quot;&quot;	
 		else
 			GetMediaLayoutString = &quot;Width=&quot;&quot;&quot; &amp; iWidth &amp; &quot;&quot;&quot; Height=&quot;&quot;&quot; &amp; iHeight &amp; &quot;&quot;&quot;&quot;
 		end if 
@@ -1467,6 +1466,7 @@ dim iMediaType as integer
 dim iPos as integer
 dim iMediaWidth as integer
 dim iMaxWidth as integer
+dim bSetMagnifier as boolean
 
 	iPos = 0
 	iCount = ubound(gaDocMedia())
@@ -1497,11 +1497,17 @@ dim iMaxWidth as integer
 				WriteToStream(goExportXML, &quot;&lt;Format&gt;&quot; &amp; sImageTyp &amp; &quot;&lt;/Format&gt;&quot;)
 				WriteToStream(goExportXML, GetTag(&quot;Layout&quot;, sLayout &amp; &quot; &quot; &amp; sAlign, &quot;&quot;, true))
 				WriteToStream(goExportXML, &quot;&lt;/MediaItem&gt;&quot;)
-				WriteToStream(goExportXML, &quot;&lt;MediaItem Purpose=&quot;&quot;Fullscreen&quot;&quot;&gt;&quot;)
-				WriteToStream(goExportXML, GetTag(&quot;Location&quot;,&quot;Type=&quot;&quot;LocalFile&quot;&quot;&quot;, sFileName, true))
-				WriteToStream(goExportXML, &quot;&lt;Format&gt;&quot; &amp; sImageTyp &amp; &quot;&lt;/Format&gt;&quot;)
-				WriteToStream(goExportXML, GetTag(&quot;Layout &quot;, sAlign, &quot;&quot;, true))
-				WriteToStream(goExportXML, &quot;&lt;/MediaItem&gt;&quot;)
+
+				iMaxWidth = Int(goDlgExport.Model.txtMaxImageWidth.Text)
+				bSetMagnifier = goDlgExport.Model.optActivateFullSize.State = 1
+				iMediaWidth = CStr(Int(gaDocMedia(i).Width / 26.459))
+				if bSetMagnifier and (iMaxWidth &gt; 0) and (iMaxWidth &lt; iMediaWidth) then
+					WriteToStream(goExportXML, &quot;&lt;MediaItem Purpose=&quot;&quot;Fullscreen&quot;&quot;&gt;&quot;)								
+					WriteToStream(goExportXML, GetTag(&quot;Location&quot;,&quot;Type=&quot;&quot;LocalFile&quot;&quot;&quot;, sFileName, true))
+					WriteToStream(goExportXML, &quot;&lt;Format&gt;&quot; &amp; sImageTyp &amp; &quot;&lt;/Format&gt;&quot;)
+					WriteToStream(goExportXML, GetTag(&quot;Layout &quot;, sAlign, &quot;&quot;, true))
+					WriteToStream(goExportXML, &quot;&lt;/MediaItem&gt;&quot;)
+				end if	
 				WriteToStream(goExportXML, &quot;&lt;/MediaObject&gt;&quot;)  
 
 			&apos;the media is a sound, video or flash element

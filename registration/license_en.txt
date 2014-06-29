@@ -1,5 +1,6 @@
 **********************************************************************
- eLAIX   : Creating ILIAS learning modules from OpenOffice.org Writer.
+ eLAIX   : Creating ILIAS learning modules and ebooks from 
+           LibreOffice/OpenOffice.org Writer.
  Author  : Harry Boldt - h.boldt@boldt-media.de - http://elaix.org
  License : GPL
 **********************************************************************

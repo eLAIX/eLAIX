@@ -284,6 +284,58 @@ end sub
 sub ExportTableStyles(oStyleXML as object)
 dim sStyleString as string
 dim iCount as integer
+dim aSelectors()
+dim iSelectorCount as integer
+dim sSelector as string
+dim oParaRec as object 
+dim i as integer
+dim sBackColor as string
+dim sBorderColors as string
+dim sBorderWidths as string
+dim sBorderStyles as string
+
+	&apos;iterate through all tables of the document and export the table and cell border styles
+	iCount = uBound(gaDocParagraph())
+	iSelectorCount = 0
+	sStyleString = &quot;&quot;
+	for i = 1 to iCount
+		if gaDocParagraph(i).TableName &lt;&gt; &quot;&quot; then
+			&apos;this is the start of a table
+			sStyleString = GetIliasStyleStringTable(gaDocParagraph(i))
+			WriteToStream(oStyleXML, sStyleString)
+			
+		elseif gaDocParagraph(i).TableParentID &gt; 0 then 
+			&apos;append the background color of this table cell to the list of different backcolors
+			oParaRec = gaDocParagraph(i)
+			sSelector = oParaRec.TableBackColor &amp; oParaRec.TableBorderColors &amp; oParaRec.TableBorderWidths &amp; oParaRec.TableBorderStyles
+			sSelector = ReplaceString(sSelector, &quot;&quot;, &quot; &quot;)	
+			
+			if FindInArray(aSelectors(), sSelector) &lt; 0 then
+				redim preserve aSelectors(iSelectorCount)
+				aSelectors(iSelectorCount) = sSelector
+				iSelectorCount = iSelectorCount + 1
+
+				sBackColor = GetIliasHexColorString(oParaRec.TableBackColor)
+				sBorderColors = GetIliasCssStringByValueSet( oParaRec.TableBorderColors)
+				sBorderWidths = GetIliasCssStringByValueSet(oParaRec.TableBorderWidths, &quot;border-width&quot;)
+				sBorderStyles = GetIliasCssBorderStyles(oParaRec.TableBorderStyles)
+
+				sStyleString = &quot;&lt;Style Tag=&quot;&quot;td&quot;&quot; Type=&quot;&quot;table_cell&quot;&quot; Class=&quot;&quot;&quot; &amp; sSelector &amp; &quot;&quot;&quot;&gt;&quot; &amp; gsCR	
+				sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;background-color&quot;&quot; Value=&quot;&quot;&quot; &amp; sBackColor &amp; &quot;&quot;&quot;/&gt;&quot; &amp; gsCR	
+				sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;border-color&quot;&quot; Value=&quot;&quot;&quot; &amp; sBorderColors &amp; &quot;&quot;&quot;/&gt;&quot; &amp; gsCR
+				sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;border-width&quot;&quot; Value=&quot;&quot;&quot; &amp; sBorderWidths &amp; &quot;&quot;&quot;/&gt;&quot; &amp; gsCR
+				sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;border-style&quot;&quot; Value=&quot;&quot;&quot; &amp; sBorderStyles &amp; &quot;&quot;&quot;/&gt;&quot; &amp; gsCR	
+				sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; &amp; gsCR
+				WriteToStream(oStyleXML, sStyleString)
+			end if	
+		end if	
+	next i 	
+end sub
+
+
+sub ExportTableStylesOld(oStyleXML as object)
+dim sStyleString as string
+dim iCount as integer
 dim aBackColors()
 dim aBorderColors()
 dim aBorderWidths()
@@ -370,7 +422,7 @@ dim i as integer
 	oProps(1).Name  = &quot;border-width&quot;
 	oProps(1).Value = &quot;0&quot;
 	oProps(2).Name  = &quot;margin&quot;
-	oProps(2).Value = &quot;0&quot;
+	oProps(2).Value = &quot;0 20px 0 20px&quot;
 
 	for i = 0 to ubound(oProps)
 		sStyleString = sStyleString + &quot;&lt;StyleParameter Name=&quot;&quot;&quot; &amp; oProps(i).Name &amp; &quot;&quot;&quot; Value=&quot;&quot;&quot; &amp; oProps(i).Value &amp; &quot;&quot;&quot;/&gt;&quot;

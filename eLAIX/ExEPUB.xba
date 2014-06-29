@@ -30,6 +30,7 @@ private piBacksteps as integer
 private gsFootnotes as string
 private piPage as integer
 
+
 sub SetEpubPathGlobals
 dim sTempFolder as string 
 dim oSFA as object
@@ -39,9 +40,9 @@ dim oSFA as object
 	sTempFolder = GetRandomString(&quot;tmp-&quot;, 12)
 	gsExportZipDir = gsCurDir &amp; gsPathSeparator &amp; sTempFolder 
 	if Dir(gsExportZipDir, 16) &lt;&gt; &quot;&quot; then &apos; Delete existing folder
-	  oSFA = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)
-	  oSFA.setReadOnly(gsExportZipDir, false) &apos; gsExportZipDir is then not readonly
-	  RmDir(gsExportZipDir)
+		oSFA = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)
+		oSFA.setReadOnly(gsExportZipDir, false) &apos; gsExportZipDir is then not readonly
+		RmDir(gsExportZipDir)
 	end if
 end sub
 
@@ -337,7 +338,7 @@ dim iChapterCount as integer
 	iChapterCount = ubound(gaDocChapter())
 	piBacksteps = 0
 	piPage = 1
-	ExportTocNavigationList(iChapterCount, 0)
+	ExportEpubTocNavigationList(iChapterCount, 0)
 	poNavStream.writeString(&quot;&lt;/nav&gt;&quot; &amp; gsCR)
 	poNavStream.writeString(&quot;&lt;/body&gt;&quot; &amp; gsCR)
 
@@ -347,7 +348,7 @@ dim iChapterCount as integer
 end sub
 
 
-function ExportTocNavigationList(iChapterCount as integer, iChapter as integer) as integer
+function ExportEpubTocNavigationList(iChapterCount as integer, iChapter as integer) as integer
 dim iLevelDiff as integer
 dim sStr as string
 dim bContinue
@@ -376,7 +377,7 @@ dim iPageID as integer
 				&apos;check if the next chapter has a higher level and is not a page break
 				if (gaDocChapter(iChapter + 1).Level &gt; gaDocChapter(iChapter).Level)  then
 					&apos;call this function recursively
-					iChapter = ExportTocNavigationList(iChapterCount, iChapter)
+					iChapter = ExportEpubTocNavigationList(iChapterCount, iChapter)
 
 				&apos;check if the next chapter has a lower level
 				elseif (gaDocChapter(iChapter + 1).Level &lt; gaDocChapter(iChapter).Level) then
@@ -393,7 +394,7 @@ dim iPageID as integer
 		end if
 	loop
 	poNavStream.writeString(&quot;&lt;/ol&gt;&quot; &amp; gsCR)	
-	ExportTocNavigationList = iChapter		
+	ExportEpubTocNavigationList = iChapter		
 end function
 
 
@@ -670,7 +671,8 @@ dim sMediaTag as string
 dim bGraphicIsFloated as boolean
 dim sStylename as string
 dim bIsSingleGraphic as boolean
-dim iWidth as integer
+dim iImgWidth as integer
+dim iMaxWidth as integer
 
 	bGraphicIsFloated = false
 	
@@ -685,7 +687,7 @@ dim iWidth as integer
 	for i = 1 to iPortionCount
 		oPortion = gaDocTextPortion(aPortionSet(i))
 		sTextPortionType = oPortion.TextPortionType
-		&apos;do not export graphic captions, these are handled by AppendMediaRec, accordion captions are also handeled
+		&apos;do not export graphic captions, these are handled by AppendMediaRec, accordion captions are also handled
 		if (oPortion.ParaStylename &lt;&gt; &quot;Illustration&quot;) and (oPortion.ParaStylename &lt;&gt; &quot;ILIAS_Accordion_Caption&quot;) then
 			Select Case sTextPortionType
 				Case &quot;Text&quot; &apos;this portion is a text object! 
@@ -738,12 +740,13 @@ dim iWidth as integer
 				else
 					sImgAltTag = oMedia.MediaName
 				end if	
-				iWidth = Int(oMedia.Width / 26.443)
-				if iWidth &gt; Int(goDlgExport.Model.txtMaxImageWidth.Text) then
-					sExportString = sExportString &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; sImgAltTag &amp; &quot;&quot;&quot; width=&quot;&quot;100%&quot;&quot; /&gt;&quot;
-				else			
+				&apos;iImgWidth = Int(oMedia.Width / 26.443)
+				&apos;iMaxWidth = Int(goDlgExport.Model.txtMaxImageWidth.Text)
+				&apos;if iImgWidth &gt; iMaxWith then
+				&apos;	sExportString = sExportString &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; sImgAltTag &amp; &quot;&quot;&quot; max-width=&quot;&quot;100%&quot;&quot; /&gt;&quot;
+				&apos;else			
 					sExportString = sExportString &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; sImgAltTag &amp; &quot;&quot;&quot; /&gt;&quot;
-				end if
+				&apos;end if
 				sStylename = ReplaceUmlaut(oPara.ParaStyleName)
 				sStylename = ReplaceString(sStylename, &quot;_&quot;, &quot; &quot;)
 			else
@@ -794,8 +797,6 @@ dim iPos as integer
 	iChapter = oPara.ChapterID
     sNumberingType = GetEpubListType(oPara.NumberingType)
 	
-	&apos;export the list opening tag (&lt;ul&gt; or &lt;ol&gt;)
-	
 	&apos;first check, if this list is a marginal number
 	iPos = goDlgExport.Model.cmbMarginalNumberStyle.SelectedItems(0)
 	sMarginalNumberStyle = goDlgExport.Model.cmbMarginalNumberStyle.StringItemList(iPos)
@@ -813,6 +814,10 @@ dim iPos as integer
 			poPageStream.writeString(&quot;&lt;li&gt;&quot;)
 			ExportEpubTextPortions(oPara)
 			gaDocParagraph(oPara.ID).State = PARA_STATE_EXPORTED
+			
+			&apos;if oPara.ID = 6 then
+			&apos;  sStylename = sStylename
+			&apos;end if
 			
 			&apos;check next item to decide wether it has to be handeled within this item
 			if (oPara.ID &lt; iParaCount) then
@@ -835,10 +840,11 @@ dim iPos as integer
 					gaDocParagraph(oPara.ID).State = PARA_STATE_PENDING
 					&apos;enumerate all items with the same level
 					do while oPara.NumberingLevel = iNumberingLevel
+					
 						&apos;the item could be an unnumbered paragraph
 						if not oPara.NumberingIsNumber then 
 							ExportEpubTextPortions(oPara)
-							gaDocParagraph(oNextPara.ID).State = PARA_STATE_EXPORTED
+							gaDocParagraph(oPara.ID).State = PARA_STATE_EXPORTED
 						&apos;the item could be a bullet list	
 						elseif (oPara.NumberingType = 6) and (iNumberingType &lt;&gt; 6) then	
 							oPara = ExportEpubList(oPara, true)
@@ -1249,24 +1255,60 @@ dim sImgFilename as string
 dim iWidth as integer
 dim sWidth as string
 dim sHeight as string
+dim oControl as object
+dim iMode as integer
+dim sStyle as string
+dim sAlt as string
 
 	&apos;if oMedia.MediaName = &quot;Grafik15&quot; then
 	&apos;	oMedia.MediaName = oMedia.MediaName
 	&apos;end if
 
 	sImgFilename = &quot;images/&quot; &amp; FileNameOutOfPath(gaExtMedia(oMedia.ExtMediaID).FileName)
-	iWidth = Int(oMedia.Width / 26.443)
-	if iWidth &gt; Int(goDlgExport.Model.txtMaxImageWidth.Text) and oMedia.HoriOrient = com.sun.star.text.HoriOrientation.CENTER then
-		sWidth = &quot;100%;&quot;
+	&apos;the figure of centered graphics should have a fixed width, so a left aligned captions do have the same position
+	if oMedia.HoriOrient = 2 then &apos;the graphic is centered
+		sWidth = CStr(Int(oMedia.Width / 26.443)) &amp; &quot;px;&quot;
+		sStyle = &quot; style=&quot;&quot;width:&quot; &amp; sWidth
+		sTag = &quot;&lt;figure class=&quot;&quot;image_container &quot; &amp; GetEpubAlignString(oMedia) &amp; &quot;&quot;&quot;&quot; &amp; sStyle &amp; &quot;&quot;&quot;&gt;&quot;
 	else	
-		sWidth = CStr(iWidth) &amp; &quot;px;&quot;
+		sTag = &quot;&lt;figure class=&quot;&quot;image_container &quot; &amp; GetEpubAlignString(oMedia) &amp; &quot;&quot;&quot;&gt;&quot;
+	end if
+	
+	if oMedia.Caption &lt;&gt; &quot;&quot; then
+		sAlt = oMedia.Caption
+	else
+		sAlt = oMedia.MediaName
 	end if	
+
+	oControl = goDlgExport.getControl(&quot;listScaleGraphics&quot;)
+	iMode = oControl.SelectedItemPos
+	select case iMode
+		case 0:
+			sTag = sTag &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; sAlt &amp; &quot;&quot;&quot;/&gt;&quot;
+		case 1:
+			sWidth = CStr(Int(oMedia.Width / 26.443)) &amp; &quot;px;&quot;
+			sStyle = &quot;&quot;&quot; style=&quot;&quot;height:auto; width:&quot; &amp; sWidth &amp; &quot;&quot;&quot;&quot;
+			sTag = sTag &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; sAlt &amp; sStyle &amp; &quot;/&gt;&quot;
+		case 2:
+			sHeight = CStr(Int(oMedia.Height / 26.459)) &amp; &quot;px;&quot;
+			sStyle = &quot;&quot;&quot; style=&quot;&quot;width:auto; height:&quot; &amp; sHeight &amp; &quot;&quot;&quot;&quot;
+			sTag = sTag &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; sAlt &amp; sStyle &amp; &quot;/&gt;&quot;
+		case 3:
+			sWidth = CStr(Int(oMedia.Width / 26.443)) &amp; &quot;px;&quot;
+			sHeight = CStr(Int(oMedia.Height / 26.459)) &amp; &quot;px;&quot;
+			sStyle = &quot;&quot;&quot; style=&quot;&quot;width:auto; height:&quot; &amp; sHeight &amp; &quot;&quot;&quot;&quot;
+			sTag = sTag &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; sAlt &amp; sStyle &amp; &quot;/&gt;&quot;
+	end select
+	
+	&apos;if iWidth &gt; Int(goDlgExport.Model.txtMaxImageWidth.Text) and oMedia.HoriOrient = com.sun.star.text.HoriOrientation.CENTER then
+	&apos;	sWidth = &quot;100%;&quot;
+	&apos;else	
+	&apos;	sWidth = CStr(iWidth) &amp; &quot;px;&quot;
+	&apos;end if	
 	&apos;sHeight = CStr(Int(oMedia.Height / 26.459))
 	&apos;sTag = &quot;&lt;figure class=&quot;&quot;image_container &quot; &amp; GetEpubAlignString(oMedia) &amp; &quot;&quot;&quot; width=&quot;&quot;&quot; &amp; sWidth &amp; &quot;&quot;&quot; height=&quot;&quot;&quot; &amp; sHeight &amp; &quot;&quot;&quot;&gt;&quot;
-	sTag = &quot;&lt;figure class=&quot;&quot;image_container &quot; &amp; GetEpubAlignString(oMedia) &amp; &quot;&quot;&quot;&gt;&quot;
-	sTag = sTag &amp; &quot;&lt;img src=&quot;&quot;&quot; &amp; sImgFilename &amp; &quot;&quot;&quot; alt=&quot;&quot;&quot; &amp; oMedia.Caption &amp; &quot;&quot;&quot; style=&quot;&quot;width:&quot; &amp; sWidth &amp; &quot;&quot;&quot;/&gt;&quot; 
 	if oMedia.Caption &lt;&gt; &quot;&quot; then
-		sTag = sTag &amp; &quot;&lt;figcaption class=&quot;&quot;para Illustration&quot;&quot;&gt;&quot; &amp; oMedia.Caption &amp; &quot;&lt;/figcaption&gt;&quot;
+		sTag = sTag &amp; &quot;&lt;figcaption class=&quot;&quot;para_Illustration&quot;&quot;&gt;&quot; &amp; oMedia.Caption &amp; &quot;&lt;/figcaption&gt;&quot;
 	end if	
 	sTag = sTag &amp; &quot;&lt;/figure&gt;&quot;
 	GetEpubMediaTag = sTag
@@ -1293,7 +1335,7 @@ dim iAsc as integer
 dim sType as string
 dim sStylename as string
 
-	sResult = ReplaceSymbolsCode(oPortion.GetString)
+	sResult = ReplaceSymbolsEpub(oPortion.GetString)
 	if sResult &lt;&gt; &quot;&quot; then
 		&apos;first check if paragraph is ILIAS Code formatted
 		vParaStyle = left(oPortion.ParaStyleName, 10)
@@ -1349,6 +1391,14 @@ dim sStylename as string
 					end if	
 				end if	
 			end if
+			
+			&apos;check, if the text portion is a formatting mark
+			&apos;if len(oPortion.GetString) = 1 then
+			&apos;	iASC = asc(oPortion.GetString)
+			&apos;end if
+		
+		&apos;end if
+
 	
 			&apos;only reflect hard formatted text portions, if the character style is standard
 			if oPortion.CharStyleName = &quot;&quot; then
@@ -1364,9 +1414,9 @@ dim sStylename as string
 				&apos;check subscript and superscript formatting
 				vEsc = oPortion.CharEscapement
 				if oPortion.CharEscapement &lt; 0 then  &apos;this portion is formatted in subscript
-					sResult = &quot;&lt;sub&gt;&lt;font size=&quot;&quot;-2&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/sub&gt;&lt;/font&gt;&quot; 
+					sResult = &quot;&lt;sub&gt;&lt;font size=&quot;&quot;-2&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/font&gt;&lt;/sub&gt;&quot; 
 				elseif oPortion.CharEscapement &gt; 0 then  &apos;this portion is formatted in superscript
-					sResult = &quot;&lt;sup&gt;&lt;font size=&quot;&quot;-2&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/sup&gt;&lt;/font&gt;&quot; 
+					sResult = &quot;&lt;sup&gt;&lt;font size=&quot;&quot;-2&quot;&quot;&gt;&quot; &amp; sResult &amp; &quot;&lt;/font&gt;&lt;/sup&gt;&quot; 
 				end if
 		
 				if (oPortion.CharPosture = com.sun.star.awt.FontSlant.ITALIC) then  &apos;this portion is formatted in italic
@@ -2014,6 +2064,29 @@ dim oStream as object
 	oOutput.setOutputStream(oStream)
 	GetExportFileObject = oOutput
 End function
+
+
+sub SetDocPageIDs
+dim iChapterCount as integer
+dim iChapter as integer
+dim iPageID as integer
+
+	iChapterCount = ubound(gaDocChapter())
+	iChapter = 1
+	if gaDocChapter(1).HasPageBreak then
+		iPageID = 0
+	else 	
+		iPageID = 1
+	end if
+	do while (iChapter &lt;= iChapterCount)
+		if gaDocChapter(iChapter).HasPageBreak then
+			iPageID = iPageID + 1
+			gaDocChapter(iChapter).PageID = iPageID
+		end if
+		gaDocChapter(iChapter).PageID = iPageID			
+		iChapter = iChapter + 1
+	loop
+end sub
 
 
 

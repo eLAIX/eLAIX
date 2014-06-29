@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE dlg:window PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "dialog.dtd">
-<dlg:window xmlns:dlg="http://openoffice.org/2000/dialog" xmlns:script="http://openoffice.org/2000/script" dlg:id="DlgEPUB" dlg:left="60" dlg:top="0" dlg:width="333" dlg:height="230" dlg:page="6" dlg:closeable="true" dlg:moveable="true" dlg:title="Export to ePUB 3">
+<dlg:window xmlns:dlg="http://openoffice.org/2000/dialog" xmlns:script="http://openoffice.org/2000/script" dlg:id="DlgEPUB" dlg:left="60" dlg:top="0" dlg:width="333" dlg:height="230" dlg:page="5" dlg:closeable="true" dlg:moveable="true" dlg:title="Export to ePUB 3">
  <dlg:styles>
   <dlg:style dlg:style-id="0" dlg:font-height="8" dlg:font-weight="100"/>
   <dlg:style dlg:style-id="1" dlg:text-color="0x800000" dlg:font-name="Arial" dlg:font-height="11" dlg:font-stylename="Fett" dlg:font-family="swiss" dlg:font-weight="150"/>
@@ -8,8 +8,8 @@
   <dlg:style dlg:style-id="3" dlg:border="0x666666" dlg:font-height="8"/>
   <dlg:style dlg:style-id="4" dlg:border="none" dlg:font-height="8" dlg:font-weight="150"/>
   <dlg:style dlg:style-id="5" dlg:text-color="0x800000" dlg:font-name="Standard" dlg:font-height="8" dlg:font-stylename="Fett" dlg:font-weight="150"/>
-  <dlg:style dlg:style-id="6" dlg:text-color="0x666666"/>
-  <dlg:style dlg:style-id="7" dlg:background-color="0x999999" dlg:text-color="0xffffff" dlg:border="0x4c4c4c" dlg:font-name="Segoe UI" dlg:font-height="10" dlg:font-stylename="Fett" dlg:font-family="swiss" dlg:font-weight="150"/>
+  <dlg:style dlg:style-id="6" dlg:background-color="0x999999" dlg:text-color="0xffffff" dlg:border="0x4c4c4c" dlg:font-name="Segoe UI" dlg:font-height="10" dlg:font-stylename="Fett" dlg:font-family="swiss" dlg:font-weight="150"/>
+  <dlg:style dlg:style-id="7" dlg:text-color="0x666666"/>
   <dlg:style dlg:style-id="8" dlg:font-name="Segoe UI" dlg:font-stylename="Standard" dlg:font-family="swiss"/>
   <dlg:style dlg:style-id="9" dlg:background-color="0xe6e6e6" dlg:border="simple" dlg:font-weight="100"/>
   <dlg:style dlg:style-id="10" dlg:font-height="9"/>
@@ -66,28 +66,26 @@
   <dlg:titledbox dlg:id="FrameControl8" dlg:tab-index="59" dlg:left="85" dlg:top="25" dlg:width="240" dlg:height="45" dlg:page="5">
    <dlg:title dlg:value="Images"/>
   </dlg:titledbox>
-  <dlg:text dlg:id="Label3" dlg:tab-index="60" dlg:left="91" dlg:top="54" dlg:width="80" dlg:height="9" dlg:page="5" dlg:value="Maximum image width"/>
-  <dlg:text dlg:id="Label5" dlg:tab-index="61" dlg:left="85" dlg:top="68" dlg:width="48" dlg:height="9" dlg:page="1" dlg:value="Language"/>
-  <dlg:text dlg:id="Label6" dlg:tab-index="62" dlg:left="85" dlg:top="27" dlg:width="48" dlg:height="9" dlg:page="1" dlg:value="Title"/>
-  <dlg:text dlg:id="Label9" dlg:tab-index="63" dlg:left="85" dlg:top="42" dlg:width="48" dlg:height="9" dlg:page="1" dlg:value="ID/ISBN"/>
-  <dlg:text dlg:id="Label10" dlg:tab-index="64" dlg:left="85" dlg:top="84" dlg:width="48" dlg:height="9" dlg:page="1" dlg:value="Author/s"/>
-  <dlg:text dlg:id="Label12" dlg:tab-index="65" dlg:left="85" dlg:top="27" dlg:width="48" dlg:height="9" dlg:page="3" dlg:value="Description"/>
-  <dlg:text dlg:style-id="6" dlg:id="Label14" dlg:tab-index="66" dlg:left="205" dlg:top="54" dlg:width="113" dlg:height="9" dlg:page="5" dlg:value="Pixel (larger images will be scaled)"/>
-  <dlg:text dlg:style-id="7" dlg:id="lblTitle" dlg:tab-index="57" dlg:left="85" dlg:top="8" dlg:width="240" dlg:height="11" dlg:value=" "/>
-  <dlg:text dlg:id="Label17" dlg:tab-index="67" dlg:left="85" dlg:top="27" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Contributor"/>
-  <dlg:text dlg:id="Label18" dlg:tab-index="68" dlg:left="85" dlg:top="42" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Coverage"/>
-  <dlg:text dlg:id="Label19" dlg:tab-index="69" dlg:left="85" dlg:top="58" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Creator"/>
-  <dlg:text dlg:id="Label20" dlg:tab-index="70" dlg:left="85" dlg:top="73" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Publishing"/>
-  <dlg:text dlg:id="Label23" dlg:tab-index="71" dlg:left="85" dlg:top="87" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Publisher"/>
-  <dlg:text dlg:id="Label24" dlg:tab-index="72" dlg:left="84" dlg:top="102" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Format"/>
-  <dlg:text dlg:id="Label25" dlg:tab-index="73" dlg:left="84" dlg:top="117" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Relation"/>
-  <dlg:text dlg:id="Label26" dlg:tab-index="74" dlg:left="84" dlg:top="133" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Rights"/>
-  <dlg:text dlg:id="Label27" dlg:tab-index="75" dlg:left="84" dlg:top="148" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Source"/>
-  <dlg:text dlg:id="Label28" dlg:tab-index="76" dlg:left="84" dlg:top="163" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Subject"/>
-  <dlg:text dlg:id="Label29" dlg:tab-index="77" dlg:left="84" dlg:top="178" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Type"/>
-  <dlg:text dlg:style-id="6" dlg:id="Label30" dlg:tab-index="78" dlg:left="137" dlg:top="54" dlg:width="185" dlg:height="9" dlg:page="1" dlg:value="A random ID will be created, if left blank."/>
-  <dlg:text dlg:id="Label31" dlg:tab-index="79" dlg:left="135" dlg:top="73" dlg:width="58" dlg:height="9" dlg:page="2" dlg:value="Date (YYYY-MM-TT)"/>
-  <dlg:text dlg:id="Label32" dlg:tab-index="80" dlg:left="242" dlg:top="73" dlg:width="50" dlg:height="9" dlg:page="2" dlg:value="Time (hh:mm:ss)"/>
+  <dlg:text dlg:id="Label5" dlg:tab-index="60" dlg:left="85" dlg:top="68" dlg:width="48" dlg:height="9" dlg:page="1" dlg:value="Language"/>
+  <dlg:text dlg:id="Label6" dlg:tab-index="61" dlg:left="85" dlg:top="27" dlg:width="48" dlg:height="9" dlg:page="1" dlg:value="Title"/>
+  <dlg:text dlg:id="Label9" dlg:tab-index="62" dlg:left="85" dlg:top="42" dlg:width="48" dlg:height="9" dlg:page="1" dlg:value="ID/ISBN"/>
+  <dlg:text dlg:id="Label10" dlg:tab-index="63" dlg:left="85" dlg:top="84" dlg:width="48" dlg:height="9" dlg:page="1" dlg:value="Author/s"/>
+  <dlg:text dlg:id="Label12" dlg:tab-index="64" dlg:left="85" dlg:top="27" dlg:width="48" dlg:height="9" dlg:page="3" dlg:value="Description"/>
+  <dlg:text dlg:style-id="6" dlg:id="lblTitle" dlg:tab-index="57" dlg:left="85" dlg:top="8" dlg:width="240" dlg:height="11" dlg:value=" "/>
+  <dlg:text dlg:id="Label17" dlg:tab-index="65" dlg:left="85" dlg:top="27" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Contributor"/>
+  <dlg:text dlg:id="Label18" dlg:tab-index="66" dlg:left="85" dlg:top="42" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Coverage"/>
+  <dlg:text dlg:id="Label19" dlg:tab-index="67" dlg:left="85" dlg:top="58" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Creator"/>
+  <dlg:text dlg:id="Label20" dlg:tab-index="68" dlg:left="85" dlg:top="73" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Publishing"/>
+  <dlg:text dlg:id="Label23" dlg:tab-index="69" dlg:left="85" dlg:top="87" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Publisher"/>
+  <dlg:text dlg:id="Label24" dlg:tab-index="70" dlg:left="84" dlg:top="102" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Format"/>
+  <dlg:text dlg:id="Label25" dlg:tab-index="71" dlg:left="84" dlg:top="117" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Relation"/>
+  <dlg:text dlg:id="Label26" dlg:tab-index="72" dlg:left="84" dlg:top="133" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Rights"/>
+  <dlg:text dlg:id="Label27" dlg:tab-index="73" dlg:left="84" dlg:top="148" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Source"/>
+  <dlg:text dlg:id="Label28" dlg:tab-index="74" dlg:left="84" dlg:top="163" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Subject"/>
+  <dlg:text dlg:id="Label29" dlg:tab-index="75" dlg:left="84" dlg:top="178" dlg:width="48" dlg:height="12" dlg:page="2" dlg:value="Type"/>
+  <dlg:text dlg:style-id="7" dlg:id="Label30" dlg:tab-index="76" dlg:left="137" dlg:top="54" dlg:width="185" dlg:height="9" dlg:page="1" dlg:value="A random ID will be created, if left blank."/>
+  <dlg:text dlg:id="Label31" dlg:tab-index="77" dlg:left="135" dlg:top="73" dlg:width="58" dlg:height="9" dlg:page="2" dlg:value="Date (YYYY-MM-TT)"/>
+  <dlg:text dlg:id="Label32" dlg:tab-index="78" dlg:left="242" dlg:top="73" dlg:width="50" dlg:height="9" dlg:page="2" dlg:value="Time (hh:mm:ss)"/>
   <dlg:textfield dlg:style-id="2" dlg:id="txtMetaTitle" dlg:tab-index="1" dlg:left="135" dlg:top="26" dlg:width="190" dlg:height="12" dlg:page="1"/>
   <dlg:textfield dlg:style-id="2" dlg:id="txtMetaID" dlg:tab-index="2" dlg:left="135" dlg:top="41" dlg:width="190" dlg:height="12" dlg:page="1"/>
   <dlg:combobox dlg:style-id="2" dlg:id="cmbMetaLanguage" dlg:tab-index="3" dlg:left="135" dlg:top="67" dlg:width="90" dlg:height="12" dlg:page="1" dlg:value="German" dlg:spin="true" dlg:linecount="20">
@@ -244,15 +242,14 @@
   <dlg:textfield dlg:style-id="2" dlg:id="txtMetaSubject" dlg:tab-index="15" dlg:left="135" dlg:top="162" dlg:width="190" dlg:height="12" dlg:page="2"/>
   <dlg:textfield dlg:style-id="2" dlg:id="txtMetaType" dlg:tab-index="16" dlg:left="135" dlg:top="177" dlg:width="190" dlg:height="12" dlg:page="2"/>
   <dlg:textfield dlg:style-id="2" dlg:id="txtMetaDescription" dlg:tab-index="17" dlg:left="135" dlg:top="26" dlg:width="190" dlg:height="162" dlg:page="3" dlg:vscroll="true" dlg:multiline="true"/>
-  <dlg:textfield dlg:style-id="2" dlg:id="txtMaxImageWidth" dlg:tab-index="25" dlg:left="173" dlg:top="53" dlg:width="30" dlg:height="12" dlg:page="5"/>
   <dlg:checkbox dlg:style-id="2" dlg:id="optCreateNdxFile" dlg:tab-index="29" dlg:left="91" dlg:top="102" dlg:width="221" dlg:height="11" dlg:page="5" dlg:value="Create additional ePUB 2 compatible table of contents (ncx file)" dlg:checked="true"/>
-  <dlg:img dlg:style-id="4" dlg:id="imgLogo" dlg:tab-index="81" dlg:left="261" dlg:top="34" dlg:width="59" dlg:height="78" dlg:page="6" dlg:scale-image="false"/>
+  <dlg:img dlg:style-id="4" dlg:id="imgLogo" dlg:tab-index="79" dlg:left="261" dlg:top="34" dlg:width="59" dlg:height="78" dlg:page="6" dlg:scale-image="false"/>
   <dlg:checkbox dlg:style-id="2" dlg:id="optKeepTempFiles" dlg:tab-index="20" dlg:left="91" dlg:top="132" dlg:width="200" dlg:height="11" dlg:page="4" dlg:value="Keep temporary files after export" dlg:checked="true"/>
   <dlg:menulist dlg:style-id="8" dlg:id="cmbExportToChapter" dlg:tab-index="19" dlg:left="157" dlg:top="92" dlg:width="162" dlg:height="12" dlg:page="4" dlg:spin="true" dlg:linecount="16"/>
   <dlg:menulist dlg:style-id="8" dlg:id="cmbExportFromChapter" dlg:tab-index="18" dlg:left="157" dlg:top="78" dlg:width="162" dlg:height="12" dlg:page="4" dlg:spin="true" dlg:linecount="16"/>
   <dlg:menulist dlg:style-id="2" dlg:id="cmbCoverImage" dlg:tab-index="24" dlg:left="173" dlg:top="38" dlg:width="147" dlg:height="12" dlg:page="5" dlg:spin="true" dlg:linecount="16"/>
   <dlg:filecontrol dlg:style-id="8" dlg:id="fileCoverImage" dlg:tab-index="23" dlg:left="173" dlg:top="38" dlg:width="145" dlg:height="12" dlg:page="5"/>
-  <dlg:menulist dlg:id="listPages" dlg:tab-index="82" dlg:left="7" dlg:top="8" dlg:width="70" dlg:height="193">
+  <dlg:menulist dlg:id="listPages" dlg:tab-index="80" dlg:left="7" dlg:top="8" dlg:width="70" dlg:height="193">
    <dlg:menupopup>
     <dlg:menuitem dlg:value="Metadata required"/>
     <dlg:menuitem dlg:value="Metadata optional"/>
@@ -263,9 +260,9 @@
    </dlg:menupopup>
    <script:event script:event-name="on-itemstatechange" script:macro-name="vnd.sun.star.script:eLAIX.DlgEPUB.SetEpubExportDialogPage?language=Basic&amp;location=application" script:language="Script"/>
   </dlg:menulist>
-  <dlg:text dlg:style-id="9" dlg:id="Label2" dlg:tab-index="83" dlg:left="85" dlg:top="127" dlg:width="240" dlg:height="10" dlg:page="6" dlg:value="    Status"/>
-  <dlg:text dlg:style-id="6" dlg:id="Label16" dlg:tab-index="84" dlg:left="228" dlg:top="69" dlg:width="95" dlg:height="9" dlg:page="1" dlg:value="or use ISO 639-1 language code"/>
-  <dlg:text dlg:style-id="6" dlg:id="Label33" dlg:tab-index="85" dlg:left="137" dlg:top="134" dlg:width="185" dlg:height="9" dlg:page="1" dlg:value="comma separated list of authors"/>
+  <dlg:text dlg:style-id="9" dlg:id="Label2" dlg:tab-index="81" dlg:left="85" dlg:top="127" dlg:width="240" dlg:height="10" dlg:page="6" dlg:value="    Status"/>
+  <dlg:text dlg:style-id="7" dlg:id="Label16" dlg:tab-index="82" dlg:left="228" dlg:top="69" dlg:width="95" dlg:height="9" dlg:page="1" dlg:value="or use ISO 639-1 language code"/>
+  <dlg:text dlg:style-id="7" dlg:id="Label33" dlg:tab-index="83" dlg:left="137" dlg:top="134" dlg:width="185" dlg:height="9" dlg:page="1" dlg:value="comma separated list of authors"/>
   <dlg:menulist dlg:style-id="2" dlg:id="listCoverImage" dlg:tab-index="22" dlg:left="91" dlg:top="38" dlg:width="78" dlg:height="12" dlg:page="5" dlg:spin="true" dlg:linecount="16">
    <dlg:menupopup>
     <dlg:menuitem dlg:value="No cover image"/>
@@ -276,12 +273,21 @@
   </dlg:menulist>
   <dlg:checkbox dlg:style-id="10" dlg:id="optIncludeChapterNumberingDoc" dlg:tab-index="27" dlg:left="91" dlg:top="149" dlg:width="224" dlg:height="11" dlg:page="5" dlg:value="Include chapter numbering in document" dlg:checked="true"/>
   <dlg:checkbox dlg:style-id="10" dlg:id="optIncludeChapterNumberingToc" dlg:tab-index="26" dlg:left="91" dlg:top="138" dlg:width="224" dlg:height="11" dlg:page="5" dlg:value="Include chapter numbering in table of content" dlg:checked="true"/>
-  <dlg:text dlg:id="Label34" dlg:tab-index="86" dlg:left="91" dlg:top="88" dlg:width="70" dlg:height="9" dlg:page="5" dlg:value="Table of contents title"/>
+  <dlg:text dlg:id="Label34" dlg:tab-index="84" dlg:left="91" dlg:top="89" dlg:width="70" dlg:height="9" dlg:page="5" dlg:value="Table of contents title"/>
   <dlg:textfield dlg:style-id="2" dlg:id="txtTocTitle" dlg:tab-index="28" dlg:left="173" dlg:top="87" dlg:width="146" dlg:height="12" dlg:page="5"/>
-  <dlg:titledbox dlg:id="FrameControl6" dlg:tab-index="87" dlg:left="85" dlg:top="170" dlg:width="240" dlg:height="30" dlg:page="5">
+  <dlg:titledbox dlg:id="FrameControl6" dlg:tab-index="85" dlg:left="85" dlg:top="170" dlg:width="240" dlg:height="30" dlg:page="5">
    <dlg:title dlg:value="Marginales"/>
   </dlg:titledbox>
-  <dlg:text dlg:id="Label1" dlg:tab-index="88" dlg:left="91" dlg:top="181" dlg:width="70" dlg:height="9" dlg:page="5" dlg:value="Marginal number style"/>
-  <dlg:menulist dlg:style-id="2" dlg:id="cmbMarginalNumberStyle" dlg:tab-index="89" dlg:left="173" dlg:top="181" dlg:width="147" dlg:height="12" dlg:page="5" dlg:spin="true" dlg:linecount="16"/>
+  <dlg:text dlg:id="Label1" dlg:tab-index="86" dlg:left="91" dlg:top="181" dlg:width="70" dlg:height="9" dlg:page="5" dlg:value="Marginal number style"/>
+  <dlg:menulist dlg:style-id="2" dlg:id="cmbMarginalNumberStyle" dlg:tab-index="87" dlg:left="173" dlg:top="181" dlg:width="147" dlg:height="12" dlg:page="5" dlg:spin="true" dlg:linecount="16"/>
+  <dlg:menulist dlg:style-id="2" dlg:id="listScaleGraphics" dlg:tab-index="25" dlg:left="91" dlg:top="53" dlg:width="229" dlg:height="12" dlg:page="5" dlg:spin="true" dlg:linecount="16">
+   <dlg:menupopup>
+    <dlg:menuitem dlg:value="Export images without scaling (original size)"/>
+    <dlg:menuitem dlg:value="Observe the width of scaled images (keeps ratio) "/>
+    <dlg:menuitem dlg:value="Observe the height of scaled images (keeps ratio)"/>
+    <dlg:menuitem dlg:value="Observe width and height of scaled images (exact scaling)"/>
+   </dlg:menupopup>
+   <script:event script:event-name="on-itemstatechange" script:macro-name="vnd.sun.star.script:eLAIX.DlgEPUB.SetCoverImageOptions?language=Basic&amp;location=application" script:language="Script"/>
+  </dlg:menulist>
  </dlg:bulletinboard>
 </dlg:window>

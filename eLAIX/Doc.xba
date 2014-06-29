@@ -689,6 +689,34 @@ End Function
 &apos; Out - boolean flag with the operation status: TRUE=OK, FALSE=variable could not be
 &apos;               set/created 
 &apos;=========================================================================== 
+
+function GetDocMetaData() as object
+dim oMetadata as object
+
+	oMetadata = createObject(&quot;Metadata&quot;)
+	with oMetadata
+		.docTitle = GetInternalDocString(&quot;elaixDocTitle&quot;)
+		.docDescription = GetInternalDocString(&quot;elaixDocDescription&quot;)
+		.docLanguage = GetInternalDocString(&quot;elaixDocLanguage&quot;)
+		.docKeywords = GetInternalDocString(&quot;elaixDocKeywords&quot;)
+		.docAuthors = GetInternalDocString(&quot;elaixDocAuthors&quot;)
+		.docCopyright = GetInternalDocString(&quot;elaixDocCopyright&quot;)
+		.propOutlineNumbering = GetInternalDocString(&quot;elaixPropOutlineNumbering&quot;)
+	end with
+	GetDocMetaData = oMetadata
+end function
+
+
+sub SetDocMetadata (oMetadata as object)
+	SetInternalDocString(&quot;elaixDocTitle&quot;, oMetadata.docTitle)
+	SetInternalDocString(&quot;elaixDocDescription&quot;, oMetadata.docDescription)
+	SetInternalDocString(&quot;elaixDocLanguage&quot;,  oMetadata.docLanguage)
+	SetInternalDocString(&quot;elaixDocKeywords&quot;,  oMetadata.docKeywords)
+	SetInternalDocString(&quot;elaixDocAuthors&quot;,  oMetadata.docAuthors)
+	SetInternalDocString(&quot;elaixDocCopyright&quot;,  oMetadata.docCopyright)
+	SetInternalDocString(&quot;elaixPropOutlineNumbering&quot;,  oMetadata.propOutlineNumbering)
+end sub
+
 function SetInternalDocString(ByVal aVarName As String, ByVal aValue As string ) As Boolean 
 dim sVarName as string
 dim oTextmaster as object

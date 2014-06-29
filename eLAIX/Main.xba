@@ -68,6 +68,7 @@ global giMissedFiles as integer
 Global giMissedEmbeddedObject as integer
 global gbMissedWriter2Latex as boolean
 global gbSaveDocUnsaved as boolean
+global gbDocIsOpen as boolean
 global gsEnumErrors as string
 Global giListInCode as integer
 global giActPage as long
@@ -509,6 +510,15 @@ function GetResultString()
                   &quot;This happens, if you insert a graphic wihtout saving the document afterwards. Please save your document now and then try again.&quot;
   end if
   
+  if gbDocIsOpen then
+    if vMsg &lt;&gt; &quot;&quot; then
+      vMsg = vMsg &amp; chr(13) &amp; chr(13)
+    end if
+    vMsg = vMsg &amp; &quot;NO DOCUMENT CREATED! &quot; &amp;  chr(13) &amp; _
+    			  &quot;The existing document could not been replaced, because it is open in another program. &quot; &amp; _
+    			  &quot;Please close the document and then retry to generate the ebook.&quot;
+  end if
+
   if vMsg = &quot;&quot; then
     vMsg = &quot;The export of this document was successful.&quot;
   &apos;else
@@ -642,9 +652,9 @@ dim oEmptyHeadings as object
 	
 	if iEmptyHeadings &gt; 0 then
 		if oEmptyHeadings.State = 1 then
-			sStatus = sStatus &amp; chr(13) &amp; iEmptyHeadings &amp; &quot; empty paragraphs where found but not removed. You should activate the option &quot;&quot;Remove empty headings&quot;&quot;&quot; &amp; chr(13)	  
-		else
 			sStatus = sStatus &amp; chr(13) &amp; iEmptyHeadings &amp; &quot; empty paragraphs that where defined as headings had been reset to the standard paragraph style.&quot; &amp; chr(13)	  
+		else
+			sStatus = sStatus &amp; chr(13) &amp; iEmptyHeadings &amp; &quot; empty paragraphs where found but not removed. You should activate the option &quot;&quot;Remove empty headings&quot;&quot;&quot; &amp; chr(13)	  
 		end if	
 	end if
 	

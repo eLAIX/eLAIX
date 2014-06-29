@@ -336,29 +336,6 @@ const c_BreakAfter = 5  &apos;com.sun.star.style.BreakType.PAGE_AFTER
 		end if	
 	loop	
 end sub	
-	
-
-sub SetDocPageIDs
-dim iChapterCount as integer
-dim iChapter as integer
-dim iPageID as integer
-
-	iChapterCount = ubound(gaDocChapter())
-	iChapter = 1
-	if gaDocChapter(1).HasPageBreak then
-		iPageID = 0
-	else 	
-		iPageID = 1
-	end if
-	do while (iChapter &lt;= iChapterCount)
-		if gaDocChapter(iChapter).HasPageBreak then
-			iPageID = iPageID + 1
-			gaDocChapter(iChapter).PageID = iPageID
-		end if
-		gaDocChapter(iChapter).PageID = iPageID			
-		iChapter = iChapter + 1
-	loop
-end sub
 
 
 sub ReadParagraph(oPara as object, iPageArea as integer, iActChapterID as long, optional oTableRec as object)
@@ -563,6 +540,7 @@ dim sGetString as string
 dim iActParaID as long
 dim bCheckClosingBookmark as boolean
 dim sURL as string
+dim oComponent as object
 
 &apos;STEP 1: look for content anchored to or as a character
 &apos;on error goto errorhandler
@@ -572,7 +550,7 @@ dim sURL as string
 	while oParaEnum.hasMoreElements()
 		&apos;get the next TextPortion element
 		oTextPortion = oParaEnum.nextElement()	
-		
+				
 		if bCheckClosingBookmark and oTextPortion.TextPortionType = &quot;Bookmark&quot; then
 			&apos;do nothing, this is just a closing bookmark portion
 			bCheckClosingBookmark = false
@@ -670,19 +648,44 @@ dim sURL as string
 							
 					&apos;check if the non-text object is an embedded object
 				    elseif oPortionObj.ImplementationName = &quot;SwXTextEmbeddedObject&quot; then
+
 				    	if not isnull(oPortionObj.EmbeddedObject) then
 					    	&apos;it could be a formula
-				    		oEmbeddedObj = oPortionObj.EmbeddedObject
-					    	if oEmbeddedObj.supportsService(&quot;com.sun.star.formula.FormulaProperties&quot;) then  &apos;&apos;&apos; check if not null
-					    		oFormulaW2L = createUnoService(&quot;org.openoffice.da.writer2latex.W2LStarMathConverter&quot;)
-					    		if not isnull(oFormulaW2L) then
-						    		oTextPortionRec.FrameStyleName = &quot;Formula&quot; 
-						    		oTextPortionRec.FormulaOOo = oEmbeddedObj.Formula
-						    		oTextPortionRec.FormulaTeX = ReplaceString(oFormulaW2L.convertFormula(oEmbeddedObj.Formula), &quot;&amp;amp;&quot;, &quot;&amp;&quot;)				    		
-						    	else
-						    		gbMissedWriter2Latex = true
-								end if		
-					    	end if
+
+							&apos;---------- LibreOffice 4.0 ------------------------------------------------------------------------------
+				    		&apos;oEmbeddedObj = oPortionObj.EmbeddedObject
+				    		&apos;if oEmbeddedObj.ClassName &lt;&gt; &quot;&quot; then
+						    &apos;	if oEmbeddedObj.supportsService(&quot;com.sun.star.formula.FormulaProperties&quot;) then  &apos;&apos;&apos; check if not null
+						    &apos;		oFormulaW2L = createUnoService(&quot;org.openoffice.da.writer2latex.W2LStarMathConverter&quot;)
+						    &apos;		if not isnull(oFormulaW2L) then
+							&apos;   		oTextPortionRec.FrameStyleName = &quot;Formula&quot; 
+							&apos;    		oTextPortionRec.FormulaOOo = oEmbeddedObj.Formula
+							&apos;    		oTextPortionRec.FormulaTeX = ReplaceString(oFormulaW2L.convertFormula(oEmbeddedObj.Formula), &quot;&amp;amp;&quot;, &quot;&amp;&quot;)				    		
+							&apos;    	else
+							&apos;    		gbMissedWriter2Latex = true
+							&apos;		end if		
+						    &apos;	end if
+						    &apos;else
+						    &apos;&apos;&apos;&apos; put error message &quot;frame not recognized&quot; into the state area	
+						    &apos;end if	
+
+							&apos;---------- LibreOffice 4.1 ------------------------------------------------------------------------------
+				    		oEmbeddedObj = oPortionObj.EmbeddedObject.Component
+				    		if oEmbeddedObj.supportsService(&quot;com.sun.star.formula.FormulaProperties&quot;) &lt;&gt; &quot;&quot; then
+						    		oFormulaW2L = createUnoService(&quot;org.openoffice.da.writer2latex.W2LStarMathConverter&quot;)
+						    		if not isnull(oFormulaW2L) then
+							    		oTextPortionRec.FrameStyleName = &quot;Formula&quot; 
+							    		oTextPortionRec.FormulaOOo = oEmbeddedObj.Formula
+							    		oTextPortionRec.FormulaTeX = ReplaceString(oFormulaW2L.convertFormula(oEmbeddedObj.Formula), &quot;&amp;amp;&quot;, &quot;&amp;&quot;)				    		
+							    	else
+							    		gbMissedWriter2Latex = true
+									end if		
+						    else
+						    &apos;&apos;&apos; put error message &quot;frame not recognized&quot; into the state area	
+						    end if	
+
+							&apos;---------------------------------------------------------------------------------------------------------
+							
 					    else
 					    	&apos; it could be a plugin that has no embedded object but is embedded via path
 					    	sURL = oPortionObj.getExtendedControlOverEmbeddedObject.getComponent.PluginURL
@@ -879,31 +882,34 @@ end sub
 sub ReadTable(oTable as object, oParaRec as object) 
 &apos;oTable    : the table object to read
 &apos;oTableRec : the paragraph record containing the table ID and values
-dim oRows as integer
-dim oCols as integer
+dim iRows as integer
+dim iCols as integer
 dim iRow as integer
 dim iCol as integer
 dim oTableRec as object
 dim oCellObj as object
+dim oRow as object
 dim oCellEnum as object
 dim oCellPara as object
 dim iColCount as integer
 dim sOfficeVersion as string
 	
 	on error goto ErrorHandler
-	oRows = oTable.getRows().getCount()
-	oCols = oTable.getColumns().getCount()
+	iRows = oTable.getRows().getCount()
+	iCols = oTable.getColumns().getCount()
 
 	&apos;fist check if LibreOffice or OpenOffice is running
 	&apos; OpenOffice doesn&apos;t have the LineStyle property
 	sOfficeVersion = GetCurrentOfficeVersion()
 	if sOfficeVersion = &quot;LibreOffice&quot; then
-		for iRow = 0 To (oRows - 1)
+		for iRow = 0 To (iRows - 1)
+			&apos;oRow = oTable.getRows().getByIndex(iRow)
+			&apos;iColCount = UBound(oRow.TableColumnSeparators) + 1
 			iColCount = UBound(oTable.getRows().getByIndex(iRow).TableColumnSeparators) + 1
 			for iCol = 0 To iColCount
 				oCellObj = oTable.getCellByPosition(iCol, iRow)
-				&apos;if iCol = 0 and iRow = 0 then
-				&apos;	xray oCellObj
+				&apos;if iCol = 0 and iRow = 1 then
+				&apos;	xray oRow.TableColumnSeparators(1)
 				&apos;end if
 				oTableRec = createObject(&quot;docTable&quot;)
 				with oTableRec
@@ -929,7 +935,7 @@ dim sOfficeVersion as string
 			next iCol
 		next iRow
 	else &apos; it is OpenOffice
-		for iRow = 0 To (oRows - 1)
+		for iRow = 0 To (iRows - 1)
 			iColCount = UBound(oTable.getRows().getByIndex(iRow).TableColumnSeparators) + 1
 			for iCol = 0 To iColCount
 				oCellObj = oTable.getCellByPosition(iCol, iRow)
@@ -983,11 +989,12 @@ Sub VisitTableCells
 End Sub
 
 
-function IsHeading(poParagraph) as boolean
-dim vStyle as string
-  if poParagraph.supportsService(&quot;com.sun.star.text.Paragraph&quot;) Then
-    vStyle = Left(poParagraph.ParaStylename, 7)
-    IsHeading = (vStyle = &quot;Heading&quot;)
+function IsHeading(oParagraph) as boolean
+dim sStyle as string
+
+  if oParagraph.supportsService(&quot;com.sun.star.text.Paragraph&quot;) Then
+    sStyle = Left(oParagraph.ParaStylename, 7)
+    IsHeading = (sStyle = &quot;Heading&quot;)
   else
     IsHeading = false
   end if 
@@ -1065,7 +1072,7 @@ dim iPos as long
 dim iMediaType as integer
 
 	&apos;first check if the PortionObj has a frame in order to set the alignment and to get the graphic-caption
-	if oPortionObj.getAnchor.Text.supportsService(&quot;com.sun.star.text.TextFrame&quot;) and oPortionObj.getAnchor.ParaStyleName = &quot;Illustration&quot; then
+	if oPortionObj.getAnchor.Text.supportsService(&quot;com.sun.star.text.TextFrame&quot;) then
 		&apos;there is a frame around the image
 		sCaption = oPortionObj.GetAnchor.TextFrame.GetString
 		lHoriOrient = oPortionObj.GetAnchor.TextFrame.HoriOrient
@@ -1104,7 +1111,9 @@ dim iMediaType as integer
 			    .Width = oPortionObj.Width
 			    .Height = oPortionObj.Height
 			    .IsInUse = true
-			    .IsScaled = abs(oPortionObj.Width - oPortionObj.Graphic.Size100thMM.Width) &gt; 10
+			    if not isnull(oPortionObj.Graphic) then
+				    .IsScaled = abs(oPortionObj.Width - oPortionObj.Graphic.Size100thMM.Width) &gt; 10
+				end if    
 			end with			
 			&apos;append the Media Rec to the gaDocMedia Array
 			redim preserve gaDocMedia(iNewPos)
@@ -1616,6 +1625,7 @@ function GetFrameContentType(oFrame as object) as string
 dim oFrameEnum as object
 dim oFrameObj as object
 
+	On Error goto ErrHandler
 	oFrameEnum = oFrame.GetText().CreateEnumeration()
 	&apos;.createContentEnumeration(&quot;com.sun.star.text.TextGraphicObject&quot;)
 	if oFrameEnum.hasMoreElements() then
@@ -1630,6 +1640,9 @@ dim oFrameObj as object
 	else
 		GetFrameContentType = &quot;EmptyFrame&quot;
 	end if	
+	exit function
+	ErrHandler:
+	&apos;&apos;&apos;set an error variable to indicates that a frame could not be read
 end function
 
 

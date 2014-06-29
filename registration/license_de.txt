@@ -1,5 +1,5 @@
 **********************************************************************
- eLAIX  : ILIAS Lerneinheiten mit OpenOffice.org Writer erstellen.
+ eLAIX  : ILIAS Lerneinheiten und E-Books mit OpenOffice/LibreOffice
  Autor  : Harry Boldt - h.boldt@boldt-media.de - http://elaix.org
  Lizenz : GPL
 **********************************************************************

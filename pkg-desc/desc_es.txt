@@ -1,2 +1,2 @@
 Crea módulos de aprendizaje para ILIAS más documentos ePUB 3.
-Copyright (c) 2004-2012 Harry Boldt
+Copyright (c) 2004-2013 Harry Boldt

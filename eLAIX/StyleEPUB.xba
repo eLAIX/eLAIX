@@ -58,7 +58,8 @@ sub ExportEpubStandardStyles(oStream as object)
 	oStream.writeString(&quot;figure{margin:0;padding:0;}&quot; &amp; gsCR) 
 	oStream.writeString(&quot;figure.left-float{float:left; margin-right:15px;}&quot; &amp; gsCR) 
 	oStream.writeString(&quot;figure.right-float{float:right; margin-left:15px;}&quot; &amp; gsCR) 
-	oStream.writeString(&quot;figure.center{text-align:center;}&quot; &amp; gsCR) 
+	oStream.writeString(&quot;figure.center{text-align:center; margin:auto; max-width:100%;}&quot; &amp; gsCR) 
+	oStream.writeString(&quot;img{max-width:100%; height:auto;}&quot; &amp; gsCR) 
 	oStream.writeString(&quot;ul{padding-top:0;}&quot; &amp; gsCR) 
 	oStream.writeString(&quot;.clear{clear:both;}&quot; &amp; gsCR) 
 	oStream.writeString(&quot;table{border-spacing:0;}&quot; &amp; gsCR) 
@@ -151,6 +152,8 @@ dim sStylename as string
 		if oStyle.isInUse and (oStyle.Name &lt;&gt; &quot;&quot;) then
 			sStylename = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
 			iNumType = GetEpubNumberingTypeByStyleName(sStylename)
+
+			&apos;xray oStyle
 
 			&apos;check if this style is an ordered list
 			if iNumType = 4 then
@@ -471,7 +474,7 @@ dim i as integer
 	oProps(4).Name  = &quot;font-size&quot;
 	oProps(4).Value =  &quot;75%&quot;
 	oProps(5).Name  = &quot;position&quot;
-	oProps(5).Value =  &quot;absolute&quot;
+	oProps(5).Value = &quot;absolute&quot;
 	oProps(6).Name  = &quot;width&quot;
 	oProps(6).Value =  GetEpubFormattedPixelString(giMarginaleRightWidth - cFactor)
 	oProps(7).Name  = &quot;right&quot;
@@ -574,6 +577,7 @@ function GetEpubStyleStringParagraph(oStyle as object, sGraphicName as string) a
 dim oControl as object
 dim sStyleString as string
 dim sStyleName as string
+dim sStyle as string
 dim oPara as object
 dim oProps(2) as new com.sun.star.beans.PropertyValue
 dim oProp as new com.sun.star.beans.PropertyValue
@@ -583,7 +587,10 @@ dim oStandard as object
 
 	oStandard = GetStyleByName(&quot;ParagraphStyles&quot;, &quot;Standard&quot;)
 	sStylename = ReplaceUmlaut(oStyle.Name)
+	sStylename = ReplaceString(sStylename, &quot;&quot;, &quot; (user)&quot;)
+	sStylename = ReplaceString(sStylename, &quot;&quot;, &quot;.&quot;)
 	sStylename = ReplaceString(sStylename, &quot;_&quot;, &quot; &quot;)
+	sStylename = ReplaceString(sStylename, &quot;_&quot;, &quot;/&quot;)
 	sStylename = ReplaceString(sStylename, &quot;p&quot;, &quot;+&quot;)
 	
 	if (Left(sStylename, 7) = &quot;Heading&quot;) and (sStylename &lt;&gt; &quot;Heading&quot;) then
@@ -757,10 +764,12 @@ dim oStandard as object
 	&apos;end if	
 
 	if not oStyle.ParaSplit then
-		iCount = uBound(oProps) + 1
-		redim preserve oProps(iCount)
-		oProps(iCount).Name  = &quot;display&quot;
-		oProps(iCount).Value =  &quot;inline-block&quot;
+		iCount = uBound(oProps)
+		redim preserve oProps(iCount + 1)
+		oProps(iCount + 1).Name  = &quot;display&quot;
+		oProps(iCount + 1).Value =  &quot;inline-block&quot;
+		&apos;oProps(iCount + 2).Name  = &quot;width&quot;
+		&apos;oProps(iCount + 2).Value =  &quot;100%&quot;
 	end if
 		
 	if oStyle.ParaKeepTogether then
@@ -825,6 +834,62 @@ dim oStandard as object
 		sStyleString = sStyleString + oProps(i).Name &amp; &quot;: &quot; &amp; oProps(i).Value &amp; &quot;;&quot; &amp; gsCR
 	next i	
 	sStyleString = sStyleString &amp; &quot;}&quot; &amp; gsCR
+	
+	&apos;check if first letter is a drop cap
+	if oStyle.DropCapFormat.Count &gt; 0 then
+		&apos;set the height of the letter according to the CharHeight and the value of Lines
+		dim iHeight as integer
+		dim sMargin as string
+		dim iDistance as integer
+		dim oCharStyle as object
+		iHeight = oStyle.CharHeight * oStyle.DropCapFormat.Lines + 8 * oStyle.DropCapFormat.Lines
+		&apos;sMargin = (oStyle.CharHeight / 2) - 4 &amp; &quot;px &quot;
+		sMargin = &quot;0 &quot;
+		iDistance =  GetEpubFormattedPixelString(Int(oStyle.DropCapFormat.Distance / cFactor))
+		sStyle = &quot;.para_&quot; &amp; sStylename &amp; &quot;:first-letter{&quot; &amp; gsCR
+		sStyle = sStyle &amp; &quot;font-size: &quot; &amp; iHeight &amp; &quot;px;&quot; &amp; gsCR
+		sStyle = sStyle &amp; &quot;float: left;&quot; &amp; gsCR
+		sStyle = sStyle &amp; &quot;margin: &quot; &amp; sMargin &amp; iDistance &amp; &quot;px 0 0;&quot; &amp; gsCR &amp; &quot;}&quot; &amp; gsCR
+		&apos;if a character style is defined, read its properties
+		if oStyle.DropCapCharStylename &lt;&gt; &quot;&quot; then
+			oCharStyle = GetStyleByName(&quot;CharacterStyles&quot;, oStyle.DropCapCharStylename)
+			if not isnull(oCharStyle) then
+				if oCharStyle.CharColor &lt;&gt; -1 then
+					sStyle = sStyle &amp; &quot;color: &quot; &amp; GetEpubHexColorString(oCharStyle.CharColor) &amp; &quot;;&quot; &amp; gsCR
+				end if	
+				if oCharStyle.GetPropertyState(&quot;CharBackColor&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+					sStyle = sStyle &amp; &quot;background-color: &quot; &amp; GetEpubHexColorString(oStyle.CharBackColor) &amp; &quot;;&quot; &amp; gsCR
+				end if			
+				if oCharStyle.GetPropertyState(&quot;CharWeight&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+					if oCharStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
+						sStyle = sStyle &amp; &quot;font-weight: bold;&quot; &amp; gsCR
+					else
+						sStyle = sStyle &amp; &quot;font-weight: normal;&quot; &amp; gsCR
+					end if	 	
+				end if				
+				if oCharStyle.GetPropertyState(&quot;CharShadowed&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+					if oCharStyle.CharShadowed then
+						sStyle = sStyle &amp; &quot;text-shadow: #b0b0b0 &quot; &amp; GetEpubFormattedPixelString(2) &amp; &quot; &quot; &amp; GetEpubFormattedPixelString(2) &amp; &quot; &quot; &amp; GetEpubFormattedPixelString(3) &amp; &quot;;&quot; &amp; gsCR
+					end if
+				end if					
+				if oCharStyle.GetPropertyState(&quot;CharPosture&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+					if oCharStyle.CharPosture = com.sun.star.awt.FontSlant.ITALIC then
+						sStyle = sStyle &amp; &quot;font-style: italic;&quot; &amp; gsCR
+					end if
+				end if					 
+				if oCharStyle.GetPropertyState(&quot;CharFontName&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+					if oCharStyle.CharFontPitch = com.sun.star.awt.FontPitch.FIXED then
+						sStyle = sStyle &amp; &quot;font-family: monospace;&quot; &amp; gsCR						
+					elseif oStyle.CharFontFamily = com.sun.star.awt.FontFamily.ROMAN then
+						sStyle = sStyle &amp; &quot;font-family: serif;&quot; &amp; gsCR						
+					else	
+						sStyle = sStyle &amp; &quot;font-family: sans-serif;&quot; &amp; gsCR						
+					end if
+				end if	
+			end if
+		end if	
+		sStyleString = sStyleString &amp; gsCR &amp; gsCR &amp; sStyle		
+	end if
 		
 	GetEpubStyleStringParagraph = sStyleString
 end function

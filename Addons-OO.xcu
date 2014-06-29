@@ -1,0 +1,1609 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<oor:component-data 
+ xmlns:oor="http://openoffice.org/2001/registry"
+ xmlns:xs="http://www.w3.org/2001/XMLSchema"
+ oor:name="Addons"
+ oor:package="org.openoffice.Office">
+	<node oor:name="AddonUI">
+		<node oor:name="OfficeToolBar">
+			<node oor:name="foo.bar.hoge.addons.eLAIX.OfficeToolbar" oor:op="replace">
+				<prop oor:name="Title" oor:type="xs:string">
+					<value xml:lang="en">eLAIX</value>
+					<value xml:lang="de">eLAIX</value>
+					<value xml:lang="es">eLAIX</value>
+					<value xml:lang="nl">eLAIX</value>
+				</prop>
+				<node oor:name="ToolBarItems">
+					<node oor:name="m101" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.DocImport?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/docImport</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Import ILIAS Learning Module...</value>
+							<value xml:lang="de">ILIAS Lerneinheit importieren...</value>
+							<value xml:lang="es">Importar Módulo de Aprendizaje ILIAS...</value>
+							<value xml:lang="nl">Importeer ILIAS leer module...</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m102" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.DocCheck?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/docCheck</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Check Document...</value>
+							<value xml:lang="de">Dokument prüfen...</value>
+							<value xml:lang="es">Verificar Documento...</value>
+							<value xml:lang="nl">Document kontroleren...</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m104" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.DocExportILIAS?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/exportILIAS</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Export ILIAS Learning Module...</value>
+							<value xml:lang="de">ILIAS-Lerneinheit exportieren...</value>
+							<value xml:lang="es">Exportar Módulo de Aprendizaje ILIAS...</value>
+							<value xml:lang="nl">ILIAS leereenheid exporteren...</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m105" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.DocExportEPUB?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/exportEPUB</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Export EPUP Document...</value>
+							<value xml:lang="de">EPUB-Dokument exportieren...</value>
+							<value xml:lang="es">Exportar EPUB...</value>
+							<value xml:lang="nl">EPUB-Document exporteren...</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m200" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>private:separator</value>
+						</prop>
+					</node>
+					<node oor:name="m201" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.InsertGraphic?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/insertGraphic</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Insert Graphic from File...</value>
+							<value xml:lang="de">Bild aus Datei einfügen...</value>
+							<value xml:lang="es">Insertar Gráfico desde Fichero...</value>
+							<value xml:lang="nl">Afbeelding uit bestand importeren...</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m202" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.InsertSound?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/insertSound</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Insert Sound from File...</value>
+							<value xml:lang="de">Sound aus Datei einfügen...</value>
+							<value xml:lang="es">Insertar Sonido desde Fichero...</value>
+							<value xml:lang="nl">Geluid uit Bestand importeren...</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m203" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.InsertMovie?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/insertMovie</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Insert movie from File...</value>
+							<value xml:lang="de">Film aus Datei einfügen...</value>
+							<value xml:lang="es">Insertar película desde Fichero...</value>
+							<value xml:lang="nl">Film uit Bestand importeren...</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m204" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.InsertFlash?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/insertFlash</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Insert Flash File...</value>
+							<value xml:lang="de">Flashdatei einfügen...</value>
+							<value xml:lang="es">Insertar Fichero Flash...</value>
+							<value xml:lang="nl">Flashbestand importeren...</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m205" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.InsertFootnote?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/insertFootnote</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Insert Footnote</value>
+							<value xml:lang="de">Fußnote einfügen</value>
+							<value xml:lang="es">Insertar Nota al Pie...</value>
+							<value xml:lang="nl">Voetnoot invoegen...</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m206" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.InsertPageBreak?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/insertPagebreak</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Insert Pagebreak</value>
+							<value xml:lang="de">Seitenumbruch einfügen</value>
+							<value xml:lang="es">Insertar Salto de Página</value>
+							<value xml:lang="nl">Pagina einde invoegen</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m207" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.InsertAccordion?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/insertAccordion</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Insert Accordion...</value>
+							<value xml:lang="de">Akkordeon einfügen...</value>
+							<value xml:lang="es">Insertar acordeón...</value>
+							<value xml:lang="nl">Accordeon invoegen...</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m208" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.InsertBookmark?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/insertBookmark</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Insert Bookmark...</value>
+							<value xml:lang="de">Textmarke einfügen...</value>
+							<value xml:lang="es">Insertar acordeón</value>
+							<value xml:lang="nl">Bladwijzer invoegen...</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m209" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.InsertLinkToBookmark?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/insertLinkBookmark</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Insert Link to Bookmark...</value>
+							<value xml:lang="de">Link zu Textmarke einfügen...</value>
+							<value xml:lang="es">Insertar acordeón</value>
+							<value xml:lang="nl">Link bij bladwijzer invoegen...</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m210" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.InsertDownload?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/insertLinkFile</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Insert Download File/s...</value>
+							<value xml:lang="de">Datei/en zum Download einfügen...</value>
+							<value xml:lang="es">Insertar Fichero...</value>
+							<value xml:lang="nl">Bestand/en om te Downloaden invoegen...</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m211" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.InsertLink?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/insertLinkChapter</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Insert Link to Chapter...</value>
+							<value xml:lang="de">Kapitelverweis einfügen...</value>
+							<value xml:lang="es">Insertar Enlace a Capítulo</value>
+							<value xml:lang="nl">Hoofdstukverwijzing invoegen...</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m300" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>private:separator</value>
+						</prop>
+					</node>
+					<node oor:name="m301" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.SetHeading1?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/setHeading1</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Format selected paragraph as Heading 1</value>
+							<value xml:lang="de">Ausgewählten Absatz als Überschrift 1 formatieren</value>
+							<value xml:lang="es">Formatear el párrafo elegido como Encabezado 1</value>
+							<value xml:lang="nl">Geselecteerde paragraaf als header 1 weergeven</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m302" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.SetHeading2?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/setHeading2</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Format selected paragraph as Heading 2</value>
+							<value xml:lang="de">Ausgewählten Absatz als Überschrift 2 formatieren</value>
+							<value xml:lang="es">Formatear el párrafo elegido como Encabezado 2</value>
+							<value xml:lang="nl">Geselecteerde paragraaf als koptekst 2 weergeven</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m303" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.SetHeading3?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/setHeading3</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Format selected paragraph as Heading 3</value>
+							<value xml:lang="de">Ausgewählten Absatz als Überschrift 3 formatieren</value>
+							<value xml:lang="es">Formatear el párrafo elegido como Encabezado 3</value>
+							<value xml:lang="nl">Geselecteerde paragraaf als koptekst 3 weergeven</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m304" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.SetHeading4?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/setHeading4</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Format selected paragraph as Heading 4</value>
+							<value xml:lang="de">Ausgewählten Absatz als Überschrift 4 formatieren</value>
+							<value xml:lang="es">Formatear el párrafo elegido como Encabezado 4</value>
+							<value xml:lang="nl">Geselecteerde paragraaf als koptekst 4 weergeven</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m305" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.SetHeading5?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/setHeading5</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Format selected paragraph as Heading 5</value>
+							<value xml:lang="de">Ausgewählten Absatz als Überschrift 5 formatieren</value>
+							<value xml:lang="es">Formatear el párrafo elegido como Encabezado 5</value>
+							<value xml:lang="nl">Geselecteerde paragraaf als koptekst 5 weergeven</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m306" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.SetOutlineNumbering?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/setOutlineNumbering</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Set Chapter Numbering</value>
+							<value xml:lang="de">Überschriften nummerieren</value>
+							<value xml:lang="es">Especificar Numeración de Capítulos</value>
+							<value xml:lang="nl">Titel nummeren</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m400" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>private:separator</value>
+						</prop>
+					</node>
+					<node oor:name="m401" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.SetSection?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/setStyleSection</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Format selected frame</value>
+							<value xml:lang="de">Ausgewählten Rahmen formatieren</value>
+							<value xml:lang="es">Formatear el marco seleccionado</value>
+							<value xml:lang="nl">Geselecteerde frame formateren</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m402" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.SetParagraph?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/setStyleParagraph</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Format selected paragraph</value>
+							<value xml:lang="de">Ausgewählten Absatz formatieren</value>
+							<value xml:lang="es">Formatear los párrafos seleccionado</value>
+							<value xml:lang="nl">Geselecteerde paragraaf formateren</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m403" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.SetCharacter?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/setStyleCharacter</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Format selected characters</value>
+							<value xml:lang="de">Ausgewählte Zeichen formatieren</value>
+							<value xml:lang="es">Formatear los carácteres seleccionado</value>
+							<value xml:lang="nl">Geselecteerde karakter formateren</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m600" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>private:separator</value>
+						</prop>
+					</node>
+					<node oor:name="m601" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.SetListAlphaA?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/setListAlphaA</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Format selection as Capital List</value>
+							<value xml:lang="de">Auswahl als Liste mit Großbuchstaben formatieren</value>
+							<value xml:lang="es">Formaear la selección como Lista con Mayúsculas</value>
+							<value xml:lang="nl">Lijst met hoofdletters</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m602" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.SetListAlphab?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/setListAlphab</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Format selection as Lowercase List</value>
+							<value xml:lang="de">Auswahl als Liste mit Kleinbuchstaben formatieren</value>
+							<value xml:lang="es">Formatear la selección como Lista con Minúsculas</value>
+							<value xml:lang="nl">Lijst met kleine letters</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m603" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.SetListBullet?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/setListBullet</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Format selection as Bullet List</value>
+							<value xml:lang="de">Listenformat unsortiert</value>
+							<value xml:lang="es">Formatear la selección como Listado con Viñetas</value>
+							<value xml:lang="nl">lijst met opsommingstekens</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m604" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.SetListNumber?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/setListNumber</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Format selection as Numbered List</value>
+							<value xml:lang="de">Auswahl als nummerierte Liste formatieren</value>
+							<value xml:lang="es">Formatear la selección como Lista Numerada</value>
+							<value xml:lang="nl">Genummerde lijst</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m605" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.SetListRomanI?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/setListRomanI</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Format selection as Roman Capital List</value>
+							<value xml:lang="de">Auswahl als Liste mit römischen Großbuchstaben formatieren</value>
+							<value xml:lang="es">Formatear la selección como Listado con Numeración Mayúscula Romana</value>
+							<value xml:lang="nl">Lijst met grote Romeinse cijfers</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m606" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.SetListRomanii?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/setListRomanii</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Format selection as Roman Lowercase List </value>
+							<value xml:lang="de">Auswahl als Liste mit römischen Kleinbuchstaben formatieren</value>
+							<value xml:lang="es">Formatear la selección como Listado con Numeración Minúscula Romana</value>
+							<value xml:lang="nl">Lijst met kleine Romeinse cijfers</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m607" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.List.SetExtListNumLevel0?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/setListExtended</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Format selection as Extended List</value>
+							<value xml:lang="de">Auswahl als erweiterte Liste formatieren</value>
+							<value xml:lang="es">Formatear la selección como Lista Extendida</value>
+							<value xml:lang="nl">Lijst met meerdere niveaus</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m700" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>private:separator</value>
+						</prop>
+					</node>
+					<node oor:name="m701" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.SetGraphicAlignLeft?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/setGraphicAlignLeft</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Graphic align left with floating text</value>
+							<value xml:lang="de">Grafik links ausrichten mit umfließendem Text</value>
+							<value xml:lang="es">Alinear el Gráfico a la izquierda con texto flotante</value>
+							<value xml:lang="nl">Afbeelding naar links uitlijnen met tekstterugloop</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m702" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.SetGraphicAlignCenter?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/setGraphicAlignCenter</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Grahic align centered</value>
+							<value xml:lang="de">Grafik mittig ausrichten</value>
+							<value xml:lang="es">Alinear el Gráfico en el centro</value>
+							<value xml:lang="nl">Afbeelding centreren</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m703" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.SetGraphicAlignRight?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/setGraphicAlignRight</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Graphic align right with floating text</value>
+							<value xml:lang="de">Grafik rechts ausrichten mit umfließendem Text</value>
+							<value xml:lang="es">Alinear el Gráfico a la derecha con texto flotante</value>
+							<value xml:lang="nl">Afbeelding naar rechts uitlijnen met tekstterugloop</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m704" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.SetGraphicAlignInline?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/setGraphicAlignInline</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">Graphic align inline</value>
+							<value xml:lang="de">Grafik mitlaufend ausrichten</value>
+							<value xml:lang="es">Alinear el Gráfico entre líneas</value>
+							<value xml:lang="nl">Afbeelding in regel plaatsen</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+					<node oor:name="m800" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>private:separator</value>
+						</prop>
+					</node>
+					<node oor:name="m801" oor:op="replace">
+						<prop oor:name="Context" oor:type="xs:string">
+							<value>com.sun.star.text.TextDocument</value>
+						</prop>
+						<prop oor:name="URL" oor:type="xs:string">
+							<value>vnd.sun.star.script:eLAIX.Menu.ElaixAbout?language=Basic&amp;location=application</value>
+						</prop>
+						<prop oor:name="ImageIdentifier" oor:type="xs:string">
+							<value>%origin%/icons/elaixAbout</value>
+						</prop>
+						<prop oor:name="Title" oor:type="xs:string">
+							<value xml:lang="en">About eLAIX...</value>
+							<value xml:lang="de">Über eLAIX...</value>
+							<value xml:lang="es">Acerca de eLAIX...</value>
+							<value xml:lang="nl">Over eLAIX...</value>
+						</prop>
+						<prop oor:name="Target" oor:type="xs:string">
+							<value>_self</value>
+						</prop>
+					</node>
+				</node>
+			</node>
+			<node oor:name="OfficeMenuBar">
+				<node oor:name="eLAIX.OfficeMenuBar" oor:op="replace">
+					<prop oor:name="Context" oor:type="xs:string">
+						<value>com.sun.star.text.TextDocument</value>
+					</prop>
+					<prop oor:name="Title" oor:type="xs:string">
+						<value>eLAIX</value>
+					</prop>
+					<node oor:name="Submenu">
+						<node oor:name="m101" oor:op="replace">
+							<prop oor:name="Context" oor:type="xs:string">
+								<value>com.sun.star.text.TextDocument</value>
+							</prop>
+							<prop oor:name="URL" oor:type="xs:string">
+								<value>vnd.sun.star.script:eLAIX.Menu.DocImport?language=Basic&amp;location=application</value>
+							</prop>
+							<prop oor:name="ImageIdentifier" oor:type="xs:string">
+								<value>%origin%/icons/docImport</value>
+							</prop>
+							<prop oor:name="Title" oor:type="xs:string">
+								<value xml:lang="en">Import ILIAS Learning Module...</value>
+								<value xml:lang="de">ILIAS-Lerneinheit importieren...</value>
+								<value xml:lang="es">Importar Módulo de Aprendizaje ILIAS</value>
+								<value xml:lang="nl">ILIAS-leermodule importeren...</value>
+							</prop>
+							<prop oor:name="Target" oor:type="xs:string">
+								<value>_self</value>
+							</prop>
+						</node>
+						<node oor:name="m102" oor:op="replace">
+							<prop oor:name="Context" oor:type="xs:string">
+								<value>com.sun.star.text.TextDocument</value>
+							</prop>
+							<prop oor:name="URL" oor:type="xs:string">
+								<value>vnd.sun.star.script:eLAIX.Menu.DocCheck?language=Basic&amp;location=application</value>
+							</prop>
+							<prop oor:name="ImageIdentifier" oor:type="xs:string">
+								<value>%origin%/icons/docCheck</value>
+							</prop>
+							<prop oor:name="Title" oor:type="xs:string">
+								<value xml:lang="en">Check Document...</value>
+								<value xml:lang="de">Dokument überprüfen...</value>
+								<value xml:lang="es">Verificar el Documento...</value>
+								<value xml:lang="nl">Document kontroleren...</value>
+							</prop>
+							<prop oor:name="Target" oor:type="xs:string">
+								<value>_self</value>
+							</prop>
+						</node>
+						<node oor:name="m104" oor:op="replace">
+							<prop oor:name="Context" oor:type="xs:string">
+								<value>com.sun.star.text.TextDocument</value>
+							</prop>
+							<prop oor:name="URL" oor:type="xs:string">
+								<value>vnd.sun.star.script:eLAIX.Menu.DocExportILIAS?language=Basic&amp;location=application</value>
+							</prop>
+							<prop oor:name="ImageIdentifier" oor:type="xs:string">
+								<value>%origin%/icons/exportILIAS</value>
+							</prop>
+							<prop oor:name="Title" oor:type="xs:string">
+								<value xml:lang="en">Export ILIAS Learning Module...</value>
+								<value xml:lang="de">ILIAS-Lerneinheit exportieren...</value>
+								<value xml:lang="es">Exportar Módulo de Aprendizaje ILIAS...</value>
+								<value xml:lang="nl">ILIAS-leermodule exporteren...</value>
+							</prop>
+							<prop oor:name="Target" oor:type="xs:string">
+								<value>_self</value>
+							</prop>
+						</node>
+						<node oor:name="m105" oor:op="replace">
+							<prop oor:name="Context" oor:type="xs:string">
+								<value>com.sun.star.text.TextDocument</value>
+							</prop>
+							<prop oor:name="URL" oor:type="xs:string">
+								<value>vnd.sun.star.script:eLAIX.Menu.DocExportEPUB?language=Basic&amp;location=application</value>
+							</prop>
+							<prop oor:name="ImageIdentifier" oor:type="xs:string">
+								<value>%origin%/icons/exportEPUB</value>
+							</prop>
+							<prop oor:name="Title" oor:type="xs:string">
+								<value xml:lang="en">Export ePub document...</value>
+								<value xml:lang="de">ePub-Dokument exportieren...</value>
+								<value xml:lang="es">Exportar ePub...</value>
+								<value xml:lang="nl">ePub-document exporteren...</value>
+							</prop>
+							<prop oor:name="Target" oor:type="xs:string">
+								<value>_self</value>
+							</prop>
+						</node>
+						<node oor:name="m199" oor:op="replace">
+							<prop oor:name="Context" oor:type="xs:string">
+								<value>com.sun.star.text.TextDocument</value>
+							</prop>
+							<prop oor:name="URL" oor:type="xs:string">
+								<value>private:separator</value>
+							</prop>
+						</node>
+						<node oor:name="m200" oor:op="replace">
+							<prop oor:name="Context" oor:type="xs:string">
+								<value>com.sun.star.text.TextDocument</value>
+							</prop>
+							<prop oor:name="Title" oor:type="xs:string">
+								<value xml:lang="en">Insert</value>
+								<value xml:lang="de">Einfügen</value>
+								<value xml:lang="es">Insertar</value>
+								<value xml:lang="nl">Invoegen</value>
+							</prop>
+							<node oor:name="Submenu">
+								<node oor:name="m201" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.InsertGraphic?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/insertGraphic</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Graphic from File...</value>
+										<value xml:lang="de">Grafik aus Datei...</value>
+										<value xml:lang="es">Gráfico desde Fichero...</value>
+										<value xml:lang="nl">Afbeelding uit bestand...</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m202" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.InsertSound?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/insertSound</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Sound from File...</value>
+										<value xml:lang="de">Sound aus Datei...</value>
+										<value xml:lang="es">Sonido desde Fichero...</value>
+										<value xml:lang="nl">Geluid uit bestand...</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m203" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.InsertMovie?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/insertMovie</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Movie from File</value>
+										<value xml:lang="de">Film aus Datei...</value>
+										<value xml:lang="es">Película desde Fichero...</value>
+										<value xml:lang="nl">Film uit bestand...</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m204" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.InsertFlash?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/insertFlash</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Flash from File</value>
+										<value xml:lang="de">Flashdatei...</value>
+										<value xml:lang="es">Flash desde Fichero...</value>
+										<value xml:lang="nl">Flashbestand...</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m205" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.InsertFootnote?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/insertFootnote</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Footnote</value>
+										<value xml:lang="de">Fußnote</value>
+										<value xml:lang="es">Nota al Pie</value>
+										<value xml:lang="nl">Voetnoot</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m206" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.InsertPageBreak?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/insertPagebreak</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Pagebreak</value>
+										<value xml:lang="de">Seitenumbruch</value>
+										<value xml:lang="es">Salto de Página</value>
+										<value xml:lang="nl">Pagina einde</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m207" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.InsertAccordion?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/insertAccordion</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Accordion...</value>
+										<value xml:lang="de">Akkordeon...</value>
+										<value xml:lang="es">Acordeón...</value>
+										<value xml:lang="nl">Accordeon</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m208" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.InsertBookmark?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/insertBookmark</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Bookmark...</value>
+										<value xml:lang="de">Textmarke...</value>
+										<value xml:lang="es">Marcador...</value>
+										<value xml:lang="nl">Bladwijzer...</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m209" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.InsertLinkToBookmark?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/insertLinkBookmark</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Link to Bookmark...</value>
+										<value xml:lang="de">Link zu Textmarke...</value>
+										<value xml:lang="es">Link a Marcador...</value>
+										<value xml:lang="nl">Link naar bladwijzer...</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m210" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.InsertDownload?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/insertLinkFile</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Download file/s</value>
+										<value xml:lang="de">Datei/en zum Download...</value>
+										<value xml:lang="es">Download File???...</value>
+										<value xml:lang="nl">Bestand/en Downloaden</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m211" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.InsertLink?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/insertLinkChapter</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Link to Chapter...</value>
+										<value xml:lang="de">Kapitelverweis...</value>
+										<value xml:lang="es">Enlace a Capítulo...</value>
+										<value xml:lang="nl">Hoofdstuk verwijzing...</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+							</node>
+						</node>
+						<node oor:name="m300" oor:op="replace">
+							<prop oor:name="Context" oor:type="xs:string">
+								<value>com.sun.star.text.TextDocument</value>
+							</prop>
+							<prop oor:name="Title" oor:type="xs:string">
+								<value xml:lang="en">Format as Heading</value>
+								<value xml:lang="de">Als Überschrift formatieren</value>
+								<value xml:lang="es">Formatear como Encabezado</value>
+								<value xml:lang="nl">Als koptekst formateren</value>
+							</prop>
+							<node oor:name="Submenu">
+								<node oor:name="m301" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.SetHeading1?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/setHeading1</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Heading 1</value>
+										<value xml:lang="de">Überschrift 1</value>
+										<value xml:lang="es">Encabezado 1</value>
+										<value xml:lang="nl">Koptekst 1</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m302" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.SetHeading2?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/setHeading2</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Heading 2</value>
+										<value xml:lang="de">Überschrift 2</value>
+										<value xml:lang="es">Encabezado 2</value>
+										<value xml:lang="nl">Koptekst 2</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m303" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.SetHeading3?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/setHeading3</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Heading 3</value>
+										<value xml:lang="de">Überschrift 3</value>
+										<value xml:lang="es">Encabezado 3</value>
+										<value xml:lang="nl">Koptekst 3</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m304" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.SetHeading4?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/setHeading4</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Heading 4</value>
+										<value xml:lang="de">Überschrift 4</value>
+										<value xml:lang="es">Encabezado 4</value>
+										<value xml:lang="nl">Koptekst 4</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m305" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.SetHeading5?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/setHeading5</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Heading 5</value>
+										<value xml:lang="de">Überschrift 5</value>
+										<value xml:lang="es">Encabezado 5</value>
+										<value xml:lang="nl">Koptekst 5</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m306" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.SetHeading6?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/setHeading6</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Heading 6</value>
+										<value xml:lang="de">Überschrift 6</value>
+										<value xml:lang="es">Encabezado 6</value>
+										<value xml:lang="nl">Koptekst 6</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m307" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.SetOutlineNumbering?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/setOutlineNumbering</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Set Chapter Numbering</value>
+										<value xml:lang="de">Überschriften nummerieren</value>
+										<value xml:lang="es">Numeración de los Capítulos</value>
+										<value xml:lang="nl">Hoofdstuk nummeren</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+							</node>
+						</node>
+						<node oor:name="m400" oor:op="replace">
+							<prop oor:name="Context" oor:type="xs:string">
+								<value>com.sun.star.text.TextDocument</value>
+							</prop>
+							<prop oor:name="URL" oor:type="xs:string">
+								<value>vnd.sun.star.script:eLAIX.Menu.SetSection?language=Basic&amp;location=application</value>
+							</prop>
+							<prop oor:name="ImageIdentifier" oor:type="xs:string">
+								<value>%origin%/icons/setStyleSection</value>
+							</prop>
+							<prop oor:name="Title" oor:type="xs:string">
+								<value xml:lang="en">Format selected frame</value>
+								<value xml:lang="de">Ausgewählten Rahmen formatieren</value>
+								<value xml:lang="es">Formatear el marco seleccionado</value>
+								<value xml:lang="nl">Geselecteerd frame formateren</value>
+							</prop>
+							<prop oor:name="Target" oor:type="xs:string">
+								<value>_self</value>
+							</prop>
+						</node>
+						<node oor:name="m450" oor:op="replace">
+							<prop oor:name="Context" oor:type="xs:string">
+								<value>com.sun.star.text.TextDocument</value>
+							</prop>
+							<prop oor:name="URL" oor:type="xs:string">
+								<value>vnd.sun.star.script:eLAIX.Menu.SetParagraph?language=Basic&amp;location=application</value>
+							</prop>
+							<prop oor:name="ImageIdentifier" oor:type="xs:string">
+								<value>%origin%/icons/setStyleParagraph</value>
+							</prop>
+							<prop oor:name="Title" oor:type="xs:string">
+								<value xml:lang="en">Format selected paragraph</value>
+								<value xml:lang="de">Ausgewählten Absatz formatieren</value>
+								<value xml:lang="es">Formatear los párrafos seleccionado</value>
+								<value xml:lang="nl">Geselecteerde paragraaf formateren</value>
+							</prop>
+							<prop oor:name="Target" oor:type="xs:string">
+								<value>_self</value>
+							</prop>
+						</node>
+						<node oor:name="m500" oor:op="replace">
+							<prop oor:name="Context" oor:type="xs:string">
+								<value>com.sun.star.text.TextDocument</value>
+							</prop>
+							<prop oor:name="URL" oor:type="xs:string">
+								<value>vnd.sun.star.script:eLAIX.Menu.SetCharacter?language=Basic&amp;location=application</value>
+							</prop>
+							<prop oor:name="ImageIdentifier" oor:type="xs:string">
+								<value>%origin%/icons/setStyleCharacter</value>
+							</prop>
+							<prop oor:name="Title" oor:type="xs:string">
+								<value xml:lang="en">Format selected characters</value>
+								<value xml:lang="de">Ausgewählte Zeichen formatieren</value>
+								<value xml:lang="es">Formatear los carácteres seleccionado</value>
+								<value xml:lang="nl">Geselecteerde karakter formateren</value>
+							</prop>
+							<prop oor:name="Target" oor:type="xs:string">
+								<value>_self</value>
+							</prop>
+						</node>
+							<node oor:name="m600" oor:op="replace">
+								<prop oor:name="Context" oor:type="xs:string">
+									<value>com.sun.star.text.TextDocument</value>
+								</prop>
+								<prop oor:name="Title" oor:type="xs:string">
+									<value xml:lang="en">Format as List</value>
+									<value xml:lang="de">Als Liste formatieren</value>
+									<value xml:lang="es">Formatear como Lista</value>
+									<value xml:lang="nl">Als lijst formateren</value>
+								</prop>
+								<node oor:name="Submenu">
+								<node oor:name="m601" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.SetListAlphaA?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/setListAlphaA</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Capital List</value>
+										<value xml:lang="de">Großbuchstaben</value>
+										<value xml:lang="es">Lista con Mayúsculas</value>
+										<value xml:lang="nl">Lijst met hoofdletters</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m602" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.SetListAlphab?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/setListAlphab</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Lower Case List</value>
+										<value xml:lang="de">Kleinbuchstaben</value>
+										<value xml:lang="es">Lista con Minúsculas</value>
+										<value xml:lang="nl">Lijst met kleine letters</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m603" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.SetListBullet?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/setListBullet</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Bullet List</value>
+										<value xml:lang="de">Unsortierte Liste</value>
+										<value xml:lang="es">Viñetas</value>
+										<value xml:lang="nl">Lijst met opsommingstekens</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m604" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.SetListNumber?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/setListNumber</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Numbered List</value>
+										<value xml:lang="de">Nummerierte Liste</value>
+										<value xml:lang="es">Lista Numérica</value>
+										<value xml:lang="nl">Nummerieke lijst</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m605" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.SetListRomanI?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/setListRomanI</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Roman Capital List</value>
+										<value xml:lang="de">Römische Ziffern (groß)</value>
+										<value xml:lang="es">Lista con Múmeros Romanos en Mayúsculas</value>
+										<value xml:lang="nl">Lijst met grote Romeinse cijfers</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m606" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.SetListRomanii?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/setListRomanii</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Roman Lower Case List</value>
+										<value xml:lang="de">Römische Ziffern (klein)</value>
+										<value xml:lang="es">Lista con Números Romanos en Minúsculas</value>
+										<value xml:lang="nl">Lijst met kleine Romeinse cijfers</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m607" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.List.SetExtListNumLevel0?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/setListExtended</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Extended List</value>
+										<value xml:lang="de">Erweiterte Liste</value>
+										<value xml:lang="es">Lista Extendida</value>
+										<value xml:lang="nl">Lijst met meerdere niveaus</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+							</node>
+						</node>
+						<node oor:name="m800" oor:op="replace">
+							<prop oor:name="Context" oor:type="xs:string">
+								<value>com.sun.star.text.TextDocument</value>
+							</prop>
+							<prop oor:name="Title" oor:type="xs:string">
+								<value xml:lang="en">Align selected graphic</value>
+								<value xml:lang="de">Ausgewählte Grafik ausrichten</value>
+								<value xml:lang="es">Alinear el Gráfico seleccionado</value>
+								<value xml:lang="nl">***</value>
+							</prop>
+							<node oor:name="Submenu">
+								<node oor:name="m801" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.SetGraphicAlignLeft?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/setGraphicAlignLeft</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Left with floating text</value>
+										<value xml:lang="de">Links mit Text umfließend</value>
+										<value xml:lang="es">Izquierda con texto flotante</value>
+										<value xml:lang="nl">Links met tekstterugloop</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m802" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.SetGraphicAlignCenter?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/setGraphicAlignCenter</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Centered</value>
+										<value xml:lang="de">Mittig</value>
+										<value xml:lang="es">Centro</value>
+										<value xml:lang="nl">Gecentreerd</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m803" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.SetGraphicAlignRight?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/setGraphicAlignRight</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Right with floating text</value>
+										<value xml:lang="de">Rechts mit Text umfließend</value>
+										<value xml:lang="es">Derecha con texto flotante</value>
+										<value xml:lang="nl">Rechts met tekstterugloop</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+								<node oor:name="m804" oor:op="replace">
+									<prop oor:name="Context" oor:type="xs:string">
+										<value>com.sun.star.text.TextDocument</value>
+									</prop>
+									<prop oor:name="URL" oor:type="xs:string">
+										<value>vnd.sun.star.script:eLAIX.Menu.SetGraphicAlignInline?language=Basic&amp;location=application</value>
+									</prop>
+									<prop oor:name="ImageIdentifier" oor:type="xs:string">
+										<value>%origin%/icons/setGraphicAlignInline</value>
+									</prop>
+									<prop oor:name="Title" oor:type="xs:string">
+										<value xml:lang="en">Inline</value>
+										<value xml:lang="de">Mitlaufend</value>
+										<value xml:lang="es">Entre líneas</value>
+										<value xml:lang="nl">In tekstregel</value>
+									</prop>
+									<prop oor:name="Target" oor:type="xs:string">
+										<value>_self</value>
+									</prop>
+								</node>
+							</node>
+						</node>
+						<node oor:name="m900" oor:op="replace">
+							<prop oor:name="Context" oor:type="xs:string">
+								<value>com.sun.star.text.TextDocument</value>
+							</prop>
+							<prop oor:name="URL" oor:type="xs:string">
+								<value>private:separator</value>
+							</prop>
+						</node>
+						<node oor:name="m901" oor:op="replace">
+							<prop oor:name="Context" oor:type="xs:string">
+								<value>com.sun.star.text.TextDocument</value>
+							</prop>
+							<prop oor:name="URL" oor:type="xs:string">
+								<value>vnd.sun.star.script:eLAIX.Menu.ElaixAbout?language=Basic&amp;location=application</value>
+							</prop>
+							<prop oor:name="ImageIdentifier" oor:type="xs:string">
+								<value>%origin%/icons/elaixAbout</value>
+							</prop>
+							<prop oor:name="Title" oor:type="xs:string">
+								<value xml:lang="en">About eLAIX...</value>
+								<value xml:lang="de">Über eLAIX...</value>
+								<value xml:lang="es">Acerca de eLAIX...</value>
+								<value xml:lang="nl">Over eLAIX...</value>
+							</prop>
+							<prop oor:name="Target" oor:type="xs:string">
+								<value>_self</value>
+							</prop>
+						</node>
+					</node>
+				</node>
+			</node>
+		</node>
+	</node>
+</oor:component-data>
