@@ -248,7 +248,7 @@
 					<prop oor:name="Title" oor:type="xs:string">
 						<value xml:lang="en">Insert Bookmark...</value>
 						<value xml:lang="de">Textmarke einfügen...</value>
-						<value xml:lang="es">Insertar acordeón</value>
+						<value xml:lang="es">Insertar marcador...</value>
 						<value xml:lang="nl">Bladwijzer invoegen...</value>
 					</prop>
 					<prop oor:name="Target" oor:type="xs:string">
@@ -268,7 +268,7 @@
 					<prop oor:name="Title" oor:type="xs:string">
 						<value xml:lang="en">Insert Link to Bookmark...</value>
 						<value xml:lang="de">Link zu Textmarke einfügen...</value>
-						<value xml:lang="es">Insertar acordeón</value>
+						<value xml:lang="es">Insertar enlace a marcador...</value>
 						<value xml:lang="nl">Link bij bladwijzer invoegen...</value>
 					</prop>
 					<prop oor:name="Target" oor:type="xs:string">
