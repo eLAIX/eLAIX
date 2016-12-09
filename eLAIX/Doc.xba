@@ -270,6 +270,7 @@ Sub ExtractWriterGraphics(sDestFolder as string)
 	Dim sGraphicName as String
 	Dim sGraphicURL as String
 	Dim sTmp as String
+	Dim sImageFolder as string
 
 	Dim oUrl as New com.sun.star.util.URL 
 	Dim oTransformer as Object
@@ -304,6 +305,7 @@ Sub ExtractWriterGraphics(sDestFolder as string)
 	&apos; for all pictures in document ...
 	iGraphicCount = oGraphics.getCount - 1
 	i = 0
+	sImageFolder = &quot;&quot;
 	do while i &lt;= iGraphicCount
 		oGraphic = oGraphics.getByIndex(i)
 		sGraphicURL = oGraphics.getByIndex(i).GraphicURL
@@ -326,7 +328,7 @@ Sub ExtractWriterGraphics(sDestFolder as string)
 			if bIsGraphic then 
 				&apos; copy file to external folder relative to stored document...
 				oFileAccess = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)
-				sDestFile = sDestFolder &amp; ReplaceString(sGraphicName, &quot;&quot;, &quot; &quot;)
+				sDestFile = sDestFolder &amp; sImageFolder &amp; ReplaceString(sGraphicName, &quot;&quot;, &quot; &quot;)
 				oFile = oFileAccess.openFileWrite(sDestFile)
 				oOutputStream = createUnoService(&quot;com.sun.star.io.DataOutputStream&quot;)
 				oOutputStream.setOutputStream(oFile)

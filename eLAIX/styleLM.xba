@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">
-<script:module xmlns:script="http://openoffice.org/2000/script" script:name="StyleILIAS" script:language="StarBasic">&apos;****************************************************************************
+<script:module xmlns:script="http://openoffice.org/2000/script" script:name="styleLM" script:language="StarBasic">&apos;****************************************************************************
 &apos; eLAIX   : Writing ILIAS learning modules offline with OpenOffice.org Writer
 &apos; Author  : Harry Boldt - h.boldt@boldt-media.de - http://elaix.org
 &apos; License : GPL
@@ -24,7 +24,7 @@ Option Explicit
 
 private const cFactor = 25
 
-sub ExportStyles
+sub ExportLMStyles
 dim oFileAccessService as object
 dim oOutputStream as object
 dim sStyleFolder as string
@@ -301,7 +301,7 @@ dim sBorderStyles as string
 	for i = 1 to iCount
 		if gaDocParagraph(i).TableName &lt;&gt; &quot;&quot; then
 			&apos;this is the start of a table
-			sStyleString = GetIliasStyleStringTable(gaDocParagraph(i))
+			sStyleString = GetStyleStringTable(gaDocParagraph(i))
 			WriteToStream(oStyleXML, sStyleString)
 			
 		elseif gaDocParagraph(i).TableParentID &gt; 0 then 
@@ -331,72 +331,6 @@ dim sBorderStyles as string
 		end if	
 	next i 	
 end sub
-
-
-sub ExportTableStylesOld(oStyleXML as object)
-dim sStyleString as string
-dim iCount as integer
-dim aBackColors()
-dim aBorderColors()
-dim aBorderWidths()
-dim aBorderStyles()
-dim	iBackColorCount as integer
-dim	iBorderColorCount as integer
-dim	iBorderWidthCount as integer
-dim	iBorderStyleCount as integer
-dim sSelector as string
-dim i as integer
-dim j as integer
-
-	&apos;first iterate through all tables of the document and export the table and cell border styles
-	iCount = uBound(gaDocParagraph())
-	iBackColorCount = 0
-	iBorderColorCount = 0
-	iBorderWidthCount = 0
-	iBorderStyleCount = 0
-	for i = 1 to iCount
-		if gaDocParagraph(i).TableName &lt;&gt; &quot;&quot; then
-			&apos;this is the start of a table
-			sStyleString = GetIliasStyleStringTable(gaDocParagraph(i))
-			WriteToStream(oStyleXML, sStyleString)
-			
-		elseif gaDocParagraph(i).TableParentID &gt; 0 then 
-			&apos;append the background color of this table cell to the list of different backcolors
-			sSelector = gaDocParagraph(i).TableBackColor
-			if FindInArray(aBackColors(), sSelector) &lt; 0 then
-				redim preserve aBackColors(iBackColorCount)
-				aBackColors(iBackColorCount) = sSelector
-				iBackColorCount = iBackColorCount + 1
-			end if	
-			&apos;append the border colors of this table cell to the list of different border colors
-			sSelector = gaDocParagraph(i).TableBorderColors
-			if FindInArray(aBorderColors(), sSelector) &lt; 0 then
-				redim preserve aBorderColors(iBorderColorCount)
-				aBorderColors(iBorderColorCount) = sSelector
-				iBorderColorCount = iBorderColorCount + 1
-			end if	
-			&apos;append the border widths of this table cell to the list of different border widths
-			sSelector = gaDocParagraph(i).TableBorderWidths
-			if FindInArray(aBorderWidths(), sSelector) &lt; 0 then
-				redim preserve aBorderWidths(iBorderWidthCount)
-				aBorderWidths(iBorderWidthCount) = sSelector
-				iBorderWidthCount = iBorderWidthCount + 1
-			end if	
-			&apos;append the border styles of this table cell to the list of different border styles
-			sSelector = gaDocParagraph(i).TableBorderStyles
-			if FindInArray(aBorderStyles(), sSelector) &lt; 0 then
-				redim preserve aBorderStyles(iBorderStyleCount)
-				aBorderStyles(iBorderStyleCount) = sSelector
-				iBorderStyleCount = iBorderStyleCount + 1
-			end if	
-		end if	
-	next i 
-	
-	&apos;generate selectors for each different style
-	sStyleString = GetIliasStyleStringTableCellStyles(aBackColors(), aBorderColors(), aBorderWidths(), aBorderStyles())
-	WriteToStream(oStyleXML, sStyleString)
-end sub
-
 
 
 &apos;******************************************************************************************
@@ -494,6 +428,7 @@ dim i as integer
 	oStyles = oStyleFamilies.getByName( &quot;ParagraphStyles&quot; )
 	oStyle = oStyles.GetByName(&quot;Standard&quot;)	
 	oProps(11).Name  = &quot;color&quot;
+	&apos;oProps(11).Value =  &quot;inherit&quot;
 	oProps(11).Value =  GetIliasHexColorString(oStyle.CharColor)
 	oProps(12).Name  = &quot;font-size&quot;
 	oProps(12).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
@@ -538,12 +473,12 @@ dim iCount as integer
 		sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;section&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
 	end if
 	
-	oProps(0).Name  = &quot;margin-top&quot;
-	oProps(0).Value =  CStr(Int(oStyle.TopMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(0).Name  = &quot;margin-top&quot; &apos;double cFactor to reflect collapsing margins
+	oProps(0).Value =  CStr(Int(oStyle.TopMargin / cFactor * 2)) &amp; &quot;px&quot;
 	oProps(1).Name  = &quot;margin-right&quot;
 	oProps(1).Value =  CStr(Int(oStyle.RightMargin / cFactor)) &amp; &quot;px&quot;
-	oProps(2).Name  = &quot;margin-bottom&quot;
-	oProps(2).Value =  CStr(Int(oStyle.BottomMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(2).Name  = &quot;margin-bottom&quot; &apos;double cFactor to reflect collapsing margins
+	oProps(2).Value =  CStr(Int(oStyle.BottomMargin / cFactor * 2)) &amp; &quot;px&quot;
 	oProps(3).Name  = &quot;margin-left&quot;
 	oProps(3).Value =  CStr(Int(oStyle.LeftMargin / cFactor)) &amp; &quot;px&quot;
 	oProps(4).Name  = &quot;position&quot;
@@ -616,29 +551,29 @@ dim oStandard as object
 		
 	elseif sStylename = &quot;ILIAS_FileList_Caption&quot; then
 		sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;flist_head&quot;&quot; Class=&quot;&quot;FileListHeading&quot;&quot;&gt;&quot;
-		oProps(0).Name  = &quot;margin-top&quot;
-		oProps(0).Value = CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
+		oProps(0).Name  = &quot;margin-top&quot; &apos;double cFactor to reflect collapsing margins
+		oProps(0).Value = CStr(Int(oStyle.ParaTopMargin / cFactor * 2)) &amp; &quot;px&quot;
 		oProps(1).Name  = &quot;margin-left&quot;
 		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / cFactor)) &amp; &quot;px&quot;
 		
 	elseif sStylename = &quot;ILIAS_FileList_Element&quot; then
 		sStyleString = &quot;&lt;Style Tag=&quot;&quot;li&quot;&quot; Type=&quot;&quot;flist_li&quot;&quot; Class=&quot;&quot;FileListItem&quot;&quot;&gt;&quot;
-		oProps(0).Name  = &quot;margin-top&quot;
-		oProps(0).Value = CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
+		oProps(0).Name  = &quot;margin-top&quot; &apos;double cFactor to reflect collapsing margins
+		oProps(0).Value = CStr(Int(oStyle.ParaTopMargin / cFactor * 2)) &amp; &quot;px&quot;
 		oProps(1).Name  = &quot;margin-left&quot;
 		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / cFactor)) &amp; &quot;px&quot;
 		
 	elseif sStylename = &quot;Footnote&quot; then
 		sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;page_fn&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
-		oProps(0).Name  = &quot;margin-top&quot;
-		oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
+		oProps(0).Name  = &quot;margin-top&quot; &apos;double cFactor to reflect collapsing margins
+		oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor * 2)) &amp; &quot;px&quot;
 		oProps(1).Name  = &quot;margin-left&quot;
 		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / cFactor)) &amp; &quot;px&quot;
 
 	else
 		sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;text_block&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
-		oProps(0).Name  = &quot;margin-top&quot;
-		oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
+		oProps(0).Name  = &quot;margin-top&quot; &apos;double cFactor to reflect collapsing margins
+		oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor * 2)) &amp; &quot;px&quot;
 		oProps(1).Name  = &quot;margin-left&quot;
 		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / cFactor)) &amp; &quot;px&quot;
 	end if
@@ -663,8 +598,8 @@ dim oStandard as object
 	if oStyle.GetPropertyState(&quot;ParaBottomMargin&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
 		iCount = uBound(oProps) + 1
 		redim preserve oProps(iCount)
-		oProps(iCount).Name  = &quot;margin-bottom&quot;
-		oProps(iCount).Value = CStr(Int(oStyle.ParaBottomMargin / cFactor)) &amp; &quot;px&quot;
+		oProps(iCount).Name  = &quot;margin-bottom&quot; &apos;double cFactor to reflect collapsing margins
+		oProps(iCount).Value = CStr(Int(oStyle.ParaBottomMargin / cFactor * 2)) &amp; &quot;px&quot;
 	end if
 		
 	if oStyle.CharColor &lt;&gt; oStandard.CharColor then
@@ -1466,7 +1401,7 @@ dim i as integer
 end function
 
 
-function GetIliasStyleStringTable(oParaRec) as string
+function GetStyleStringTable(oParaRec) as string
 dim sStyleString as string
 dim sColor as string
 dim sBorderWidth as string
@@ -1493,11 +1428,11 @@ dim sClass as string
 	sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;padding&quot;&quot; Value=&quot;&quot;&quot; &amp; sPadding &amp; &quot;&quot;&quot;/&gt;&quot; &amp; gsCR
 	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; &amp; gsCR
 
-	GetIliasStyleStringTable = sStyleString
+	GetStyleStringTable = sStyleString
 end function
 
 
-function GetIliasStyleStringTableStyles(oParaRec as object) as string
+function GetStyleStringTableStyles(oParaRec as object) as string
 &apos;this function isn&apos;t in use anymore
 dim sStyleString as string
 dim sClass as string
@@ -1518,11 +1453,11 @@ dim sBorderStyle as string
 	sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;padding&quot;&quot; Value=&quot;&quot;&quot; &amp; sPadding &amp; &quot;&quot;&quot;/&gt;&quot;
 	sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; 
 
-	GetIliasStyleStringTableStyles = sStyleString
+	GetStyleStringTableStyles = sStyleString
 end function
 
 
-function GetIliasStyleStringTableCellStyles(aBackColors(), aBorderColors(), aBorderWidths(), aBorderStyles()) as string
+function GetStyleStringTableCellStyles(aBackColors(), aBorderColors(), aBorderWidths(), aBorderStyles()) as string
 dim sStyleString as string
 dim sClass as string
 dim sValue as string
@@ -1565,7 +1500,7 @@ dim i as integer
 		sStyleString = sStyleString &amp; &quot;&lt;StyleParameter Name=&quot;&quot;border-style&quot;&quot; Value=&quot;&quot;&quot; &amp; sValue &amp; &quot;&quot;&quot;/&gt;&quot; &amp; gsCR	
 		sStyleString = sStyleString &amp; &quot;&lt;/Style&gt;&quot; &amp; gsCR
 	next i
-	GetIliasStyleStringTableCellStyles = sStyleString
+	GetStyleStringTableCellStyles = sStyleString
 end function
 
 
@@ -1651,6 +1586,26 @@ dim sColor as string
 dim iNumberOfZero as integer
 dim i as integer
 
+	if lCharColor &lt;&gt; -1 then
+		sColor = CStr(Hex(lCharColor))
+		if Len(sColor) &lt; 6 then
+			iNumberOfZero = 6 - Len(sColor) 
+			for i=1 to iNumberOfZero
+				sColor = &quot;0&quot; &amp; sColor
+			next i
+		end if
+		GetIliasHexColorString = &quot;#&quot; &amp; sColor
+	else	
+		GetIliasHexColorString = &quot;inherit&quot;
+	end if
+end function
+
+
+function GetIliasHexColorStringOld(lCharColor as long) as string
+dim sColor as string
+dim iNumberOfZero as integer
+dim i as integer
+
 	sColor = CStr(Hex(lCharColor))
 	if lCharColor &lt;&gt; -1 then
 		if Len(sColor) &lt; 6 then
@@ -1660,7 +1615,7 @@ dim i as integer
 			next i
 		end if
 	end if
-	GetIliasHexColorString = &quot;#&quot; &amp; sColor
+	GetIliasHexColorStringOld = &quot;#&quot; &amp; sColor
 end function
 
 

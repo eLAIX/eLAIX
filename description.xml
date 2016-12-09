@@ -6,11 +6,7 @@
 
 	<identifier value="vnd.harryboldt.elaix"/>
 
-	<version value="4.1.0"/>
-
-	<dependencies>
-		<OpenOffice.org-minimal-version value="3.1.0" dep:name="OpenOffice.org 3.1.0"/>
-	</dependencies>
+	<version value="5.0.0"/>
 
 	<registration>
 		<simple-license  accept-by="admin" default-license-id="ID0" suppress-on-update="true" >

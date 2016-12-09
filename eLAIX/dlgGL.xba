@@ -1,0 +1,440 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">
+<script:module xmlns:script="http://openoffice.org/2000/script" script:name="dlgGL" script:language="StarBasic"> &apos;****************************************************************************
+&apos; eLAIX   : Writing ILIAS learning modules offline with OpenOffice.org Writer
+&apos; Author  : Harry Boldt - h.boldt@boldt-media.de - http://elaix.org
+&apos; License : GPL
+&apos;****************************************************************************
+
+&apos; This module is part of eLAIX. You can redistribute it and/or
+&apos; modify it under the terms of the GNU Lesser General Public
+&apos; License as published by the Free Software Foundation, either
+&apos; version 3 of the License, or (at your option) any later version.
+&apos; 
+&apos; This program is distributed in the hope that it will be useful,
+&apos; but WITHOUT ANY WARRANTY; without even the implied warranty of
+&apos; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+&apos; Lesser General Public License for more details.
+&apos; 
+&apos; You should have received a copy of the GNU Lesser General Public
+&apos; License along with this program. If not, please visit the Free
+&apos; Software Foundation website at http://www.gnu.org/licenses/.
+
+
+Option Explicit
+
+sub ShowGlossaryExportDialog()
+dim sVersion as string
+dim aVersion(2) as integer
+dim sLang as string
+dim oStartButton as object
+dim sTargetRelease as string
+dim sMainEntity as string
+
+
+	&apos;---- Init XML File Globals -------------------------&apos;
+	sLang = GetInternalDocString(&quot;elaixDocLanguage&quot;)
+	gsLang = GetLanguageCode(sLang)
+	
+	gsType = &quot;&quot;&quot;Glossary&quot;&quot;&quot;
+	gsStru = &quot;&quot;&quot;Hierarchical&quot;&quot;&quot;
+	gsCata = &quot;&quot;&quot;ILIAS&quot;&quot;&quot;  
+
+	&apos;set the extension of the export file
+	gsFilterZIP = &quot;*.zip&quot;
+	gsExtensionZIP = &quot;.zip&quot;
+
+	&apos;Get the eLAIX version from the document
+	sVersion = GetInternalDocString(&quot;elaixVersion&quot;)
+	if sVersion &lt;&gt; &quot;&quot; then
+		aVersion(0) = mid(sVersion, 1, 2)
+		aVersion(1) = mid(sVersion, 4, 2)
+		aVersion(2) = mid(sVersion, 7, 2)
+	end if
+	
+	&apos;initialize the dialog
+	const sLibName = &quot;eLAIX&quot;
+	const sDialogName = &quot;DlgGL&quot;
+    goDlgExport = LoadDialog(sLibName, sDialogName)
+    InitGlossaryExportOptions
+    
+	&apos;execute the dialog
+	goDlgExport.execute()
+end Sub
+
+
+sub InitGlossaryExportOptions
+dim sOS as string
+dim iFontsize as integer
+dim sFontname as string
+dim aElements()
+dim oElement as object
+dim sPage as string
+dim iPage as integer
+dim oPages as object
+dim sImgPath as string
+dim sPath as string
+dim oControl as object
+dim iPos as integer
+dim sFilename as string
+dim sFoldername as string
+dim sString as string
+dim aHeadings()
+dim aStyles()
+dim i as integer
+dim iCount as integer
+dim oFromChapter as object
+dim oToChapter as object
+dim sLang as string
+dim oStartButton as object
+
+	&apos;Get the operating system in order to set the font for the dialog elements
+	sOS = GetCurrentSystem
+	select case sOS
+		case &quot;Windows&quot; 
+			iFontSize = 9
+		case &quot;Linux&quot; 
+			iFontSize = 9
+			sFontname = &quot;Bitstream Vera Sans&quot;
+		case else &apos;Mac
+			iFontSize = 9
+			sFontname = &quot;Lucida Grande&quot;
+	end select	
+	
+	&apos;set font size for dialog elements according to the operation system
+	aElements = goDlgExport.getModel.getControlModels
+	iCount = ubound(aElements()) - 1
+	for i = 0 to iCount
+		oElement = aElements(i)
+		select case oElement.Name
+			case &quot;imgLogo&quot; &apos;do nothing
+			case &quot;lblTitle&quot;
+				with oElement
+					.FontHeight = 10
+					.FontName = sFontname
+					.FontStylename = &quot;Standard&quot;
+				end with	
+			case else		
+				with oElement
+					.FontHeight = iFontSize
+					.FontName = sFontname
+					.FontStylename = &quot;Standard&quot;
+				end with	
+		end select	
+	next i
+	
+	&apos;dialog title and logo
+	goDlgExport.Title = &quot;Export document to ILIAS glossary&quot;
+	sPath = GetPackageDirURL(&quot;vnd.harryboldt.elaix&quot;)  
+	sImgPath = sPath &amp; &quot;/icons/dialog/ilias-gl-120.png&quot;
+	oControl = goDlgExport.getControl(&quot;imgLogo&quot;)
+	oControl.getModel().ImageURL = ConvertToURL(sImgPath)
+	
+	&apos;set last active dialog page
+	oPages = goDlgExport.getControl(&quot;listPages&quot;)
+	sPage = GetInternalDocString(&quot;glossaryLastDialogPage&quot;)
+	if sPage &lt;&gt; &quot;&quot; then
+		iPage = int(sPage)
+		oPages.SelectItemPos(iPage - 1, true)
+	else	
+		oPages.SelectItemPos(0, true)
+	end if	
+
+	&apos;Metadata
+	goDlgExport.Model.txtMetaTitle.Text = GetInternalDocString(&quot;glossaryMetaTitle&quot;)
+	goDlgExport.Model.cmbMetaLanguage.Text = GetInternalDocString(&quot;glossaryMetaLanguage&quot;)
+	goDlgExport.Model.txtMetaAuthor.Text = GetInternalDocString(&quot;glossaryMetaAuthor&quot;)
+	goDlgExport.Model.txtMetaKeywords.Text = GetInternalDocString(&quot;glossaryMetaKeywords&quot;)
+	goDlgExport.Model.txtMetaCopyright.Text = GetInternalDocString(&quot;glossaryMetaCopyright&quot;)
+	goDlgExport.Model.txtMetaDescription.Text = GetInternalDocString(&quot;glossaryMetaDescription&quot;)
+		
+	&apos;General
+	oControl = goDlgExport.getControl(&quot;lblFilename&quot;)	
+	sFileName = GetInternalDocString(&quot;glossaryExportFilename&quot;)
+	if sFileName &lt;&gt; &quot;&quot; then
+		sFolderName = DirectoryNameoutofPath(sFileName, gsPathSeparator)
+		if FolderExists(sFolderName, gsPathSeparator) then	
+			oControl.SetText(sFilename)
+		else	
+			oControl.SetText(GetDefaultFilename)
+		end if	
+	else
+		oControl.SetText(GetDefaultFilename)
+	end if	
+
+	aHeadings() = GetFirstLevelHeadings()
+	oFromChapter = goDlgExport.getControl(&quot;listFromChapter&quot;)
+	oFromChapter.AddItem(&quot;&quot;, 0)
+	oFromChapter.AddItems(aHeadings(), 1)
+	sString = GetInternalDocString(&quot;glossaryFromChapter&quot;)
+	iPos = FindInArray(oFromChapter.Items, sString)
+	if iPos &gt;= 0 then 
+		oFromChapter.SelectItemPos(iPos, true)
+	else	
+		oFromChapter.SelectItemPos(0, true)
+	end if	
+	oToChapter = goDlgExport.getControl(&quot;listToChapter&quot;)
+	oToChapter.AddItem(&quot;&quot;, 0)
+	oToChapter.AddItems(aHeadings(), 1)
+	sString = GetInternalDocString(&quot;glossaryToChapter&quot;)
+	iPos = FindInArray(oToChapter.Items, sString)
+	if iPos &gt;= 0 then 
+		oToChapter.SelectItemPos(iPos, true)
+	else	
+		oToChapter.SelectItemPos(0, true)
+	end if	
+	goDlgExport.Model.optKeepTempFiles.State = GetInternalDocString(&quot;glossaryKeepTempFiles&quot;)
+	goDlgExport.Model.optWriteDebugFiles.State = GetInternalDocString(&quot;glossaryWriteDebugFiles&quot;)
+	
+	&apos;Content
+	oControl = goDlgExport.getControl(&quot;listGlossaryContentMode&quot;)	
+	sString = GetInternalDocString(&quot;glossaryContentMode&quot;)
+	iPos = FindInArray(oControl.Items, sString)
+	if iPos &gt;= 0 then 
+		oControl.SelectItemPos(iPos, true)
+	else	
+		oControl.SelectItemPos(0, true)
+	end if	
+
+	oControl = goDlgExport.getControl(&quot;listGlossaryPresentationMode&quot;)
+	sString = GetInternalDocString(&quot;glossaryPresentationMode&quot;)
+	iPos = FindInArray(oControl.Items, sString)
+	if iPos &gt;= 0 then 
+		oControl.SelectItemPos(iPos, true)
+	else	
+		oControl.SelectItemPos(0, true)
+	end if
+		
+	sString = GetInternalDocString(&quot;glossarySnippetLength&quot;)
+	goDlgExport.getControl(&quot;txtGlossarySnippetLength&quot;).Text = sString
+		
+	&apos;Image
+	sString = GetInternalDocString(&quot;glossaryMaxImageWidth&quot;)
+	goDlgExport.getControl(&quot;txtMaxImageWidth&quot;).Text = sString
+	sString = GetInternalDocString(&quot;glossaryActivateFullSize&quot;)
+	if sString &lt;&gt; &quot;&quot; then goDlgExport.getControl(&quot;optActivateFullSize&quot;).State = sString
+		
+	&apos;Export
+	oDlgResult = goDlgExport.getControl(&quot;txtResult&quot;)
+	oDlgResult.setText(&quot;Please set the export options and then click the Export-button.&quot;)
+	gbAskForOverwrite = true
+
+	oStartButton = goDlgExport.getControl(&quot;butOK&quot;)
+	oStartButton.setFocus()  	
+	
+end sub
+
+
+sub SaveGlossaryExportOptions
+dim iPos as integer
+dim oControl as object
+dim sText as string
+
+	&apos;Write export parameters into the document
+	SetInternalDocString(&quot;elaixVersion&quot;, CURRENT_ELAIX_VERSION)
+	
+	&apos;Metadata
+	SetInternalDocString(&quot;glossaryMetaTitle&quot;, goDlgExport.Model.txtMetaTitle.Text)
+	sText = GetLanguageCode(goDlgExport.Model.cmbMetaLanguage.Text)
+	SetInternalDocString(&quot;glossaryMetaLanguage&quot;, sText)
+	SetInternalDocString(&quot;glossaryMetaAuthor&quot;, goDlgExport.Model.txtMetaAuthor.Text)
+	SetInternalDocString(&quot;glossaryMetaKeywords&quot;, goDlgExport.Model.txtMetaKeywords.Text)
+	SetInternalDocString(&quot;glossaryMetaCopyright&quot;, goDlgExport.Model.txtMetaCopyright.Text)
+	SetInternalDocString(&quot;glossaryMetaDescription&quot;, goDlgExport.Model.txtMetaDescription.Text)
+		
+	&apos;General
+	SetInternalDocString(&quot;glossaryExportFilename&quot;, goDlgExport.Model.lblFilename.Label)
+	iPos = goDlgExport.Model.listFromChapter.SelectedItems(0)
+	SetInternalDocString(&quot;glossaryFromChapter&quot;, goDlgExport.Model.listFromChapter.StringItemList(iPos))
+	iPos = goDlgExport.Model.listToChapter.SelectedItems(0)
+	SetInternalDocString(&quot;glossaryToChapter&quot;, goDlgExport.Model.listToChapter.StringItemList(iPos))
+	SetInternalDocString(&quot;glossaryKeepTempFiles&quot;, goDlgExport.Model.optKeepTempFiles.State)
+	SetInternalDocString(&quot;glossaryWriteDebugFiles&quot;, goDlgExport.Model.optWriteDebugFiles.State)
+	
+	&apos;Content	
+	iPos = goDlgExport.Model.listGlossaryContentMode.SelectedItems(0)
+	SetInternalDocString(&quot;glossaryContentMode&quot;, goDlgExport.Model.listGlossaryContentMode.StringItemList(iPos))
+	iPos = goDlgExport.Model.listGlossaryPresentationMode.SelectedItems(0)
+	SetInternalDocString(&quot;glossaryPresentationMode&quot;, goDlgExport.Model.listGlossaryPresentationMode.StringItemList(iPos))
+	SetInternalDocString(&quot;glossarySnippetLength&quot;, goDlgExport.Model.txtGlossarySnippetLength.Text)
+	SetInternalDocString(&quot;glossaryMaxImageWidth&quot;, goDlgExport.Model.txtMaxImageWidth.Text)
+	SetInternalDocString(&quot;glossaryActivateFullSize&quot;, goDlgExport.Model.optActivateFullSize.State)
+	
+	&apos;Save last dialog page
+	SetInternalDocString(&quot;glossaryLastDialogPage&quot;, goDlgExport.Model.Step)	
+	
+
+end sub
+
+
+sub SetGlossaryExportDialogPage
+dim oListBoxPages as object
+dim oTitle as object
+dim iPage as integer
+dim sTitle as string
+
+	oListBoxPages = goDlgExport.getControl(&quot;listPages&quot;)
+	oTitle = goDlgExport.Model.lblTitle
+	iPage = oListBoxPages.SelectedItemPos + 1
+	sTitle = &quot;  &quot; &amp; oListBoxPages.SelectedItem
+	oTitle.Label = sTitle
+	goDlgExport.Model.Step = iPage
+end sub
+
+
+sub DlgGlossaryExportClick
+dim oDlgFilename as object
+dim oOptActivateFullSize as object
+dim oGlossaryTermStyle as object
+dim oGlossaryDefinitionStyle as object
+dim oFromChapter as object
+dim oToChapter as object
+dim oDlgLabel1 as object
+dim oDlgLabel2 as object
+dim oDlgLabel3 as object
+dim oDlgLabel4 as object
+dim oDlgLabel5 as object
+dim oDlgLabel6 as object
+dim oDlgResult as object
+
+dim oStartButton As Object 
+dim oCancelButton As Object 
+dim vFilename as string
+dim vStr as string
+dim sImageDir as string
+dim iPos as integer
+dim sStyle as string
+dim oPages as object
+
+	&apos;set export status page
+	giLastGlossaryDialogPage = goDlgExport.Model.Step
+	&apos;Save the export options first
+	SaveGlossaryExportOptions
+	oPages = goDlgExport.getControl(&quot;listPages&quot;)
+	oPages.SelectItemPos(3, true)
+
+	&apos;Check if file exists
+	oDlgFilename = goDlgExport.Model.lblFilename
+	if oDlgFilename.Label &lt;&gt; &quot;&quot; then
+	  if FileExists(oDlgFilename.Label) and (gbAskForOverwrite) then
+	    vStr = &quot;The file you selected already exists.&quot; &amp; Chr(13) &amp; &quot;Do you really want to overwrite it?&quot;
+	    if msgbox(vStr, 164, &quot;Document Export&quot;) = 7 then
+	      exit sub  
+	    end if
+	    Kill oDlgFilename.Label
+	  end if
+	else
+	  msgbox (&quot;Please select an export filename first.&quot;, 48, &quot;Document Export&quot;)
+	  exit sub
+	end if
+	
+	&apos;Deactivate OK-Button
+	oStartButton = goDlgExport.getControl(&quot;butOK&quot;)
+	oStartButton.setEnable(false)
+	
+	SwitchMousePointer(goDlgExport.getPeer(), false)
+	
+	&apos;Initialize global variables for the export
+	InitGlobals &apos;main initialisation of gobal variables
+	SetGlossaryPathGlobals(ConvertToURL(oDlgFilename.Label))
+	CreateGlossaryFolderStructure
+	
+	&apos;Reset the dialog elements
+	oDlgLabel1 = goDlgExport.Model.lblPosition1 &apos;prepare
+	oDlgLabel2 = goDlgExport.Model.lblPosition2 &apos;read content
+	oDlgLabel3 = goDlgExport.Model.lblPosition3 &apos;export media
+	oDlgLabel4 = goDlgExport.Model.lblPosition4 &apos;write ILIAS content
+	oDlgLabel5 = goDlgExport.Model.lblPosition5 &apos;pack to zip 
+	oDlgLabel6 = goDlgExport.Model.lblPosition6 &apos; finish
+	oDlgLabel1.Label = gsCheckString
+	oDlgLabel2.Label = &quot;&quot;
+	oDlgLabel3.Label = &quot;&quot;
+	oDlgLabel4.Label = &quot;&quot;
+	oDlgLabel5.Label = &quot;&quot;
+	oDlgLabel6.Label = &quot;&quot;
+	goDlgExport.Model.lblCountGraphic.Label = &quot;&quot;
+	goDlgExport.Model.lblCountRead.Label = &quot;&quot;
+	goDlgExport.Model.lblCountWrite.Label = &quot;&quot;
+	
+	oDlgResult = goDlgExport.Model.txtResult
+	oDlgFilename = goDlgExport.Model.lblFilename
+	oDlgResult.Text = &quot;Export is running - please wait...&quot;
+		
+	
+	&apos;Initialize options from the dialog elements	
+	    	
+	oFromChapter = goDlgExport.Model.listFromChapter
+	giFromChapter = oFromChapter.SelectedItems(0)
+	oToChapter = goDlgExport.Model.listToChapter
+	giToChapter = oToChapter.SelectedItems(0) 
+	
+	
+	&apos;ThisComponent.lockControllers() &apos;lock screen controls
+	&apos;vFileName = ConvertToURL(gsExportMediaDir &amp; gsPathSeparator &amp; gsExportHTML)
+	&apos;SaveToHTML(thisComponent, vFileName)
+	&apos;GetMediaFromHtml(vFileName)
+	&apos;DeleteHtmlFile  &apos;Temporäre HTML Datei löschen 
+	
+	&apos;Export embedded Writer Graphics to the temporary objects/images folder	
+	oDlgLabel2.Label = gsCheckString
+	sImageDir = gsExportMediaDir &amp; &quot;/images/&quot;
+	ExtractWriterGraphics(sImageDir)
+	&apos;Add the filenames of the exported graphics to the extMedia object list
+	ReadExtractedGraphics(sImageDir, MEDIA_TYPE_IMAGE)
+	&apos;Add the filenames of all linked graphics to the extMedia object list
+	ReadLinkedObjects 
+	
+	&apos;Read the document
+	oDlgLabel3.Label = gsCheckString
+	ReadDocument
+	if goDlgExport.Model.optWriteDebugFiles.State = 1 then
+		PrintEnumArrays  &apos;&apos;&apos;for debugging purposes
+	end If	
+	
+	&apos;Export the document
+	oDlgLabel4.Label = gsCheckString
+	ExportToGlossary
+	
+	&apos;Build the package
+	oDlgLabel5.Label = gsCheckString
+	MoveMediaObjectsToSubFolders
+	&apos;MoveFilesToAliasFolder
+	&apos;MoveStyleToAliasFolder
+	
+
+	ZipFolderToFile(ConvertFromURL(gsExportZipDir), ConvertFromURL(gsExportZIP), &quot;&quot;)
+	if goDlgExport.Model.optKeepTempFiles.State &lt;&gt; 1 then
+	  DeleteExportFiles
+	end if  
+	
+	oDlgResult.Text = GetResultString
+	oDlgLabel6.Label = gsCheckString
+
+	&apos;Reactivate OK-Button and set the focus to the cancel-button
+	oStartButton.setEnable(true)
+	oCancelButton = goDlgExport.getControl(&quot;butCancel&quot;)
+	oCancelButton.setFocus()  
+	SwitchMousePointer(goDlgExport.getPeer(), true)
+	Beep
+end Sub
+
+
+sub SetGlossaryDefaultSettings
+dim oControl as object
+	oControl = goDlgExport.getControl(&quot;listLayout&quot;)
+	oControl.SelectItemPos(0, true)	
+	oControl = goDlgExport.getControl(&quot;listPageHeader&quot;)
+	oControl.SelectItemPos(0, true)
+	oControl = goDlgExport.getControl(&quot;listTOCMode&quot;)
+	oControl.SelectItemPos(0, true)	
+	goDlgExport.getControl(&quot;optChapterNumeration&quot;).State = 0
+	goDlgExport.getControl(&quot;optActiveLMMenu&quot;).State = 1
+	goDlgExport.getControl(&quot;optActiveTOC&quot;).State = 1
+	goDlgExport.getControl(&quot;optActivePrintView&quot;).State = 1
+	goDlgExport.getControl(&quot;optCleanFrames&quot;).State = 1
+	goDlgExport.getControl(&quot;optPublicNotes&quot;).State = 1
+	goDlgExport.getControl(&quot;optHistoryUserComments&quot;).State = 0
+	goDlgExport.getControl(&quot;optShowLineNumbersInCodeView&quot;).State = 0
+end sub
+
+</script:module>

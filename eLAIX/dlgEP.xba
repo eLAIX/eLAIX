@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">
-<script:module xmlns:script="http://openoffice.org/2000/script" script:name="DlgEPUB" script:language="StarBasic">&apos;****************************************************************************
+<script:module xmlns:script="http://openoffice.org/2000/script" script:name="dlgEP" script:language="StarBasic">&apos;****************************************************************************
 &apos; eLAIX   : Writing ILIAS learning modules offline with OpenOffice.org Writer
 &apos; Author  : Harry Boldt - h.boldt@boldt-media.de - http://elaix.org
 &apos; License : GPL
@@ -38,7 +38,7 @@ dim oPages as object
 	gsExtensionZIP = &quot;.epub&quot;
 	gbAskForOverwrite = true
 	const sLibName = &quot;eLAIX&quot;
-	const sDialogName = &quot;DlgEPUB&quot;
+	const sDialogName = &quot;DlgEP&quot;
 	
 	&apos;load the dialog and initialize all dialog elements
     goDlgExport = LoadDialog(sLibName, sDialogName)   

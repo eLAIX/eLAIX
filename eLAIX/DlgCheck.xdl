@@ -10,7 +10,7 @@
   <dlg:button dlg:style-id="0" dlg:id="butCheck" dlg:tab-index="5" dlg:left="168" dlg:top="211" dlg:width="60" dlg:height="15" dlg:default="true" dlg:value="Start">
    <script:event script:event-name="on-performaction" script:macro-name="vnd.sun.star.script:eLAIX.Menu.DoDocCheck?language=Basic&amp;location=application" script:language="Script"/>
   </dlg:button>
-  <dlg:img dlg:style-id="0" dlg:id="imgLogo" dlg:tab-index="7" dlg:left="280" dlg:top="7" dlg:width="41" dlg:height="36" dlg:scale-image="false"/>
+  <dlg:img dlg:style-id="0" dlg:id="imgLogo" dlg:tab-index="7" dlg:left="280" dlg:top="7" dlg:width="41" dlg:height="36" dlg:scale-image="false" dlg:scale-mode="none"/>
   <dlg:textfield dlg:style-id="1" dlg:id="txtStatus" dlg:tab-index="4" dlg:left="5" dlg:top="49" dlg:width="318" dlg:height="158" dlg:vscroll="true" dlg:multiline="true" dlg:readonly="true"/>
   <dlg:checkbox dlg:style-id="1" dlg:id="chkDoubleSpaces" dlg:tab-index="0" dlg:left="143" dlg:top="29" dlg:width="120" dlg:height="10" dlg:value="Remove double spaces" dlg:checked="false"/>
   <dlg:checkbox dlg:style-id="1" dlg:id="chkStructure" dlg:tab-index="1" dlg:left="10" dlg:top="18" dlg:width="120" dlg:height="10" dlg:value="Check/Repair structure" dlg:checked="true">

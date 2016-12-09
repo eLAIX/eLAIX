@@ -258,10 +258,18 @@ dim sMsg as string
 end sub
 
 
+sub DocExportGLOSSARY()
+  &apos;InitGlobals 
+  if DocHasLocation() then
+    ShowGlossaryExportDialog &apos;this dialog calls sub DlgExportLearningModuleClick via &quot;Export&quot;-button
+  end if
+end sub
+
+
 sub DocExportILIAS()
   &apos;InitGlobals 
   if DocHasLocation() then
-    ShowIliasExportDialog &apos;this dialog calls sub DlgExportClick via &quot;Export&quot;-button
+    ShowIliasExportDialog &apos;this dialog calls sub DlgExportGlossarClick via &quot;Export&quot;-button
   end if
 end sub
 

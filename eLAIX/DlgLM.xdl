@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE dlg:window PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "dialog.dtd">
-<dlg:window xmlns:dlg="http://openoffice.org/2000/dialog" xmlns:script="http://openoffice.org/2000/script" dlg:id="DlgILIAS" dlg:left="60" dlg:top="0" dlg:width="333" dlg:height="231" dlg:page="4" dlg:closeable="true" dlg:moveable="true" dlg:title="Export to ILIAS">
+<dlg:window xmlns:dlg="http://openoffice.org/2000/dialog" xmlns:script="http://openoffice.org/2000/script" dlg:id="DlgLM" dlg:left="60" dlg:top="0" dlg:width="333" dlg:height="231" dlg:page="2" dlg:closeable="true" dlg:moveable="true" dlg:title="Export to ILIAS">
  <dlg:styles>
   <dlg:style dlg:style-id="0" dlg:font-height="8" dlg:font-weight="100"/>
   <dlg:style dlg:style-id="1" dlg:text-color="0x800000" dlg:font-name="Arial" dlg:font-height="11" dlg:font-stylename="Fett" dlg:font-family="swiss" dlg:font-weight="150"/>
@@ -44,13 +44,13 @@
   <dlg:text dlg:style-id="1" dlg:id="lblPosition6" dlg:tab-index="44" dlg:left="92" dlg:top="93" dlg:width="10" dlg:height="10" dlg:page="5" dlg:align="center"/>
   <dlg:button dlg:style-id="3" dlg:id="butCancel" dlg:tab-index="19" dlg:left="165" dlg:top="208" dlg:width="50" dlg:height="15" dlg:value="Close" dlg:button-type="cancel"/>
   <dlg:button dlg:style-id="4" dlg:id="butOK" dlg:tab-index="17" dlg:left="275" dlg:top="208" dlg:width="50" dlg:height="15" dlg:default="true" dlg:value="Export">
-   <script:event script:event-name="on-performaction" script:macro-name="vnd.sun.star.script:eLAIX.DlgILIAS.DlgIliasExportClick?language=Basic&amp;location=application" script:language="Script"/>
+   <script:event script:event-name="on-performaction" script:macro-name="vnd.sun.star.script:eLAIX.dlgLM.DlgIliasExportClick?language=Basic&amp;location=application" script:language="Script"/>
   </dlg:button>
   <dlg:text dlg:style-id="5" dlg:id="lblCountWrite" dlg:tab-index="49" dlg:left="205" dlg:top="71" dlg:width="25" dlg:height="10" dlg:page="5" dlg:align="center" dlg:multiline="true"/>
   <dlg:text dlg:style-id="5" dlg:id="lblCountGraphic" dlg:tab-index="48" dlg:left="205" dlg:top="50" dlg:width="25" dlg:height="10" dlg:page="5" dlg:align="center" dlg:multiline="true"/>
   <dlg:text dlg:style-id="5" dlg:id="lblCountRead" dlg:tab-index="50" dlg:left="205" dlg:top="60" dlg:width="25" dlg:height="10" dlg:page="5" dlg:align="center" dlg:multiline="true"/>
   <dlg:button dlg:style-id="0" dlg:id="CommandButton2" dlg:tab-index="54" dlg:left="220" dlg:top="208" dlg:width="50" dlg:height="15" dlg:value="Save">
-   <script:event script:event-name="on-performaction" script:macro-name="vnd.sun.star.script:eLAIX.DlgILIAS.SaveIliasExportOptions?language=Basic&amp;location=application" script:language="Script"/>
+   <script:event script:event-name="on-performaction" script:macro-name="vnd.sun.star.script:eLAIX.dlgLM.SaveIliasExportOptions?language=Basic&amp;location=application" script:language="Script"/>
   </dlg:button>
   <dlg:text dlg:id="Label5" dlg:tab-index="56" dlg:left="85" dlg:top="43" dlg:width="48" dlg:height="9" dlg:page="1" dlg:value="Language"/>
   <dlg:text dlg:id="Label6" dlg:tab-index="57" dlg:left="85" dlg:top="27" dlg:width="48" dlg:height="9" dlg:page="1" dlg:value="Title"/>
@@ -198,7 +198,7 @@
    </dlg:menupopup>
   </dlg:combobox>
   <dlg:textfield dlg:style-id="2" dlg:id="txtMetaAuthor" dlg:tab-index="2" dlg:left="135" dlg:top="58" dlg:width="190" dlg:height="25" dlg:page="1" dlg:multiline="true"/>
-  <dlg:img dlg:style-id="4" dlg:id="imgLogo" dlg:tab-index="59" dlg:left="249" dlg:top="39" dlg:width="68" dlg:height="66" dlg:page="5" dlg:scale-image="false"/>
+  <dlg:img dlg:style-id="4" dlg:id="imgLogo" dlg:tab-index="59" dlg:left="249" dlg:top="39" dlg:width="68" dlg:height="66" dlg:page="5" dlg:scale-image="false" dlg:scale-mode="none"/>
   <dlg:menulist dlg:id="listPages" dlg:tab-index="60" dlg:left="7" dlg:top="8" dlg:width="70" dlg:height="193">
    <dlg:menupopup>
     <dlg:menuitem dlg:value="Metadata"/>
@@ -207,7 +207,7 @@
     <dlg:menuitem dlg:value="Content"/>
     <dlg:menuitem dlg:value="Export"/>
    </dlg:menupopup>
-   <script:event script:event-name="on-itemstatechange" script:macro-name="vnd.sun.star.script:eLAIX.DlgILIAS.SetIliasExportDialogPage?language=Basic&amp;location=application" script:language="Script"/>
+   <script:event script:event-name="on-itemstatechange" script:macro-name="vnd.sun.star.script:eLAIX.dlgLM.SetIliasExportDialogPage?language=Basic&amp;location=application" script:language="Script"/>
   </dlg:menulist>
   <dlg:text dlg:style-id="7" dlg:id="Label2" dlg:tab-index="61" dlg:left="85" dlg:top="127" dlg:width="240" dlg:height="10" dlg:page="5" dlg:value="    Status"/>
   <dlg:text dlg:style-id="8" dlg:id="Label16" dlg:tab-index="62" dlg:left="228" dlg:top="43" dlg:width="95" dlg:height="9" dlg:page="1" dlg:value="or use ISO 639-1 language code"/>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">
-<script:module xmlns:script="http://openoffice.org/2000/script" script:name="ExEPUB" script:language="StarBasic">&apos;****************************************************************************
+<script:module xmlns:script="http://openoffice.org/2000/script" script:name="exEP" script:language="StarBasic">&apos;****************************************************************************
 &apos; eLAIX   : Writing ILIAS learning modules offline with OpenOffice.org Writer
 &apos; Author  : Harry Boldt - h.boldt@boldt-media.de - http://elaix.org
 &apos; License : GPL
@@ -41,7 +41,7 @@ dim oSFA as object
 	gsExportZipDir = gsCurDir &amp; gsPathSeparator &amp; sTempFolder 
 	if Dir(gsExportZipDir, 16) &lt;&gt; &quot;&quot; then &apos; Delete existing folder
 		oSFA = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)
-		oSFA.setReadOnly(gsExportZipDir, false) &apos; gsExportZipDir is then not readonly
+		oSFA.setReadOnly(gsExportZipDir, false) &apos; gsExportZipDir is then writable (not readonly)
 		RmDir(gsExportZipDir)
 	end if
 end sub
@@ -51,6 +51,7 @@ Sub ExportToEPUB
 dim sImageDir as string
 dim oStream as object
 
+	gsExportType = &quot;EP&quot;
     ExportEpubDocument    
     goDlgExport.Model.lblPosition5.Label = gsCheckString
 	ExportEpubStyles	
@@ -2047,23 +2048,6 @@ dim i as long
 		end if
 	next i
 end function
-
-function GetExportFileObject(sFilename as string) as object
-dim oFileAccessService as object
-dim oOutput as object
-dim oStream as object
-
-	if FileExists(sFilename) then
-	  Kill sFilename
-	end if
-	oFileAccessService = createUnoService(&quot;com.sun.star.ucb.SimpleFileAccess&quot;)
-	oOutput = createUnoService(&quot;com.sun.star.io.TextOutputStream&quot;)
-	oOutput.SetEncoding(&quot;utf-8&quot;) &apos;not explicitely needed, since this is the standard
-	oStream = oFileAccessService.openFileWrite(sFilename)
-	oStream.truncate()
-	oOutput.setOutputStream(oStream)
-	GetExportFileObject = oOutput
-End function
 
 
 sub SetDocPageIDs

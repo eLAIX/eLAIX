@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">
-<script:module xmlns:script="http://openoffice.org/2000/script" script:name="DlgILIAS" script:language="StarBasic"> &apos;****************************************************************************
+<script:module xmlns:script="http://openoffice.org/2000/script" script:name="dlgLM" script:language="StarBasic"> &apos;****************************************************************************
 &apos; eLAIX   : Writing ILIAS learning modules offline with OpenOffice.org Writer
 &apos; Author  : Harry Boldt - h.boldt@boldt-media.de - http://elaix.org
 &apos; License : GPL
@@ -22,6 +22,7 @@
 
 
 Option Explicit
+
 
 sub ShowIliasExportDialog()
 dim sVersion as string
@@ -54,7 +55,7 @@ dim oStartButton as object
 	
 	&apos;initialize the dialog
 	const sLibName = &quot;eLAIX&quot;
-	const sDialogName = &quot;DlgILIAS&quot;
+	const sDialogName = &quot;DlgLM&quot;
     goDlgExport = LoadDialog(sLibName, sDialogName)
     InitIliasExportOptions
     
@@ -126,7 +127,7 @@ dim oStartButton as object
 	&apos;dialog title and logo
 	goDlgExport.Title = &quot;Export document to ILIAS learning module&quot;
 	sPath = GetPackageDirURL(&quot;vnd.harryboldt.elaix&quot;)  
-	sImgPath = sPath &amp; &quot;/icons/dialog/ilias-120.png&quot;
+	sImgPath = sPath &amp; &quot;/icons/dialog/ilias-lm-120.png&quot;
 	oControl = goDlgExport.getControl(&quot;imgLogo&quot;)
 	oControl.getModel().ImageURL = ConvertToURL(sImgPath)
 	
@@ -574,7 +575,7 @@ dim oPages as object
 end sub
 
 
-sub SetDefaultSettings
+sub SetIliasDefaultSettings
 dim oControl as object
 	oControl = goDlgExport.getControl(&quot;listLayout&quot;)
 	oControl.SelectItemPos(0, true)	

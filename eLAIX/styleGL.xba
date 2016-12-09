@@ -1,0 +1,1575 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">
+<script:module xmlns:script="http://openoffice.org/2000/script" script:name="styleGL" script:language="StarBasic">&apos;****************************************************************************
+&apos; eLAIX   : Writing ILIAS learning modules offline with OpenOffice.org Writer
+&apos; Author  : Harry Boldt - h.boldt@boldt-media.de - http://elaix.org
+&apos; License : GPL
+&apos;****************************************************************************
+
+&apos; This module is part of eLAIX. You can redistribute it and/or
+&apos; modify it under the terms of the GNU Lesser General Public
+&apos; License as published by the Free Software Foundation, either
+&apos; version 3 of the License, or (at your option) any later version.
+&apos; 
+&apos; This program is distributed in the hope that it will be useful,
+&apos; but WITHOUT ANY WARRANTY; without even the implied warranty of
+&apos; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+&apos; Lesser General Public License for more details.
+&apos; 
+&apos; You should have received a copy of the GNU Lesser General Public
+&apos; License along with this program. If not, please visit the Free
+&apos; Software Foundation website at http://www.gnu.org/licenses/.
+
+Option Explicit
+
+private const cFactor = 25
+
+
+&apos;-----------------------------------------------------------------------------
+&apos; 1. level: call all subroutines, generating the styles that are supported
+&apos;-----------------------------------------------------------------------------
+
+sub ExportIliasStyles(oStyleXML as object)
+
+	ExportIliasGeneralStyle
+	ExportIliasPageStyle
+	ExportIliasSectionStyles
+	ExportIliasParagraphStyles
+	ExportIliasCharacterStyles
+	ExportIliasAccordionStyles
+	ExportIliasTableStyles
+end sub
+
+
+&apos;-----------------------------------------------------------------------------
+&apos; 2. level: enumerate all used styles and call a subroutine for each style
+&apos;-----------------------------------------------------------------------------
+
+sub ExportIliasSectionStyles
+dim oDocument as object
+dim oStyleFamilies as object
+dim oFrameStyles as object
+dim oStyle as object
+dim sStylename as string
+dim iCount as integer
+dim i as integer
+dim sStyleString as string
+dim iNumType as integer
+dim sGraphicName as string
+dim sLocation as string
+
+	oStyleFamilies = ThisComponent.StyleFamilies
+	oFrameStyles = oStyleFamilies.getByName( &quot;FrameStyles&quot; )
+
+	&apos;get all applied paragraphs
+	iCount = oFrameStyles.GetCount
+	for i = 0 to iCount - 1
+		oStyle = oFrameStyles.GetByIndex(i)
+		sStylename = oStyle.Name &apos;(already converted in Enum)	
+		
+		&apos;the style is used by the document
+		if oStyle.isInUse and (oStyle.Name &lt;&gt; &quot;&quot;) then
+			sStylename = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+			sGraphicName = oStyle.BackGraphicURL
+			if sGraphicName &lt;&gt; &quot;&quot; then
+				sGraphicName = ExportGraphicByURL(oStyle.BackGraphicURL, gsExportStyleImageDir)
+				if sGraphicName = &quot;save_again&quot; then
+					oDocument = ThisComponent()
+					oDocument.Store
+					sGraphicName = ExportGraphicByURL(oStyle.BackGraphicURL, gsExportStyleImageDir)
+				end if
+			end if
+			ExportIliasSectionStyle(oStyle, sGraphicName)
+		end if			
+	next i
+end sub
+
+
+sub ExportIliasParagraphStyles
+dim oDocument as object
+dim oStyleFamilies as object
+dim oParaStyles as object
+dim oStyle as object
+dim sStylename as string
+dim iCount as integer
+dim i as integer
+dim iNumType as integer
+dim sGraphicName as string
+dim sLocation as string
+
+	oStyleFamilies = ThisComponent.StyleFamilies
+	oParaStyles = oStyleFamilies.getByName( &quot;ParagraphStyles&quot; )
+
+	&apos;get all applied paragraphs
+	iCount = oParaStyles.GetCount
+	for i = 0 to iCount - 1
+		oStyle = oParaStyles.GetByIndex(i)
+		sStylename = oStyle.Name &apos;already converted in Enum
+		
+		
+		&apos;the style is used by the document
+		if oStyle.isInUse and (oStyle.Name &lt;&gt; &quot;&quot;) then
+			sStylename = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+			iNumType = GetNumberingTypeByStyleName(sStylename)
+			
+			&apos;check if this style is an ordered list
+			if iNumType = 4 then
+				ExportIliasOrderedListStyle(oStyle) 
+			
+			&apos;check if this style is an unordered list
+			elseif iNumType = 6 then
+				ExportIliasUnorderedListStyle(oStyle) 
+
+			&apos;check if this style is a marginale left style
+			elseif oStyle.Name = gsMarginaleLeftStyle then
+				ExportIliasMarginaleLeftStyle(oStyle) 
+							
+			&apos;check if this style is the standard style
+			elseif oStyle.Name = gsMarginaleRightStyle then
+				ExportIliasMarginaleRightStyle(oStyle) 
+
+			elseif oStyle.Name = &quot;Standard&quot; then
+				&apos;do nothing, this paragraph is handled in the page container
+				
+			&apos;this is a non special style
+			else				
+				sGraphicName = oStyle.ParaBackGraphicURL
+				if sGraphicName &lt;&gt; &quot;&quot; then
+					sGraphicName = ExportGraphicByURL(oStyle.ParaBackGraphicURL, gsExportStyleImageDir)
+					if sGraphicName = &quot;save_again&quot; then
+						oDocument = ThisComponent()
+						oDocument.Store
+						sGraphicName = ExportGraphicByURL(oStyle.ParaBackGraphicURL, gsExportStyleImageDir)
+					end if
+				end if				
+				ExportIliasParagraphStyle(oStyle, sGraphicName)
+			end if	
+			
+			&apos;always create a ListLabel Class, if there&apos;s a negative FirstLineIndent
+			if oStyle.ParaFirstLineIndent &lt; 0 then
+				ExportIliasListLabelStyle(oStyle)
+				&apos;sStyleString = GetStyleStringListLabel(oStyle)
+			end if			
+		end if			
+	next i
+	
+	&apos;step 2: set extra alignment styles for hard aligned paragraphs
+	ExportIliasAlignmentStyle(&quot;center&quot;)
+	ExportIliasAlignmentStyle(&quot;right&quot;)
+	ExportIliasAlignmentStyle(&quot;justify&quot;)
+end sub
+
+
+sub ExportIliasCharacterStyles
+dim oDocument as object
+dim oStyleFamilies as object
+dim oCharStyles as object
+dim oStyle as object
+dim sStylename as string
+dim iCount as integer
+dim i as integer
+dim iNumType as integer
+dim sGraphicName as string
+dim sLocation as string
+
+	oStyleFamilies = ThisComponent.StyleFamilies
+	oCharStyles = oStyleFamilies.getByName( &quot;CharacterStyles&quot; )
+
+	&apos;get all applied paragraphs
+	iCount = oCharStyles.GetCount
+	for i = 0 to iCount - 1
+		oStyle = oCharStyles.GetByIndex(i)
+		sStylename = oStyle.Name &apos;(already converted in Enum)	
+		
+		&apos;the style is used by the document
+		if oStyle.isInUse and (oStyle.Name &lt;&gt; &quot;&quot;) then
+			sStylename = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+			ExportIliasCharacterStyle(oStyle)
+		end if			
+	next i
+end sub
+
+
+sub ExportIliasAccordionStyles
+dim oStyleFamilies as object
+dim oStyles as object
+dim oStyle as object
+
+	oStyleFamilies = ThisComponent.StyleFamilies
+	oStyles = oStyleFamilies.getByName( &quot;FrameStyles&quot; )	
+	if oStyles.HasByName(&quot;ILIAS Accordion Element&quot;) then
+		oStyle = oStyles.GetByName(&quot;ILIAS Accordion Element&quot;)
+		ExportIliasAccordionVerticalStyle(oStyle)
+		ExportIliasAccordionHorizontalStyle(oStyle)
+	end if
+
+	oStyleFamilies = ThisComponent.StyleFamilies
+	oStyles = oStyleFamilies.getByName( &quot;ParagraphStyles&quot; )
+	if oStyles.HasByName(&quot;ILIAS Accordion Caption&quot;) then
+		oStyle = oStyles.GetByName(&quot;ILIAS Accordion Caption&quot;)	
+		ExportIliasAccordionTogglerVerticalStyle(oStyle)
+		ExportIliasAccordionTogglerHorizontalStyle(oStyle)
+	end if
+	
+	ExportIliasAccordionTextVerticalStyle()
+	ExportIliasAccordionTextHorizontalStyle()
+end sub	
+
+
+sub ExportIliasTableStyles
+dim iCount as integer
+dim aSelectors()
+dim iSelectorCount as integer
+dim sSelector as string
+dim oParaRec as object 
+dim i as integer
+
+	&apos;iterate through all tables of the document and export the table and cell border styles
+	iCount = uBound(gaDocParagraph())
+	iSelectorCount = 0
+	oParaRec = gaDocParagraph(i)
+	for i = 1 to iCount
+		oParaRec = gaDocParagraph(i)
+		if gaDocParagraph(i).TableName &lt;&gt; &quot;&quot; then
+			&apos;this is the start of a table
+			ExportIliasTableStyle(oParaRec)
+			
+		elseif gaDocParagraph(i).TableParentID &gt; 0 then 
+			&apos;append the background color of this table cell to the list of different backcolors
+			sSelector = oParaRec.TableBackColor &amp; oParaRec.TableBorderColors &amp; oParaRec.TableBorderWidths &amp; oParaRec.TableBorderStyles
+			sSelector = ReplaceString(sSelector, &quot;&quot;, &quot; &quot;)	
+			
+			if FindInArray(aSelectors(), sSelector) &lt; 0 then
+				redim preserve aSelectors(iSelectorCount)
+				aSelectors(iSelectorCount) = sSelector
+				iSelectorCount = iSelectorCount + 1				
+				ExportIliasTableCellStyle(oParaRec, sSelector)
+			end if	
+		end if	
+	next i 	
+end sub
+
+
+&apos;-----------------------------------------------------------------------------
+&apos; 3. level: export a single style 
+&apos;-----------------------------------------------------------------------------
+
+sub ExportIliasGeneralStyle
+dim sStyleString as string
+dim sTag as string
+dim sType as string
+dim sClass as string
+dim oProps(2) as new com.sun.star.beans.PropertyValue
+
+	&apos;preset the parameters
+	oProps(0).Name  = &quot;background-color&quot;
+	oProps(0).Value = &quot;transparent&quot;
+	oProps(1).Name  = &quot;border-width&quot;
+	oProps(1).Value = &quot;0&quot;
+	oProps(2).Name  = &quot;margin&quot;
+	oProps(2).Value = &quot;10px&quot;
+
+	sTag   = &quot;table&quot;
+	sType  = &quot;media_cont&quot;
+	sClass = &quot;MediaContainer&quot;
+	sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+	goExportXML.writeString(sStyleString)
+end sub
+
+
+sub ExportIliasPageStyle
+dim oStyleFamilies as object
+dim oStyles as object
+dim oStyle as object
+dim iMarginaleLeft as integer
+dim iMarginaleRight as integer
+dim sStyleString as string
+dim sTag as string
+dim sType as string
+dim sClass as string
+dim oProps(15) as new com.sun.star.beans.PropertyValue
+
+	&apos;preset ILIAS parameters
+	sTag   = &quot;div&quot;
+	sType  = &quot;page_cont&quot;
+	sClass = &quot;PageContainer&quot;
+
+	&apos;preset style parameters
+	if giMarginaleLeftWidth = 0 then 
+		iMarginaleLeft = 20
+	else	
+		iMarginaleLeft = giMarginaleLeftWidth
+	end if	
+	if giMarginaleRightWidth = 0 then 
+		iMarginaleRight = 20
+	else
+		iMarginaleRight = giMarginaleRightWidth
+	end if	
+	oProps(0).Name  = &quot;margin&quot;
+	oProps(0).Value = &quot;0px&quot;
+	oProps(1).Name  = &quot;width&quot;
+	oProps(1).Value =  &quot;100%&quot;	
+	oProps(2).Name  = &quot;padding-top&quot;
+	oProps(2).Value = &quot;20px&quot;
+	oProps(3).Name  = &quot;padding-right&quot;
+	oProps(3).Value = CStr(iMarginaleRight) &amp; &quot;px&quot;
+	oProps(4).Name  = &quot;padding-bottom&quot;
+	oProps(4).Value = &quot;20px&quot;
+	oProps(5).Name  = &quot;padding-left&quot;
+	oProps(5).Value = CStr(iMarginaleLeft) &amp; &quot;px&quot;
+	oProps(6).Name  = &quot;position&quot;
+	oProps(6).Value = &quot;relative&quot;
+	oProps(7).Name  = &quot;border-width&quot;
+	oProps(7).Value = &quot;1px&quot;
+	oProps(8).Name  = &quot;border-color&quot;
+	oProps(8).Value = &quot;#9EADBA&quot;
+	oProps(9).Name  = &quot;border-style&quot;
+	oProps(9).Value = &quot;solid&quot;
+		
+	&apos;get styles from the standard page style
+	oStyleFamilies = ThisComponent.StyleFamilies
+	oStyles = oStyleFamilies.getByName( &quot;PageStyles&quot; )
+	oStyle = oStyles.GetByName(&quot;Standard&quot;)	
+	
+	oProps(10).Name  = &quot;background-color&quot;
+	if oStyle.GetPropertyState(&quot;BackColor&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		oProps(10).Value = GetIliasHexColorString(oStyle.BackColor)
+	else
+		oProps(10).Value = &quot;#FFFFFF&quot;
+	end if	
+	
+	&apos;get styles from the standard paragraph style
+	oStyles = oStyleFamilies.getByName( &quot;ParagraphStyles&quot; )
+	oStyle = oStyles.GetByName(&quot;Standard&quot;)	
+	oProps(11).Name  = &quot;color&quot;
+	oProps(11).Value =  GetIliasHexColorString(oStyle.CharColor)
+	oProps(12).Name  = &quot;font-size&quot;
+	oProps(12).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
+	oProps(13).Name  = &quot;text-decoration&quot;
+	oProps(13).Value =  GetCssUnderlineString(oStyle.CharUnderline)
+	oProps(14).Name  = &quot;text-align&quot;
+	oProps(14).Value =  GetCssAlignString(oStyle.ParaAdjust)
+	oProps(15).Name  = &quot;font-weight&quot;
+	if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
+		oProps(15).Value = &quot;bold&quot;
+	else
+		oProps(15).Value = &quot;normal&quot;
+	end if	 	
+	SetMoreParaStyleProperties(oStyle, oProps(), &quot;&quot;)		 
+
+	&apos;export the style
+	sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+	goExportXML.writeString(sStyleString)
+end sub
+
+
+sub ExportIliasSectionStyle(oStyle as object, sGraphicName as string) as string
+dim sStyleString as string
+dim sStyleName as string
+dim sTag as string
+dim sType as string
+dim sClass as string
+dim oProps(15) as new com.sun.star.beans.PropertyValue
+
+	&apos;preset ILIAS parameters
+	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+	if sStylename = &quot;ILIAS_FileList&quot; then
+		sTag   = &quot;div&quot;
+		sType  = &quot;flist_cont&quot;
+		sClass = &quot;FileListContainer&quot;
+
+	elseif left(sStylename, 6) = &quot;ILIAS_&quot; then
+		sStylename = mid(sStylename, 7)
+		sTag   = &quot;div&quot;
+		sType  = &quot;section&quot;
+		sClass = sStylename
+	else
+		sTag   = &quot;div&quot;
+		sType  = &quot;section&quot;
+		sClass = sStylename
+		sStyleString = &quot;&lt;Style Tag=&quot;&quot;div&quot;&quot; Type=&quot;&quot;section&quot;&quot; Class=&quot;&quot;&quot; &amp; sStyleName &amp; &quot;&quot;&quot;&gt;&quot;
+	end if
+	
+	&apos;preset style parameters
+	oProps(0).Name  = &quot;margin-top&quot; &apos;double cFactor to reflect collapsing margins
+	oProps(0).Value =  CStr(Int(oStyle.TopMargin / cFactor * 2)) &amp; &quot;px&quot;
+	oProps(1).Name  = &quot;margin-right&quot;
+	oProps(1).Value =  CStr(Int(oStyle.RightMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(2).Name  = &quot;margin-bottom&quot; &apos;double cFactor to reflect collapsing margins
+	oProps(2).Value =  CStr(Int(oStyle.BottomMargin / cFactor * 2)) &amp; &quot;px&quot;
+	oProps(3).Name  = &quot;margin-left&quot;
+	oProps(3).Value =  CStr(Int(oStyle.LeftMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(4).Name  = &quot;position&quot;
+	oProps(4).Value =  &quot;relative&quot;	
+	oProps(5).Name  = &quot;color&quot;
+	oProps(5).Value =  &quot;#000000&quot;
+	
+	oProps(6).Name  = &quot;background-color&quot;
+	oProps(6).Value =  GetIliasHexColorString(oStyle.BackColorRGB)
+	oProps(7).Name  = &quot;border-top&quot;
+	oProps(7).Value = GetCSSBorderString(oStyle.TopBorder)
+	oProps(8).Name  = &quot;border-right&quot;
+	oProps(8).Value = GetCSSBorderString(oStyle.RightBorder)
+	oProps(9).Name  = &quot;border-bottom&quot;
+	oProps(9).Value = GetCSSBorderString(oStyle.BottomBorder)
+	oProps(10).Name  = &quot;border-left&quot;
+	oProps(10).Value = GetCSSBorderString(oStyle.LeftBorder)
+	oProps(11).Name  = &quot;padding-top&quot;
+	oProps(11).Value = CStr(Int(oStyle.TopBorderDistance / cFactor)) &amp; &quot;px&quot;
+	oProps(12).Name  = &quot;padding-right&quot;
+	oProps(12).Value = CStr(Int(oStyle.RightBorderDistance / cFactor)) &amp; &quot;px&quot;
+	oProps(13).Name  = &quot;padding-bottom&quot;
+	oProps(13).Value = CStr(Int(oStyle.BottomBorderDistance / cFactor)) &amp; &quot;px&quot;
+	oProps(14).Name  = &quot;padding-left&quot;
+	oProps(14).Value = CStr(Int(oStyle.LeftBorderDistance / cFactor)) &amp; &quot;px&quot;
+		
+	if sGraphicName &lt;&gt; &quot;&quot; then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount + 2)
+		oProps(iCount).Name  = &quot;background-image&quot;
+		oProps(iCount).Value = sGraphicname
+		iCount = iCount + 1
+		oProps(iCount).Name  = &quot;background-repeat&quot;
+		oProps(iCount).Value = &quot;no-repeat&quot;
+		iCount = iCount + 1
+		oProps(iCount).Name  = &quot;background-position&quot;
+		oProps(iCount).Value = &quot;left top&quot;
+	end if
+	 
+	&apos;export the style
+	sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+	goExportXML.writeString(sStyleString)
+end sub
+
+
+sub ExportIliasParagraphStyle(oStyle as object, sGraphicName as string)
+dim oControl as object
+dim sStyleString as string
+dim sStyleName as string
+dim sTag as string
+dim sType as string
+dim sClass as string
+dim oPara as object
+dim oProps(2) as new com.sun.star.beans.PropertyValue
+dim oPropsImg(2) as new com.sun.star.beans.PropertyValue
+dim iCount as integer
+dim oStandard as object
+
+	oStandard = GetStyleByName(&quot;ParagraphStyles&quot;, &quot;Standard&quot;)
+	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+	
+	&apos;preset ILIAS parameters and first style parameters
+	if sStyleName = gsPageTitleStyle then
+		sTag   = &quot;h1&quot;
+		sType  = &quot;page_title&quot;
+		sClass = &quot;PageTitle&quot;
+		oProps(0).Name  = &quot;margin-top&quot;
+		oProps(0).Value = &quot;0&quot;
+		oProps(1).Name  = &quot;margin-left&quot;
+		oProps(1).Value =  &quot;0&quot;
+		
+	elseif sStylename = &quot;ILIAS_FileList_Caption&quot; then
+		sTag   = &quot;div&quot;
+		sType  = &quot;flit_head&quot;
+		sClass = &quot;FileListHeading&quot;
+		oProps(0).Name  = &quot;margin-top&quot; &apos;double cFactor to reflect collapsing margins
+		oProps(0).Value = CStr(Int(oStyle.ParaTopMargin / cFactor * 2)) &amp; &quot;px&quot;
+		oProps(1).Name  = &quot;margin-left&quot;
+		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / cFactor)) &amp; &quot;px&quot;
+		
+	elseif sStylename = &quot;ILIAS_FileList_Element&quot; then
+		sTag   = &quot;li&quot;
+		sType  = &quot;flist_li&quot;
+		sClass = &quot;FileListItem&quot;
+		oProps(0).Name  = &quot;margin-top&quot; &apos;double cFactor to reflect collapsing margins
+		oProps(0).Value = CStr(Int(oStyle.ParaTopMargin / cFactor * 2)) &amp; &quot;px&quot;
+		oProps(1).Name  = &quot;margin-left&quot;
+		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / cFactor)) &amp; &quot;px&quot;
+		
+	elseif sStylename = &quot;Footnote&quot; then
+		sTag   = &quot;div&quot;
+		sType  = &quot;page_fn&quot;
+		sClass = sStylename
+		oProps(0).Name  = &quot;margin-top&quot; &apos;double cFactor to reflect collapsing margins
+		oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor * 2)) &amp; &quot;px&quot;
+		oProps(1).Name  = &quot;margin-left&quot;
+		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / cFactor)) &amp; &quot;px&quot;
+		
+	else
+		sTag   = &quot;div&quot;
+		sType  = &quot;text_block&quot;
+		sClass = sStylename
+		oProps(0).Name  = &quot;margin-top&quot; &apos;double cFactor to reflect collapsing margins
+		oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor * 2)) &amp; &quot;px&quot;
+		oProps(1).Name  = &quot;margin-left&quot;
+		oProps(1).Value =  CStr(Int(oStyle.ParaLeftMargin / cFactor)) &amp; &quot;px&quot;
+	end if
+	
+	oProps(2).Name  = &quot;position&quot;
+	oProps(2).Value =  &quot;relative&quot;	
+	
+	if oStyle.ParaFirstLineIndent &lt;&gt; 0 then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;text-indent&quot;
+		oProps(iCount).Value = CStr(Int(oStyle.ParaFirstLineIndent / cFactor)) &amp; &quot;px&quot;
+	end if
+
+	if oStyle.GetPropertyState(&quot;ParaRightMargin&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;margin-right&quot;
+		oProps(iCount).Value = CStr(Int(oStyle.ParaRightMargin / cFactor)) &amp; &quot;px&quot;
+	end if
+		
+	if oStyle.GetPropertyState(&quot;ParaBottomMargin&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;margin-bottom&quot; &apos;double cFactor to reflect collapsing margins
+		oProps(iCount).Value = CStr(Int(oStyle.ParaBottomMargin / cFactor * 2)) &amp; &quot;px&quot;
+	end if
+		
+	if oStyle.CharColor &lt;&gt; oStandard.CharColor then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;color&quot;
+		oProps(iCount).Value =  GetIliasHexColorString(oStyle.CharColor)
+	end if
+		
+	if oStyle.CharHeight &lt;&gt; oStandard.CharHeight then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;font-size&quot;
+		oProps(iCount).Value = CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
+	end if
+
+	if oStyle.CharUnderline &lt;&gt; oStandard.CharUnderline then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;text-decoration&quot;
+		oProps(iCount).Value = GetCssUnderlineString(oStyle.CharUnderline)
+	end if
+
+	if oStyle.GetPropertyState(&quot;ParaAdjust&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;text-align&quot;
+		oProps(iCount).Value = GetCssAlignString(oStyle.ParaAdjust)
+	end if
+
+	if oStyle.GetPropertyState(&quot;ParaBackColor&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;background-color&quot;
+		oProps(iCount).Value = GetIliasHexColorString(oStyle.ParaBackColor)
+	end if
+
+	if oStyle.GetPropertyState(&quot;TopBorder&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;border-top&quot;
+		oProps(iCount).Value = GetCSSBorderString(oStyle.TopBorder)
+	end if
+
+	if oStyle.GetPropertyState(&quot;RightBorder&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;border-right&quot;
+		oProps(iCount).Value = GetCSSBorderString(oStyle.RightBorder)
+	end if
+
+	if oStyle.GetPropertyState(&quot;BottomBorder&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;border-bottom&quot;
+		oProps(iCount).Value = GetCSSBorderString(oStyle.BottomBorder)
+	end if
+
+	if oStyle.GetPropertyState(&quot;LeftBorder&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;border-left&quot;
+		oProps(iCount).Value = GetCSSBorderString(oStyle.LeftBorder)
+	end if
+
+	if oStyle.GetPropertyState(&quot;TopBorderDistance&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;padding-top&quot;
+		oProps(iCount).Value = CStr(Int(oStyle.TopBorderDistance / cFactor)) &amp; &quot;px&quot;
+	end if
+
+	if oStyle.GetPropertyState(&quot;RightBorderDistance&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;padding-right&quot;
+		oProps(iCount).Value = CStr(Int(oStyle.RightBorderDistance / cFactor)) &amp; &quot;px&quot;
+	end if
+
+	if oStyle.GetPropertyState(&quot;BottomBorderDistance&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;padding-bottom&quot;
+		oProps(iCount).Value = CStr(Int(oStyle.BottomBorderDistance / cFactor)) &amp; &quot;px&quot;
+	end if
+
+	if oStyle.GetPropertyState(&quot;LeftBorderDistance&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;padding-left&quot;
+		oProps(iCount).Value = CStr(Int(oStyle.LeftBorderDistance / cFactor)) &amp; &quot;px&quot;
+	end if
+
+	if oStyle.CharWeight &lt;&gt; oStandard.CharWeight then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;font-weight&quot;
+		if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
+			oProps(iCount).Value = &quot;bold&quot;
+		else
+			oProps(iCount).Value = &quot;normal&quot;
+		end if	 	
+	end if
+
+	PresetIliasAdditionalParaStyles(oStyle, oProps(), sGraphicName)	
+	
+	&apos;export the style
+	sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+	goExportXML.writeString(sStyleString)
+end sub
+
+
+sub ExportIliasCharacterStyle(oStyle as object)
+dim sStyleString as string
+dim sStyleName as string
+dim sTag as string
+dim sType as string
+dim sClass as string
+dim oPara as object
+dim oProps(0) as new com.sun.star.beans.PropertyValue
+dim iCount as integer
+
+	&apos;preset ILIAS parameters
+	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+	sTag   = &quot;span&quot;
+	sType  = &quot;text_inline&quot;
+	sClass = sStyleName
+
+	&apos;preset style parameters
+	if oStyle.GetPropertyState(&quot;CharColor&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name = &quot;color&quot;
+		oProps(iCount).Value = GetIliasHexColorString(oStyle.CharColor)
+	end if
+
+	if oStyle.GetPropertyState(&quot;CharHeight&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name = &quot;font-size&quot;
+		oProps(iCount).Value = CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
+	end if
+
+	if oStyle.GetPropertyState(&quot;CharUnderline&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name = &quot;text-decoration&quot;
+		oProps(iCount).Value = GetCssUnderlineString(oStyle.CharUnderline)
+	end if
+
+	if oStyle.GetPropertyState(&quot;CharBackColor&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;background-color&quot;
+		oProps(iCount).Value  = GetIliasHexColorString(oStyle.CharBackColor)
+	end if
+
+	if oStyle.GetPropertyState(&quot;CharWeight&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProps(iCount).Name  = &quot;font-weight&quot;
+		if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
+			oProps(iCount).Value = &quot;bold&quot;
+		else
+			oProps(iCount).Value = &quot;normal&quot;
+		end if	 	
+	end if	
+
+	if oStyle.GetPropertyState(&quot;CharShadowed&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		if oStyle.CharShadowed then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;text-shadow&quot;
+			oProps(iCount).Value = &quot;#b0b0b0 2px 2px 3px&quot;
+		end if
+	end if	
+	
+	if oStyle.GetPropertyState(&quot;CharPosture&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		if oStyle.CharPosture = com.sun.star.awt.FontSlant.ITALIC then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;font-style&quot;
+			oProps(iCount).Value = &quot;italic&quot;
+		end if
+	end if	
+	 
+	if oStyle.GetPropertyState(&quot;CharFontName&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		if oStyle.CharFontPitch = com.sun.star.awt.FontPitch.FIXED then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;font-family&quot;
+			oProps(iCount).Value = oStyle.CharFontname &amp; &quot;, monospace&quot;
+			
+		elseif oStyle.CharFontFamily = com.sun.star.awt.FontFamily.ROMAN then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;font-family&quot;
+			oProps(iCount).Value = oStyle.CharFontname &amp; &quot;, Serif&quot;
+					
+		else	
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;font-family&quot;
+			oProps(iCount).Value = oStyle.CharFontname &amp; &quot;, Sans-serif&quot;
+		end if
+	end if	
+	 
+	if oStyle.GetPropertyState(&quot;CharFlash&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		if oStyle.CharFlash then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;text-decoration&quot;
+			oProps(iCount).Value = &quot;blink&quot;
+		end if
+	end if	
+	 
+	if oStyle.GetPropertyState(&quot;CharUnderline&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		if oStyle.CharUnderline = com.sun.star.awt.FontUnderline.SINGLE then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;text-decoration&quot;
+			oProps(iCount).Value = &quot;underline&quot;
+		elseif oStyle.CharStrikeout = com.sun.star.awt.FontStrikeout.SINGLE then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;text-decoration&quot;
+			oProps(iCount).Value = &quot;line-through&quot;
+		end if
+	end if	
+	
+	if oStyle.GetPropertyState(&quot;CharCaseMap&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		if oStyle.CharCaseMap = com.sun.star.style.CaseMap.UPPERCASE then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;text-transform&quot;
+			oProps(iCount).Value = &quot;uppercase&quot;
+		elseif oStyle.CharCaseMap = com.sun.star.style.CaseMap.LOWERCASE then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;text-transform&quot;
+			oProps(iCount).Value = &quot;lowercase&quot;
+		elseif oStyle.CharCaseMap = com.sun.star.style.CaseMap.SMALLCAPS then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;font-variant&quot;
+			oProps(iCount).Value = &quot;small-caps&quot;
+		end if
+	end if	
+
+	if oStyle.GetPropertyState(&quot;CharKerning&quot;) = com.sun.star.beans.PropertyState.DIRECT_VALUE then
+		if oStyle.CharKerning &gt; 0 then
+			iCount = uBound(oProps) + 1
+			redim preserve oProps(iCount)
+			oProps(iCount).Name  = &quot;letter-spacing&quot;
+			oProps(iCount).Value = CStr(Int(oStyle.CharKerning / cFactor)) &amp; &quot;pt&quot;
+		end if
+	end if	
+		 
+	&apos;export the style
+	sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+	goExportXML.writeString(sStyleString)
+end sub
+
+
+sub ExportIliasAlignmentStyle(sAlignment as string)
+dim sStyleName as string
+dim sStyleString as string
+dim sTag as string
+dim sType as string
+dim sClass as string
+dim oProps(0) as new com.sun.star.beans.PropertyValue
+
+	&apos;preset ILIAS parameters
+	sStyleName = &quot;align&quot; &amp; sAlignment
+	sTag   = &quot;div&quot;
+	sType  = &quot;text_block&quot;
+	sClass = sStyleName
+
+	&apos;preset style parameters
+	oProps(0).Name  = &quot;text-align&quot;
+	oProps(0).Value = sAlignment
+
+	&apos;export the style
+	sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+	goExportXML.writeString(sStyleString)
+end sub
+
+
+sub ExportIliasListLabelStyle(oStyle as object)
+dim sStyleName as string
+dim iLeft as integer
+dim sStyleString as string
+dim sTag as string
+dim sType as string
+dim sClass as string
+dim oProps(2) as new com.sun.star.beans.PropertyValue
+
+	&apos;preset ILIAS parameters
+	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+	sTag   = &quot;span&quot;
+	sType  = &quot;text_inline&quot;
+	sClass = sStyleName &amp; &quot;Label&quot;
+
+	&apos;preset style parameters
+	iLeft = abs(Int((oStyle.ParaFirstLineIndent) / cFactor))
+	oProps(0).Name  = &quot;display&quot;
+	oProps(0).Value = &quot;inline-block&quot;
+	oProps(1).Name  = &quot;float&quot;
+	oProps(1).Value = &quot;left&quot;
+	oProps(2).Name  = &quot;width&quot;
+	oProps(2).Value = CStr(iLeft) &amp; &quot;px&quot;
+
+	&apos;export the style
+	sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+	goExportXML.writeString(sStyleString)
+end sub
+
+
+sub ExportIliasOrderedListStyle(oStyle as object)
+dim sStyleString as string
+dim sStyleName as string
+dim sTag as string
+dim sType as string
+dim sClass as string
+dim oProps(8) as new com.sun.star.beans.PropertyValue
+
+	&apos;preset ILIAS parameters
+	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+	sTag   = &quot;ol&quot;
+	sType  = &quot;list_o&quot;
+	sClass = sStyleName
+
+	&apos;preset style parameters
+	oProps(0).Name  = &quot;margin-top&quot;
+	oProps(0).Value =  &quot;20px&quot;
+	&apos;oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(1).Name  = &quot;margin-right&quot;
+	oProps(1).Value =  CStr(Int(oStyle.ParaRightMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(2).Name  = &quot;margin-bottom&quot;
+	oProps(2).Value =  &quot;20px&quot;
+	&apos;oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(3).Name  = &quot;margin-left&quot;
+	oProps(3).Value =  CStr(Int(oStyle.ParaLeftMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(4).Name  = &quot;padding-top&quot;
+	oProps(4).Value =  &quot;0px&quot;
+	oProps(5).Name  = &quot;padding-right&quot;
+	oProps(5).Value =  &quot;0px&quot;
+	oProps(6).Name  = &quot;padding-bottom&quot;
+	oProps(6).Value =  &quot;0px&quot;
+	oProps(7).Name  = &quot;padding-left&quot;
+	oProps(7).Value =  &quot;20px&quot;
+	oProps(8).Name  = &quot;font-size&quot;
+	oProps(8).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
+
+	&apos;export the style
+	sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+	goExportXML.writeString(sStyleString)
+end sub
+
+
+sub ExportIliasUnorderedListStyle(oStyle as object) as string
+dim sStyleString as string
+dim sStyleName as string
+dim oNumStyle as object
+dim oNumRules as object
+dim iNumLevel as integer
+dim iLeftMargin as integer
+dim iFirstLineOffset as integer
+dim sTag as string
+dim sType as string
+dim sClass as string
+dim oProps(7) as new com.sun.star.beans.PropertyValue
+
+	&apos;preset ILIAS parameters
+	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+	sTag   = &quot;ul&quot;
+	sType  = &quot;list_u&quot;
+	sClass = sStyleName
+
+	&apos;preset style parameters
+	oProps(0).Name  = &quot;margin-top&quot;
+	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(1).Name  = &quot;margin-right&quot;
+	oProps(1).Value =  CStr(Int(oStyle.ParaRightMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(2).Name  = &quot;margin-bottom&quot;
+	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(3).Name  = &quot;padding-top&quot;
+	oProps(3).Value =  &quot;0px&quot;
+	oProps(4).Name  = &quot;padding-right&quot;
+	oProps(4).Value =  &quot;0px&quot;
+	oProps(5).Name  = &quot;padding-bottom&quot;
+	oProps(5).Value =  &quot;0px&quot;
+	oProps(6).Name  = &quot;padding-left&quot;
+	oProps(6).Value =  &quot;20px&quot;
+	oProps(7).Name  = &quot;font-size&quot;
+	oProps(7).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
+
+	&apos;Get the NumberingLevel of the first fount paragraph with this Stylename
+	iNumLevel = GetNumberingLevelByStyleName(sStyleName)
+	if (iNumLevel &gt;= 0) and (oStyle.NumberingStyleName &lt;&gt; &quot;&quot;) then
+		&apos;Get the left margin from the current level of the joined Numberingstyle  
+		oNumStyle = GetNumberingStyleByName(oStyle.NumberingStyleName)
+		oNumRules = oNumStyle.NumberingRules
+		&apos;Set the left margin
+		iLeftMargin = GetNumRulesProperty(oNumRules, &quot;IndentAt&quot;, iNumLevel)
+		iFirstLineOffset = GetNumRulesProperty(oNumRules, &quot;FirstLineIndent&quot;, iNumLevel)
+		redim preserve oProps(8)
+		oProps(8).Name  = &quot;margin-left&quot;
+		oProps(8).Value =  CStr(Int(iLeftMargin / cFactor) + Int(iFirstLineOffset / cFactor)) &amp; &quot;px&quot;
+	end if	
+
+	&apos;export the style
+	sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+	goExportXML.writeString(sStyleString)
+end sub
+
+
+sub ExportIliasMarginaleLeftStyle(oStyle as object)
+dim sStyleString as string
+dim sStyleName as string
+dim sTag as string
+dim sType as string
+dim sClass as string
+dim oProps(8) as new com.sun.star.beans.PropertyValue
+
+	&apos;preset ILIAS parameters
+	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+	sTag   = &quot;div&quot;
+	sType  = &quot;text_block&quot;
+	sClass = sStyleName
+
+	&apos;preset style parameters
+	oProps(0).Name  = &quot;margin-top&quot;
+	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(1).Name  = &quot;margin-right&quot;
+	oProps(1).Value =  CStr(Int(oStyle.ParaRightMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(2).Name  = &quot;margin-bottom&quot;
+	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(3).Name  = &quot;margin-left&quot;
+	oProps(3).Value =  CStr((giMarginaleLeftWidth * -1) + 5) &amp; &quot;px&quot;
+	oProps(4).Name  = &quot;font-size&quot;
+	oProps(4).Value =  &quot;75%&quot;
+	oProps(5).Name  = &quot;position&quot;
+	oProps(5).Value =  &quot;absolute&quot;
+	oProps(6).Name  = &quot;width&quot;
+	oProps(6).Value =  CStr(giMarginaleLeftWidth - 5) &amp; &quot;px&quot;
+	oProps(7).Name  = &quot;font-weight&quot;
+	if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
+		oProps(7).Value = &quot;bold&quot;
+	else
+		oProps(7).Value = &quot;normal&quot;
+	end if	 	
+ 	oProps(8).Name  = &quot;color&quot;
+	if oStyle.CharColor = -1 then
+		oProps(8).Value = &quot;&quot;
+	else	
+		oProps(8).Value = GetIliasHexColorString(oStyle.CharColor)
+	end if 
+	
+	&apos;export the style
+	sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+	goExportXML.writeString(sStyleString)
+end sub
+
+
+sub ExportIliasMarginaleRightStyle(oStyle as object)
+dim sStyleString as string
+dim sStyleName as string
+dim sTag as string
+dim sType as string
+dim sClass as string
+dim oProps(10) as new com.sun.star.beans.PropertyValue
+
+	&apos;preset ILIAS parameters
+	sStyleName = ReplaceString(oStyle.Name, &quot;_&quot;, &quot; &quot;)
+	sTag   = &quot;div&quot;
+	sType  = &quot;text_block&quot;
+	sClass = sStyleName
+
+	&apos;preset style parameters
+	oProps(0).Name  = &quot;margin-top&quot;
+	oProps(0).Value =  CStr(Int(oStyle.ParaTopMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(1).Name  = &quot;margin-right&quot;
+	oProps(1).Value =  &quot;30px&quot;
+	oProps(2).Name  = &quot;margin-bottom&quot;
+	oProps(2).Value =  CStr(Int(oStyle.ParaBottomMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(3).Name  = &quot;margin-left&quot;
+	oProps(3).Value = &quot;0px&quot;
+	oProps(4).Name  = &quot;font-size&quot;
+	oProps(4).Value =  &quot;75%&quot;
+	oProps(5).Name  = &quot;position&quot;
+	oProps(5).Value =  &quot;absolute&quot;
+	oProps(6).Name  = &quot;width&quot;
+	oProps(6).Value =  CStr(giMarginaleRightWidth - cFactor) &amp; &quot;px&quot;
+	oProps(7).Name  = &quot;right&quot;
+	oProps(7).Value = &quot;10px&quot;
+	oProps(8).Name  = &quot;padding&quot;
+	oProps(8).Value = &quot;0px&quot;
+	oProps(9).Name  = &quot;font-weight&quot;
+	if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
+		oProps(9).Value = &quot;bold&quot;
+	else
+		oProps(9).Value = &quot;normal&quot;
+	end if	 	
+ 	oProps(10).Name  = &quot;color&quot;
+	if oStyle.CharColor = -1 then
+		oProps(10).Value = &quot;&quot;
+	else	
+		oProps(10).Value = GetIliasHexColorString(oStyle.CharColor)
+	end if 
+	
+	&apos;export the style
+	sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+	goExportXML.writeString(sStyleString)
+end sub
+
+
+sub ExportIliasAccordionVerticalStyle(oStyle as object)
+dim sStyleString as string
+dim sStyleName as string
+dim sTag as string
+dim sType as string
+dim sClass as string
+dim oProps(8) as new com.sun.star.beans.PropertyValue
+
+	&apos;preset ILIAS parameters
+	sStyleName = &quot;VAccordICntr&quot;
+	sTag   = &quot;div&quot;
+	sType  = &quot;va_icntr&quot;
+	sClass = sStyleName
+
+	&apos;preset style parameters
+	oProps(0).Name  = &quot;margin-top&quot;
+	oProps(0).Value =  CStr(Int(oStyle.TopMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(1).Name  = &quot;margin-right&quot;
+	oProps(1).Value =  CStr(Int(oStyle.RightMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(2).Name  = &quot;margin-bottom&quot;
+	oProps(2).Value =  CStr(Int(oStyle.BottomMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(3).Name  = &quot;margin-left&quot;
+	oProps(3).Value =  CStr(Int(oStyle.LeftMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(4).Name  = &quot;border-top&quot;
+	oProps(4).Value = GetCSSBorderString(oStyle.TopBorder)
+	oProps(5).Name  = &quot;border-right&quot;
+	oProps(5).Value = GetCSSBorderString(oStyle.RightBorder)
+	oProps(6).Name  = &quot;border-bottom&quot;
+	oProps(6).Value = GetCSSBorderString(oStyle.BottomBorder)
+	oProps(7).Name  = &quot;border-left&quot;
+	oProps(7).Value = GetCSSBorderString(oStyle.LeftBorder)
+	oProps(8).Name  = &quot;background-color&quot;
+	oProps(8).Value = GetIliasHexColorString(oStyle.BackColor)
+
+	&apos;export the style
+	sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+	goExportXML.writeString(sStyleString)
+end sub
+
+
+sub ExportIliasAccordionHorizontalStyle(oStyle as object)
+dim sStyleString as string
+dim sStyleName as string
+dim sTag as string
+dim sType as string
+dim sClass as string
+dim oProps(8) as new com.sun.star.beans.PropertyValue
+
+	&apos;preset ILIAS parameters
+	sStyleName = &quot;HAccordICntr&quot;
+	sTag   = &quot;div&quot;
+	sType  = &quot;ha_icntr&quot;
+	sClass = sStyleName
+
+	&apos;preset style parameters
+	oProps(0).Name  = &quot;margin-top&quot;
+	oProps(0).Value =  CStr(Int(oStyle.TopMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(1).Name  = &quot;margin-right&quot;
+	oProps(1).Value =  CStr(Int(oStyle.RightMargin/cFactor + 5)) &amp; &quot;px&quot;
+	oProps(2).Name  = &quot;margin-bottom&quot;
+	oProps(2).Value =  CStr(Int(oStyle.BottomMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(3).Name  = &quot;margin-left&quot;
+	oProps(3).Value =  CStr(Int(oStyle.LeftMargin / cFactor)) &amp; &quot;px&quot;
+	oProps(4).Name  = &quot;border-top&quot;
+	oProps(4).Value = GetCSSBorderString(oStyle.TopBorder)
+	oProps(5).Name  = &quot;border-right&quot;
+	oProps(5).Value = GetCSSBorderString(oStyle.RightBorder)
+	oProps(6).Name  = &quot;border-bottom&quot;
+	oProps(6).Value = GetCSSBorderString(oStyle.BottomBorder)
+	oProps(7).Name  = &quot;border-left&quot;
+	oProps(7).Value = GetCSSBorderString(oStyle.LeftBorder)
+	oProps(8).Name  = &quot;background-color&quot;
+	oProps(8).Value = GetIliasHexColorString(oStyle.BackColor)
+
+	&apos;export the style
+	sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+	goExportXML.writeString(sStyleString)
+end sub
+
+
+sub ExportIliasAccordionTogglerVerticalStyle(oStyle as object)
+dim sStyleString as string
+dim sStyleName as string
+dim sTag as string
+dim sType as string
+dim sClass as string
+dim oProps(7) as new com.sun.star.beans.PropertyValue
+
+	&apos;preset ILIAS parameters
+	sStyleName = &quot;VAccordIHead&quot;
+	sTag   = &quot;div&quot;
+	sType  = &quot;va_ihead&quot;
+	sClass = sStyleName
+
+	&apos;preset style parameters
+	oProps(0).Name  = &quot;color&quot;
+	oProps(0).Value =  GetIliasHexColorString(oStyle.CharColor)
+	oProps(1).Name  = &quot;font-size&quot;
+	oProps(1).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
+	oProps(2).Name  = &quot;text-decoration&quot;
+	oProps(2).Value =  GetCssUnderlineString(oStyle.CharUnderline)
+	oProps(3).Name  = &quot;background-color&quot;
+	oProps(3).Value =  GetIliasHexColorString(oStyle.ParaBackColor)
+	oProps(4).Name  = &quot;cursor&quot;
+	oProps(4).Value =  &quot;pointer&quot;
+	oProps(5).Name  = &quot;padding&quot;
+	oProps(5).Value =  &quot;3px 8px&quot;
+	oProps(6).Name  = &quot;text-align&quot;
+	oProps(6).Value =  &quot;left&quot;
+	oProps(7).Name  = &quot;font-weight&quot;
+	if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
+		oProps(7).Value = &quot;bold&quot;
+	else
+		oProps(7).Value = &quot;normal&quot;
+	end if	 	
+
+	PresetIliasAdditionalParaStyles(oStyle, oProps(), &quot;&quot;)
+
+	&apos;export the style
+	sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+	goExportXML.writeString(sStyleString)
+end sub
+
+
+sub ExportIliasAccordionTogglerHorizontalStyle(oStyle as object)
+dim sStyleString as string
+dim sStyleName as string
+dim sTag as string
+dim sType as string
+dim sClass as string
+dim oProps(7) as new com.sun.star.beans.PropertyValue
+
+	&apos;preset ILIAS parameters
+	sStyleName = &quot;HAccordIHead&quot;
+	sTag   = &quot;div&quot;
+	sType  = &quot;ha_ihead&quot;
+	sClass = sStyleName
+
+	&apos;preset style parameters
+	oProps(0).Name  = &quot;color&quot;
+	oProps(0).Value =  GetIliasHexColorString(oStyle.CharColor)
+	oProps(1).Name  = &quot;font-size&quot;
+	oProps(1).Value =  CInt(oStyle.CharHeight) &amp; &quot;pt&quot;
+	oProps(2).Name  = &quot;text-decoration&quot;
+	oProps(2).Value =  GetCssUnderlineString(oStyle.CharUnderline)
+	oProps(3).Name  = &quot;background-color&quot;
+	oProps(3).Value =  GetIliasHexColorString(oStyle.ParaBackColor)
+	oProps(4).Name  = &quot;cursor&quot;
+	oProps(4).Value =  &quot;pointer&quot;
+	oProps(5).Name  = &quot;padding&quot;
+	oProps(5).Value =  &quot;3px 8px&quot;
+	oProps(6).Name  = &quot;text-align&quot;
+	oProps(6).Value =  &quot;left&quot;
+	oProps(7).Name  = &quot;font-weight&quot;
+	if oStyle.CharWeight = com.sun.star.awt.FontWeight.BOLD then
+		oProps(7).Value = &quot;bold&quot;
+	else
+		oProps(7).Value = &quot;normal&quot;
+	end if	 	
+
+	PresetIliasAdditionalParaStyles(oStyle, oProps(), &quot;&quot;)	
+
+	&apos;export the style
+	sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+	goExportXML.writeString(sStyleString)
+end sub
+
+
+sub ExportIliasAccordionTextVerticalStyle()
+dim sStyleString as string
+dim sStyleName as string
+dim sTag as string
+dim sType as string
+dim sClass as string
+dim oProps(0) as new com.sun.star.beans.PropertyValue
+
+	&apos;preset ILIAS parameters
+	sStyleName = &quot;VAccordICont&quot;
+	sTag   = &quot;div&quot;
+	sType  = &quot;va_icont&quot;
+	sClass = sStyleName
+
+	&apos;preset style parameters
+	oProps(0).Name  = &quot;padding&quot;
+	oProps(0).Value =  &quot;8px&quot;
+
+	&apos;export the style
+	sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+	goExportXML.writeString(sStyleString)
+end sub
+
+
+sub ExportIliasAccordionTextHorizontalStyle()
+dim sStyleString as string
+dim sStyleName as string
+dim sTag as string
+dim sType as string
+dim sClass as string
+dim oProps(0) as new com.sun.star.beans.PropertyValue
+
+	&apos;preset ILIAS parameters
+	sStyleName = &quot;HAccordICont&quot;
+	sTag   = &quot;div&quot;
+	sType  = &quot;ha_icont&quot;
+	sClass = sStyleName
+
+	&apos;preset style parameters
+	oProps(0).Name  = &quot;padding&quot;
+	oProps(0).Value =  &quot;0px 8px&quot;
+
+	&apos;export the style
+	sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+	goExportXML.writeString(sStyleString)
+end sub
+
+
+sub ExportIliasTableStyle(oParaRec)
+dim sStyleString as string
+dim sColor as string
+dim sBorderWidth as string
+dim sBorderColor as string
+dim sBorderStyle as string
+dim sMargin as string
+dim sPadding as string
+dim sTag as string
+dim sType as string
+dim sClass as string
+dim oProps(2) as new com.sun.star.beans.PropertyValue
+
+	&apos;preset ILIAS parameters for the table
+	sTag   = &quot;table&quot;
+	sType  = &quot;table&quot;
+	sClass = oParaRec.TableName
+	&apos;preset style parameters for the table
+	sColor = GetIliasHexColorString(oParaRec.TableBackColor)
+	sMargin = GetIliasCssStringByValueSet(oParaRec.TableMargins, &quot;px&quot;)
+	oProps(0).Name  = &quot;border-collapse&quot;
+	oProps(0).Value =  &quot;collapse&quot;
+	oProps(1).Name  = &quot;background-color&quot;
+	oProps(1).Value =  sColor
+	oProps(2).Name  = &quot;margin&quot;
+	oProps(2).Value =  sMargin
+	&apos;export the style for the table
+	sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+	goExportXML.writeString(sStyleString)
+
+&apos;	&apos;preset ILIAS parameters for the table th
+&apos;	sClass = oParaRec.TableName &amp; &quot; th&quot;
+&apos;	&apos;preset style parameters for the table th
+&apos;	sPadding = GetIliasCssStringByValueSet(oParaRec.TableBorderDistances, &quot;px&quot;)
+&apos;	redim oProps(0)
+&apos;	oProps(0).Name  = &quot;padding&quot;
+&apos;	oProps(0).Value =  sPadding
+&apos;	&apos;export the style for the table th
+&apos;	sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+&apos;	goExportXML.writeString(sStyleString)
+
+&apos;	&apos;preset ILIAS parameters for the table td
+&apos;	sClass = oParaRec.TableName &amp; &quot; td&quot;
+&apos;	&apos;export the style for the table td
+&apos;	sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+&apos;	goExportXML.writeString(sStyleString)
+end sub
+
+
+sub ExportIliasTableCellStyle(oParaRec as object, sSelector as string)
+dim sBackColor as string
+dim sBorderColors as string
+dim sBorderWidths as string
+dim sBorderStyles as string
+dim sStyleString as string
+dim sTag as string
+dim sType as string
+dim sClass as string
+dim oProps(3) as new com.sun.star.beans.PropertyValue
+
+	&apos;preset ILIAS parameters
+	sTag   = &quot;td&quot;
+	sType  = &quot;table_cell&quot;
+	sClass = sSelector
+
+	&apos;preset style parameters
+	sBackColor = GetIliasHexColorString(oParaRec.TableBackColor)
+	sBorderColors = GetIliasCssStringByValueSet( oParaRec.TableBorderColors)
+	sBorderWidths = GetIliasCssStringByValueSet(oParaRec.TableBorderWidths, &quot;border-width&quot;)
+	sBorderStyles = GetIliasCssBorderStyles(oParaRec.TableBorderStyles)
+	oProps(0).Name  = &quot;background-color&quot;
+	oProps(0).Value = sBackColor
+	oProps(1).Name  = &quot;border-color&quot;
+	oProps(1).Value = sBorderColors
+	oProps(2).Name  = &quot;border-width&quot;
+	oProps(2).Value = sBorderWidths
+	oProps(3).Name  = &quot;border-style&quot;
+	oProps(3).Value = sBorderStyles
+
+	&apos;export the style
+	sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+	goExportXML.writeString(sStyleString)
+end sub
+
+
+&apos;sub ExportIliasTableCellStyle(oParaRec as object, sSelector as string)
+&apos;dim sStyleString as string
+&apos;dim sValue as string
+&apos;dim iCount as integer
+&apos;dim sTag as string
+&apos;dim sType as string
+&apos;dim sClass as string
+&apos;dim oProps(2) as new com.sun.star.beans.PropertyValue
+&apos;
+&apos;	sStyleString = &quot;&quot;
+&apos;	sTag   = &quot;td&quot;
+&apos;	sType  = &quot;table_cell&quot;
+&apos;	iCount = uBound(aBackColors())
+&apos;	for i = 0 to iCount
+&apos;		&apos;preset ILIAS parameters
+&apos;		sClass = &quot;backcolor&quot; &amp; aBackColors(i)
+&apos;		&apos;preset style parameters for the table th
+&apos;		sValue = GetIliasHexColorString(aBackColors(i))
+&apos;		redim oProps(0)
+&apos;		oProps(0).Name  = &quot;background-color&quot;
+&apos;		oProps(0).Value =  sValue
+&apos;		&apos;export the style for the table th
+&apos;		sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+&apos;		goExportXML.writeString(sStyleString)
+&apos;	next i
+&apos;	
+&apos;	iCount = uBound(aBorderColors())
+&apos;	for i = 0 to iCount
+&apos;		&apos;preset ILIAS parameters
+&apos;		sClass = ReplaceString(aBorderColors(i), &quot;&quot;, &quot; &quot;)
+&apos;		sClass = &quot;bordercolors&quot; &amp; sClass
+&apos;		&apos;preset style parameters for the table th
+&apos;		sValue = GetIliasHexColorString(aBackColors(i))
+&apos;		redim oProps(0)
+&apos;		oProps(0).Name  = &quot;border-color&quot;
+&apos;		oProps(0).Value =  sValue
+&apos;		&apos;export the style for the table th
+&apos;		sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+&apos;		goExportXML.writeString(sStyleString)
+&apos;	next i
+&apos;		
+&apos;	iCount = uBound(aBorderWidths())
+&apos;	for i = 0 to iCount
+&apos;		&apos;preset ILIAS parameters
+&apos;		sClass = ReplaceString(aBorderWidths(i), &quot;&quot;, &quot; &quot;)
+&apos;		sClass = &quot;borderwidths&quot; &amp; sClass
+&apos;		&apos;preset style parameters for the table th
+&apos;		sValue = GetIliasCssStringByValueSet(aBorderWidths(i), &quot;border-width&quot;)
+&apos;		redim oProps(0)
+&apos;		oProps(0).Name  = &quot;border-width&quot;
+&apos;		oProps(0).Value =  sValue
+&apos;		&apos;export the style for the table th
+&apos;		sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+&apos;		goExportXML.writeString(sStyleString)
+&apos;	next i
+&apos;
+&apos;	iCount = uBound(aBorderStyles())
+&apos;	for i = 0 to iCount
+&apos;		&apos;preset ILIAS parameters
+&apos;		sClass = ReplaceString(aBorderStyles(i), &quot;&quot;, &quot; &quot;)
+&apos;		sClass = &quot;borderstyles&quot; &amp; sClass
+&apos;		&apos;preset style parameters for the table th
+&apos;		sValue = GetIliasCssBorderStyles(aBorderStyles(i))
+&apos;		redim oProps(0)
+&apos;		oProps(0).Name  = &quot;border-style&quot;
+&apos;		oProps(0).Value =  sValue
+&apos;		&apos;export the style for the table th
+&apos;		sStyleString = GetIliasStyleString(oProps(), sTag, sType, sClass)
+&apos;		goExportXML.writeString(sStyleString)
+&apos;	next i
+&apos;end sub
+
+
+sub PresetIliasAdditionalParaStyles(oStyle as object, oProps(), sGraphicName as string)
+dim iCount as integer
+dim oProp as new com.sun.star.beans.PropertyValue
+
+	if oStyle.CharShadowed then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;text-shadow&quot;
+		oProp.Value = &quot;#b0b0b0 2px 2px 3px&quot;
+		oProps(iCount) = oProp
+	end if
+	
+	if oStyle.CharPosture = com.sun.star.awt.FontSlant.ITALIC then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;font-style&quot;
+		oProp.Value = &quot;italic&quot;
+		oProps(iCount) = oProp
+	end if
+	 
+	if oStyle.CharFontPitch = com.sun.star.awt.FontPitch.FIXED then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;font-family&quot;
+		oProp.Value = oStyle.CharFontname &amp; &quot;, monospace&quot;
+		oProps(iCount) = oProp
+
+	elseif oStyle.CharFontFamily = com.sun.star.awt.FontFamily.ROMAN then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;font-family&quot;
+		oProp.Value = oStyle.CharFontname &amp; &quot;, Serif&quot;
+		oProps(iCount) = oProp
+
+	else	
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;font-family&quot;
+		oProp.Value = oStyle.CharFontname &amp; &quot;, Sans-serif&quot;
+		oProps(iCount) = oProp
+	end if
+	 
+	if oStyle.CharFlash then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;text-decoration&quot;
+		oProp.Value = &quot;blink&quot;
+		oProps(iCount) = oProp
+	end if
+	 
+	if oStyle.CharUnderline = com.sun.star.awt.FontUnderline.SINGLE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;text-decoration&quot;
+		oProp.Value = &quot;underline&quot;
+		oProps(iCount) = oProp
+	elseif oStyle.CharStrikeout = com.sun.star.awt.FontStrikeout.SINGLE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;text-decoration&quot;
+		oProp.Value = &quot;line-through&quot;
+		oProps(iCount) = oProp
+	end if
+	
+	if oStyle.CharCaseMap = com.sun.star.style.CaseMap.UPPERCASE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;text-transform&quot;
+		oProp.Value = &quot;uppercase&quot;
+		oProps(iCount) = oProp
+	elseif oStyle.CharCaseMap = com.sun.star.style.CaseMap.LOWERCASE then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;text-transform&quot;
+		oProp.Value = &quot;lowercase&quot;
+		oProps(iCount) = oProp
+	elseif oStyle.CharCaseMap = com.sun.star.style.CaseMap.SMALLCAPS then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;font-variant&quot;
+		oProp.Value = &quot;small-caps&quot;
+		oProps(iCount) = oProp
+	end if
+
+	if oStyle.CharKerning &gt; 0 then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;letter-spacing&quot;
+		oProp.Value = CStr(Int(oStyle.CharKerning / cFactor)) &amp; &quot;pt&quot;
+		oProps(iCount) = oProp
+	end if
+	
+	if sGraphicName &lt;&gt; &quot;&quot; then
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;background-image&quot;
+		oProp.Value = sGraphicname
+		oProps(iCount) = oProp
+		
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;background-repeat&quot;
+		oProp.Value = &quot;no-repeat&quot;
+		oProps(iCount) = oProp
+		
+		iCount = uBound(oProps) + 1
+		redim preserve oProps(iCount)
+		oProp.Name  = &quot;background-position&quot;
+		oProp.Value = &quot;left top&quot;
+		oProps(iCount) = oProp
+	end if
+
+	
+end sub
+
+
+
+&apos;-------------------------------------------------------------------------------------------
+&apos; 4. level: General function that returns the sty_char and sty_parameter records for ILIAS
+&apos;-------------------------------------------------------------------------------------------
+
+function GetIliasStyleString(oProps(), sTag as string, sType as string, sClass as string) as string
+dim sStyleString as string
+dim i as integer
+
+	&apos;generate the record for: sty_char
+	sStyleString =  &quot;&lt;ds:Rec Entity=&quot;&quot;sty_char&quot;&quot;&gt;&quot; &amp;_
+					&quot;&lt;StyChar&gt;&quot; &amp;_
+					&quot;&lt;StyleId&gt;&quot; &amp; XML_STYLE_ID &amp; &quot;&lt;/StyleId&gt;&quot; &amp;_
+					&quot;&lt;Type&gt;&quot; &amp; sType &amp; &quot;&lt;/Type&gt;&quot; &amp;_
+					&quot;&lt;Characteristic&gt;&quot; &amp; sClass &amp; &quot;&lt;/Characteristic&gt;&quot; &amp;_
+					&quot;&lt;Hide&gt;0&lt;/Hide&gt;&quot; &amp;_
+					&quot;&lt;/StyChar&gt;&quot; &amp;_
+					&quot;&lt;/ds:Rec&gt;&quot;
+
+	&apos;generate the records for: sty_parameter
+	for i = 0 to ubound(oProps)
+		sStyleString = sStyleString &amp; &quot;&lt;ds:Rec Entity=&quot;&quot;sty_parameter&quot;&quot;&gt;&quot; &amp;_
+									  &quot;&lt;StyParameter&gt;&quot; &amp;_
+									  &quot;&lt;StyleId&gt;&quot; &amp; XML_STYLE_ID &amp; &quot;&lt;/StyleId&gt;&quot; &amp;_
+									  &quot;&lt;Tag&gt;&quot; &amp; sTag &amp; &quot;&lt;/Tag&gt;&quot; &amp;_
+									  &quot;&lt;Class&gt;&quot; &amp; sClass &amp; &quot;&lt;/Class&gt;&quot; &amp;_
+									  &quot;&lt;Parameter&gt;&quot; &amp;  oProps(i).Name &amp; &quot;&lt;/Parameter&gt;&quot; &amp;_
+									  &quot;&lt;Value&gt;&quot; &amp; oProps(i).Value &amp; &quot;&lt;/Value&gt;&quot; &amp;_
+									  &quot;&lt;Type&gt;&quot; &amp; sType &amp; &quot;&lt;/Type&gt;&quot; &amp;_
+									  &quot;&lt;MqId&gt;0&lt;/MqId&gt;&quot; &amp;_
+									  &quot;&lt;Custom&gt;0&lt;/Custom&gt;&quot; &amp;_
+									  &quot;&lt;/StyParameter&gt;&quot; &amp;_
+									  &quot;&lt;/ds:Rec&gt;&quot;
+	next i			
+	GetIliasStyleString = sStyleString
+end function
+
+
+</script:module>

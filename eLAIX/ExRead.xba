@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">
-<script:module xmlns:script="http://openoffice.org/2000/script" script:name="ExRead" script:language="StarBasic">&apos;****************************************************************************
+<script:module xmlns:script="http://openoffice.org/2000/script" script:name="exRead" script:language="StarBasic">&apos;****************************************************************************
 &apos; eLAIX   : Writing ILIAS learning modules offline with OpenOffice.org Writer
 &apos; Author  : Harry Boldt - h.boldt@boldt-media.de - http://elaix.org
 &apos; License : GPL
@@ -267,7 +267,6 @@ dim iExtMediaID as long
 end sub
 
 
-
 sub ReadDocument
 dim oEnum as object
 dim oPara as object
@@ -324,7 +323,13 @@ const c_BreakAfter = 5  &apos;com.sun.star.style.BreakType.PAGE_AFTER
 					end if
 				end if
 				bIsHeading = true
+				
 				iActChapterID = AppendChapterRec(oPara, CHAPTER_TYPE_HEADING)
+				&apos;set dialog counter, if glossary is exported, since here chapters are counted
+				if gsExportType = &quot;GL&quot; Then
+					goDlgExport.Model.lblCountRead.Label = iActChapterID
+				end if	
+
  			elseif oPara.BreakType = com.sun.star.style.BreakType.PAGE_BEFORE then
 				iActChapterID = AppendChapterRec(oPara, CHAPTER_TYPE_PAGE)
 				oPara = oEnum.nextElement()
@@ -407,7 +412,12 @@ dim oRules as object
 
 			&apos;append ParaRec to the array of paragraphs
 			redim preserve gaDocParagraph(iActParaID)
-			goDlgExport.Model.lblCountRead.Label = iActParaID
+			
+			&apos;set dialog counter, if learning module or ePUP is exported
+			if gsExportType = &quot;LM&quot; or gsExportType = &quot;EP&quot; then
+				goDlgExport.Model.lblCountRead.Label = iActParaID
+			end if	
+
 			gaDocParagraph(iActParaID) = oParaRec	
 			&apos;read the parts of this paragraph
 			&apos;portions can contain frames as part of a table, so optional oTableRec has to be passed
@@ -447,8 +457,13 @@ dim oRules as object
 
 			&apos;append oParaRec to the array of paragraphs
 			redim preserve gaDocParagraph(iActParaID)
-			gaDocParagraph(iActParaID) = oParaRec	
-			goDlgExport.Model.lblCountRead.Label = iActParaID			
+			gaDocParagraph(iActParaID) = oParaRec
+
+			&apos;set dialog counter, if an ILIAS learning module or an ePUP is exported
+			if gsExportType = &quot;LM&quot; or gsExportType = &quot;EP&quot; then
+				goDlgExport.Model.lblCountRead.Label = iActParaID
+			end if	
+
 			&apos;read the parts of this paragraphs
 			&apos;portions can contain frames as part of a table, so optional oTableRec has to be passed
 			if isMissing(oTableRec) then
@@ -490,7 +505,12 @@ dim oRules as object
 		&apos;append ParaRec to the array of paragraphs
 		redim preserve gaDocParagraph(iActParaID)
 		gaDocParagraph(iActParaID) = oParaRec	
-		goDlgExport.Model.lblCountRead.Label = iActParaID		
+
+		&apos;set dialog counter, if an ILIAS learning module or an ePUP is exported
+		if gsExportType = &quot;LM&quot; or gsExportType = &quot;EP&quot; then
+			goDlgExport.Model.lblCountRead.Label = iActParaID
+		end if	
+
 		ReadTable(oPara, oParaRec)
 	end if  
 end sub
@@ -754,7 +774,12 @@ dim oComponent as object
 							&apos;append ParaRec to the array of paragraphs
 							redim preserve gaDocParagraph(iActParaID)
 							gaDocParagraph(iActParaID) = oParaRec	
-							goDlgExport.Model.lblCountRead.Label = iActParaID		
+
+							&apos;set dialog counter, if an ILIAS learning module or an ePUP is exported
+							if gsExportType = &quot;LM&quot; or gsExportType = &quot;EP&quot; then
+								goDlgExport.Model.lblCountRead.Label = iActParaID
+							end if	
+
 						end if
 					end if
 		      	wend		
