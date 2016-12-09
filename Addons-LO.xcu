@@ -248,7 +248,7 @@
 					<prop oor:name="Title" oor:type="xs:string">
 						<value xml:lang="en">Insert Accordion...</value>
 						<value xml:lang="de">Akkordeon einfügen...</value>
-						<value xml:lang="es">Insertar acordeón...</value>
+						<value xml:lang="es">Insertar marcador...</value>
 						<value xml:lang="nl">Accordeon invoegen...</value>
 					</prop>
 					<prop oor:name="Target" oor:type="xs:string">
